@@ -12,7 +12,6 @@ from skillet.cache import (
     hash_directory,
 )
 
-
 SKILLET_DIR = Path.home() / ".skillet"
 
 
@@ -91,11 +90,13 @@ def run_compare(name: str, skill_path: Path):
             skill_total += len(skill_iters)
             skill_pass += sum(1 for it in skill_iters if it.get("pass"))
 
-        results.append({
-            "source": gap["_source"],
-            "baseline": baseline_rate,
-            "skill": skill_rate,
-        })
+        results.append(
+            {
+                "source": gap["_source"],
+                "baseline": baseline_rate,
+                "skill": skill_rate,
+            }
+        )
 
     # Check for missing data
     if missing_baseline:
@@ -112,7 +113,8 @@ def run_compare(name: str, skill_path: Path):
         raise click.ClickException("No baseline results cached. Run `skillet eval {name}` first.")
 
     if missing_skill and len(missing_skill) == len(gaps):
-        raise click.ClickException(f"No skill results cached. Run `skillet eval {name} {skill_path}` first.")
+        msg = f"No skill results cached. Run `skillet eval {name} {skill_path}` first."
+        raise click.ClickException(msg)
 
     # Print comparison table
     click.echo(f"Comparison: {name}")
@@ -125,11 +127,11 @@ def run_compare(name: str, skill_path: Path):
 
     # Per-gap results
     for r in results:
-        baseline_str = f"{r['baseline']:.0f}%" if r['baseline'] is not None else "-"
-        skill_str = f"{r['skill']:.0f}%" if r['skill'] is not None else "-"
+        baseline_str = f"{r['baseline']:.0f}%" if r["baseline"] is not None else "-"
+        skill_str = f"{r['skill']:.0f}%" if r["skill"] is not None else "-"
 
-        if r['baseline'] is not None and r['skill'] is not None:
-            delta = r['skill'] - r['baseline']
+        if r["baseline"] is not None and r["skill"] is not None:
+            delta = r["skill"] - r["baseline"]
             delta_str = f"{delta:+.0f}%"
         else:
             delta_str = "-"

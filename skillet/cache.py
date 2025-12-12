@@ -5,7 +5,6 @@ from pathlib import Path
 
 import yaml
 
-
 SKILLET_DIR = Path.home() / ".skillet"
 CACHE_DIR = SKILLET_DIR / "cache"
 
@@ -63,7 +62,7 @@ def get_cached_iterations(cache_dir: Path) -> list[dict]:
 
     results = []
     for f in sorted(cache_dir.glob("iter-*.yaml")):
-        with open(f) as fp:
+        with f.open() as fp:
             results.append(yaml.safe_load(fp))
 
     return results
@@ -74,7 +73,7 @@ def save_iteration(cache_dir: Path, iteration: int, result: dict):
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     cache_file = cache_dir / f"iter-{iteration}.yaml"
-    with open(cache_file, "w") as f:
+    with cache_file.open("w") as f:
         yaml.dump(result, f, default_flow_style=False)
 
 

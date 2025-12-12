@@ -6,7 +6,6 @@ from pathlib import Path
 import click
 import yaml
 
-
 SKILLET_DIR = Path.home() / ".skillet"
 
 
@@ -26,7 +25,7 @@ def load_gaps(name: str) -> list[dict]:
 
     gaps = []
     for gap_file in sorted(gaps_dir.glob("*.yaml")):
-        with open(gap_file) as f:
+        with gap_file.open() as f:
             gap = yaml.safe_load(f)
             gaps.append(gap)
 
@@ -35,12 +34,14 @@ def load_gaps(name: str) -> list[dict]:
 
 async def draft_skill_async(name: str, gaps: list[dict], extra_prompt: str | None = None) -> str:
     """Use Claude to draft a SKILL.md based on captured gaps."""
-    from claude_agent_sdk import query, AssistantMessage, TextBlock, ClaudeAgentOptions
+    from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
-    gaps_summary = "\n\n".join([
-        f"## Gap {i+1}\nPrompt: {g['prompt']}\nExpected: {g['expected']}"
-        for i, g in enumerate(gaps)
-    ])
+    gaps_summary = "\n\n".join(
+        [
+            f"## Gap {i + 1}\nPrompt: {g['prompt']}\nExpected: {g['expected']}"
+            for i, g in enumerate(gaps)
+        ]
+    )
 
     extra_section = ""
     if extra_prompt:
@@ -77,7 +78,7 @@ Return ONLY the SKILL.md content."""
 
     # Strip markdown code fences if present
     if result.startswith("```markdown"):
-        result = result[len("```markdown"):].strip()
+        result = result[len("```markdown") :].strip()
     if result.startswith("```"):
         result = result[3:].strip()
     if result.endswith("```"):
@@ -117,6 +118,7 @@ def create_skill(
         if not click.confirm(f"Skill already exists at {skill_dir}. Overwrite?"):
             raise SystemExit(0)
         import shutil
+
         shutil.rmtree(skill_dir)
 
     # Generate SKILL.md content
@@ -132,7 +134,7 @@ def create_skill(
     click.echo(f"Created {skill_dir}/")
     click.echo(f"└── SKILL.md (draft from {len(gaps)} gaps)")
     click.echo()
-    click.echo(f"Next steps:")
+    click.echo("Next steps:")
     click.echo(f"  1. Edit {skill_dir}/SKILL.md")
     click.echo(f"  2. Run: skillet eval {name} {skill_dir}")
     click.echo(f"  3. Compare: skillet compare {name} {skill_dir}")
