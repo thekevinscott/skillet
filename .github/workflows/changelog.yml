@@ -12,16 +12,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check for changelog update
-        run: |
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}" == "true" ]]; then
-            echo "Skipping changelog check (skip-changelog label present)"
-            exit 0
-          fi
+      - name: Skip if labeled
+        if: contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+        run: echo "Skipping changelog check (skip-changelog label present)"
 
-          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q '^CHANGELOG.md$'; then
-            echo "CHANGELOG.md was updated"
-          else
-            echo "::error::CHANGELOG.md was not updated. Please add an entry or add the 'skip-changelog' label."
-            exit 1
-          fi
+      - name: Install uv
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+        run: uv sync --extra dev
+
+      - name: Check changelog
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+        run: uv run just check-changelog origin/${{ github.base_ref }}

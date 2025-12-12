@@ -42,3 +42,13 @@ test-cov:
 # Install pre-commit hooks
 hooks:
     uv run pre-commit install
+
+# Check changelog was updated (for CI)
+check-changelog base_ref='origin/main':
+    #!/usr/bin/env bash
+    if git diff --name-only {{base_ref}}...HEAD | grep -q '^CHANGELOG.md$'; then
+        echo "CHANGELOG.md was updated"
+    else
+        echo "Error: CHANGELOG.md was not updated"
+        exit 1
+    fi
