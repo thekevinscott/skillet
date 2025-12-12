@@ -200,7 +200,7 @@ async def tune_async(
         click.echo()
 
         # Run evals
-        pass_rate, results = await run_eval_for_tune(name, gaps, skill_path, samples, parallel)
+        pass_rate, results = await run_eval_for_tune(gaps, skill_path, samples, parallel)
 
         click.echo()
         click.echo(f"Pass rate: {pass_rate:.0f}%")
