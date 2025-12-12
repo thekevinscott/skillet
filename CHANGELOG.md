@@ -18,3 +18,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-commit hooks for linting and tests
 - CI workflows for lint, test, and build
 - PR monitor for CI gating
+- PEP 561 py.typed marker for type checking support

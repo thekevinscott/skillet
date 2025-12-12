@@ -7,8 +7,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Skip for dependabot PRs and PRs with skip-changelog label
+    if: github.actor != 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -18,7 +20,7 @@ jobs:
 
       - name: Install uv
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
