@@ -38,3 +38,7 @@ test *args:
 # Run tests with coverage
 test-cov:
     uv run pytest --cov --cov-report=term-missing
+
+# Install pre-commit hooks
+hooks:
+    uv run pre-commit install
