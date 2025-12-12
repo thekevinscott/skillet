@@ -5,9 +5,14 @@ import random
 from pathlib import Path
 
 import yaml
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from skillet.eval import LiveDisplay, load_gaps, run_prompt
 from skillet.judge import judge_response
+
+console = Console()
 
 # Tips to explore instruction space (inspired by DSPy MIPROv2)
 TUNE_TIPS = [
@@ -187,45 +192,66 @@ async def tune(
 
     gaps = load_gaps(name)
 
-    print(f"\nTuning: {name}")
-    print(f"Skill: {skill_path}")
-    print(f"Gaps: {len(gaps)}")
-    print(f"Target: {target_pass_rate:.0f}% pass rate")
-    print(f"Max rounds: {max_rounds}")
-    print()
+    # Print header
+    console.print()
+    console.print(
+        Panel.fit(
+            f"[bold]Tuning:[/bold] {name}\n"
+            f"[bold]Skill:[/bold] [cyan]{skill_path}[/cyan]\n"
+            f"[bold]Gaps:[/bold] {len(gaps)}\n"
+            f"[bold]Target:[/bold] {target_pass_rate:.0f}% pass rate\n"
+            f"[bold]Max rounds:[/bold] {max_rounds}",
+            title="Skill Tuner",
+        )
+    )
 
     for round_num in range(1, max_rounds + 1):
-        print(f"── Round {round_num}/{max_rounds} ──")
-        print()
+        console.print()
+        console.rule(f"[bold]Round {round_num}/{max_rounds}[/bold]")
+        console.print()
 
         # Run evals
         pass_rate, results = await run_eval_for_tune(gaps, skill_path, samples, parallel)
 
-        print()
-        print(f"Pass rate: {pass_rate:.0f}%")
+        console.print()
+        if pass_rate >= target_pass_rate:
+            rate_color = "green"
+        elif pass_rate >= 50:
+            rate_color = "yellow"
+        else:
+            rate_color = "red"
+        console.print(f"Pass rate: [{rate_color}]{pass_rate:.0f}%[/{rate_color}]")
 
         if pass_rate >= target_pass_rate:
-            print()
-            print("✓ Target reached! Skill tuned successfully.")
+            console.print()
+            console.print("[bold green]✓ Target reached! Skill tuned successfully.[/bold green]")
             return
 
         # Get failures
         failures = [r for r in results if not r["pass"]]
-        print(f"Failures: {len(failures)}")
-        print()
+        console.print(f"Failures: [red]{len(failures)}[/red]")
+        console.print()
 
         # Improve skill with a random tip
         tip = random.choice(TUNE_TIPS)
-        print(f"Improving SKILL.md (tip: {tip[:40]}...)")
-        new_content = await improve_skill(skill_path, failures, tip)
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task(f"Improving SKILL.md [dim](tip: {tip[:30]}...)[/dim]", total=None)
+            new_content = await improve_skill(skill_path, failures, tip)
 
         # Write new version
         skill_file = skill_path / "SKILL.md"
         skill_file.write_text(new_content + "\n")
-        print("Updated SKILL.md")
-        print()
+        console.print("[green]Updated SKILL.md[/green]")
 
     # Didn't reach target
-    print(f"✗ Did not reach {target_pass_rate:.0f}% after {max_rounds} rounds.")
-    print(f"  Current pass rate: {pass_rate:.0f}%")
-    print("  Try running `skillet tune` again or edit SKILL.md manually.")
+    console.print()
+    console.print(
+        f"[bold red]✗ Did not reach {target_pass_rate:.0f}% after {max_rounds} rounds.[/bold red]"
+    )
+    console.print(f"  Current pass rate: {pass_rate:.0f}%")
+    console.print("  Try running [bold]skillet tune[/bold] again or edit SKILL.md manually.")
