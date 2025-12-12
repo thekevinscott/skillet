@@ -14,3 +14,4 @@ scribbles
 tmp
 deprecated
 .claude/settings.local.json
+.coverage
