@@ -7,7 +7,7 @@ from rich.panel import Panel
 
 from skillet.cli.display import LiveDisplay
 from skillet.gaps import load_gaps
-from skillet.tune import run_tune
+from skillet.tune import tune
 
 console = Console()
 
@@ -90,7 +90,7 @@ async def tune_command(
     async def on_improved(_new_content: str):
         console.print("[green]Updated SKILL.md[/green]")
 
-    result = await run_tune(
+    result = await tune(
         name,
         skill_path,
         max_rounds=max_rounds,

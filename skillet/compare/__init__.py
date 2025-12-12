@@ -1,5 +1,5 @@
 """Compare baseline vs skill results."""
 
-from .run import run_compare
+from .run import compare
 
-__all__ = ["run_compare"]
+__all__ = ["compare"]

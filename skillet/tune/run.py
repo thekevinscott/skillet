@@ -83,7 +83,7 @@ async def run_tune_eval(
     return pass_rate, list(results)
 
 
-async def run_tune(
+async def tune(
     name: str,
     skill_path: Path,
     max_rounds: int = 5,

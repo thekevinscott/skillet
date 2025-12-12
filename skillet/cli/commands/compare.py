@@ -5,7 +5,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
-from skillet.compare import run_compare
+from skillet.compare import compare
 
 console = Console()
 
@@ -25,7 +25,7 @@ def format_delta(baseline: float | None, skill: float | None) -> str:
 
 def compare_command(name: str, skill_path: Path):
     """Run compare command with display."""
-    result = run_compare(name, skill_path)
+    result = compare(name, skill_path)
 
     # Check for missing data
     if result["missing_baseline"]:

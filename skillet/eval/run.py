@@ -136,7 +136,7 @@ async def run_single_eval(
         return result
 
 
-async def run_eval(
+async def evaluate(
     name: str,
     skill_path: Path | None = None,
     samples: int = 3,
@@ -145,7 +145,7 @@ async def run_eval(
     parallel: int = 3,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
 ) -> dict:
-    """Run evaluation for gaps in parallel, with caching.
+    """Evaluate gaps in parallel, with caching.
 
     Args:
         name: Name of the gap set to evaluate

@@ -34,7 +34,7 @@ def calculate_pass_rate(iterations: list[dict]) -> float | None:
     return passes / len(iterations) * 100
 
 
-def run_compare(name: str, skill_path: Path) -> dict:
+def compare(name: str, skill_path: Path) -> dict:
     """Compare baseline vs skill results from cache.
 
     Returns:

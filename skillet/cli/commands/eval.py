@@ -7,7 +7,7 @@ from rich.console import Console
 
 from skillet._internal.sdk import query_assistant_text
 from skillet.cli.display import LiveDisplay
-from skillet.eval import run_eval
+from skillet.eval import evaluate
 
 console = Console()
 
@@ -79,7 +79,7 @@ async def eval_command(
             await display.update(task, state, result)
 
     # Run the evaluation
-    eval_result = await run_eval(
+    eval_result = await evaluate(
         name,
         skill_path=skill_path,
         samples=samples,

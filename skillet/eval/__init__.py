@@ -1,6 +1,6 @@
 """Evaluation functionality."""
 
 from .judge import judge_response
-from .run import run_eval
+from .run import evaluate
 
-__all__ = ["judge_response", "run_eval"]
+__all__ = ["evaluate", "judge_response"]
