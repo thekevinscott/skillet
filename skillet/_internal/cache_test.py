@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from skillet.cache import gap_cache_key, hash_directory
+from skillet._internal.cache import gap_cache_key, hash_directory
 
 
 def describe_gap_cache_key():

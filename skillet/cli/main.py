@@ -38,10 +38,10 @@ async def eval(
         skillet eval my-skill -g 5 -s 1                            # 5 random gaps, 1 sample each
         skillet eval my-skill -p 5                                 # 5 parallel workers
     """
-    from skillet.eval import run_eval
+    from skillet.cli.commands.eval import eval_command
 
     allowed_tools = [t.strip() for t in tools.split(",")] if tools else None
-    await run_eval(
+    await eval_command(
         name,
         skill_path=skill,
         samples=samples,
@@ -64,9 +64,9 @@ def compare(
     Examples:
         skillet compare browser-fallback ~/.claude/skills/browser-fallback
     """
-    from skillet.compare import run_compare
+    from skillet.cli.commands.compare import compare_command
 
-    run_compare(name, skill)
+    compare_command(name, skill)
 
 
 @app.command
@@ -90,9 +90,9 @@ async def tune(
         skillet tune browser-fallback ~/.claude/skills/browser-fallback -r 10
         skillet tune browser-fallback ~/.claude/skills/browser-fallback -s 3
     """
-    from skillet.tune import tune
+    from skillet.cli.commands.tune import tune_command
 
-    await tune(
+    await tune_command(
         name,
         skill,
         max_rounds=rounds,
@@ -120,11 +120,11 @@ async def new(
         skillet new browser-fallback -d /tmp/myproj   # /tmp/myproj/.claude/skills/browser-fallback/
         skillet new browser-fallback -p "Be concise"
     """
-    from skillet.new import create_skill
+    from skillet.cli.commands.new import new_command
 
     base = Path.home() if dir is None else dir
     output_dir = base / ".claude" / "skills"
-    await create_skill(name, output_dir=output_dir, extra_prompt=prompt)
+    await new_command(name, output_dir=output_dir, extra_prompt=prompt)
 
 
 def main():

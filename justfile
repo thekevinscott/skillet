@@ -31,18 +31,6 @@ clean:
 build: clean
     uv build
 
-# Run tests
-test *args:
-    uv run pytest {{args}}
-
-# Run tests with coverage (fails if under threshold)
-test-cov:
-    uv run pytest --cov --cov-report=term-missing
-
-# Run tests with coverage for CI (outputs XML)
-test-ci:
-    uv run pytest --cov --cov-report=xml
-
 # Install pre-commit hooks
 hooks:
     uv run pre-commit install
@@ -65,6 +53,19 @@ security:
 typecheck:
     uv run ty check skillet/
 
+# Run unit tests
+test-unit *args:
+    uv run pytest {{args}}
+
+# Run tests with coverage (fails if under threshold)
+test-cov:
+    uv run pytest --cov --cov-report=term-missing
+
+# Run tests with coverage for CI (outputs XML)
+test-ci:
+    uv run pytest --cov --cov-report=xml
+
+
 # Run integration tests
 test-integration:
     uv run pytest tests/integration/
@@ -73,18 +74,14 @@ test-integration:
 test-e2e:
     uv run pytest tests/e2e/
 
-# Watch mode - re-run tests on file changes
-watch *args:
-    uv run ptw skillet tests/ {{args}}
-
 # Watch unit tests only
-watch-unit *args:
-    uv run ptw skillet tests/unit/ {{args}}
+test-unit-watch *args:
+    uv run ptw --now skillet skillet/ {{args}}
 
 # Watch integration tests only
-watch-integration *args:
-    uv run ptw skillet tests/integration/ {{args}}
+test-integration-watch *args:
+    uv run ptw --now skillet tests/integration/ {{args}}
 
 # Watch e2e tests only
-watch-e2e *args:
-    uv run ptw skillet tests/e2e/ {{args}}
+test-e2e-watch *args:
+    uv run ptw --now skillet tests/e2e/ {{args}}

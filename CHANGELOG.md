@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Reorganized codebase into domain modules (eval/, compare/, tune/, skill/, gaps/)
+- Separated CLI layer from core API logic
+- Renamed public API functions: `run_eval` -> `evaluate`, `run_compare` -> `compare`, `run_tune` -> `tune`
+- Moved internal utilities to `_internal/` module
+
 ### Added
 - Initial CLI with `eval`, `new`, `tune`, and `compare` commands
 - Gap capture via `/skillet:gap` Claude Code command
