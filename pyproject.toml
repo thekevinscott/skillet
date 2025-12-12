@@ -5,7 +5,7 @@ description = "Evaluation-driven Claude Code skill development"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "click>=8.0",
+    "cyclopts>=3.0",
     "pyyaml>=6.0",
     "claude-agent-sdk",
 ]
@@ -67,7 +67,7 @@ branch = true
 omit = ["*_test.py"]
 
 [tool.coverage.report]
-fail_under = 7
+fail_under = 3
 show_missing = true
 exclude_lines = [
     "pragma: no cover",

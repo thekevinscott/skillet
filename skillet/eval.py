@@ -5,7 +5,6 @@ import contextlib
 import sys
 from pathlib import Path
 
-import click
 import yaml
 
 from skillet.cache import (
@@ -14,7 +13,7 @@ from skillet.cache import (
     get_cached_iterations,
     save_iteration,
 )
-from skillet.judge import judge_response_async
+from skillet.judge import judge_response
 
 SKILLET_DIR = Path.home() / ".skillet"
 
@@ -157,6 +156,10 @@ class LiveDisplay:
         sys.stderr.flush()
 
 
+class EvalError(Exception):
+    """Error during evaluation."""
+
+
 def load_gaps(name: str) -> list[dict]:
     """Load all gap files for a skill from ~/.skillet/gaps/<name>/.
 
@@ -166,10 +169,10 @@ def load_gaps(name: str) -> list[dict]:
     gaps_dir = SKILLET_DIR / "gaps" / name
 
     if not gaps_dir.exists():
-        raise click.ClickException(f"No gaps found for '{name}'. Expected: {gaps_dir}")
+        raise EvalError(f"No gaps found for '{name}'. Expected: {gaps_dir}")
 
     if not gaps_dir.is_dir():
-        raise click.ClickException(f"Not a directory: {gaps_dir}")
+        raise EvalError(f"Not a directory: {gaps_dir}")
 
     gaps = []
     for gap_file in sorted(gaps_dir.glob("*.yaml")):
@@ -180,12 +183,12 @@ def load_gaps(name: str) -> list[dict]:
         gaps.append(gap)
 
     if not gaps:
-        raise click.ClickException(f"No gap files found in {gaps_dir}")
+        raise EvalError(f"No gap files found in {gaps_dir}")
 
     return gaps
 
 
-async def run_prompt_async(
+async def run_prompt(
     prompt: str,
     skill_path: Path | None = None,
     allowed_tools: list[str] | None = None,
@@ -260,8 +263,8 @@ async def run_single_eval(
     await display.update(task, "running")
 
     try:
-        response = await run_prompt_async(task["prompt"], skill_path, allowed_tools)
-        judgment = await judge_response_async(
+        response = await run_prompt(task["prompt"], skill_path, allowed_tools)
+        judgment = await judge_response(
             prompt=task["prompt"],
             response=response,
             expected=task["expected"],
@@ -305,7 +308,7 @@ async def run_single_eval(
         return result
 
 
-async def run_eval_async(
+async def run_eval(
     name: str,
     skill_path: Path | None = None,
     samples: int = 3,
@@ -325,21 +328,21 @@ async def run_eval_async(
 
     # Print header
     if skill_path:
-        click.echo("\nEval Results (with skill)")
-        click.echo("=" * 25)
-        click.echo(f"Skill: {skill_path}")
+        print("\nEval Results (with skill)")
+        print("=" * 25)
+        print(f"Skill: {skill_path}")
     else:
-        click.echo("\nEval Results (baseline, no skill)")
-        click.echo("=" * 34)
+        print("\nEval Results (baseline, no skill)")
+        print("=" * 34)
     if max_gaps and max_gaps < total_gaps:
-        click.echo(f"Gaps: {len(gaps)} (sampled from {total_gaps})")
+        print(f"Gaps: {len(gaps)} (sampled from {total_gaps})")
     else:
-        click.echo(f"Gaps: {len(gaps)}")
-    click.echo(f"Samples: {samples} per gap")
-    click.echo(f"Parallel: {parallel}")
-    click.echo(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
-    click.echo(f"Total runs: {len(gaps) * samples}")
-    click.echo()
+        print(f"Gaps: {len(gaps)}")
+    print(f"Samples: {samples} per gap")
+    print(f"Parallel: {parallel}")
+    print(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
+    print(f"Total runs: {len(gaps) * samples}")
+    print()
 
     # Build task list
     tasks = []
@@ -386,21 +389,21 @@ async def run_eval_async(
     total_runs = len(results)
     overall_rate = total_pass / total_runs * 100 if total_runs > 0 else 0
 
-    click.echo()
+    print()
     if cached_count > 0:
-        click.echo(f"Cache: {cached_count} cached, {fresh_count} fresh")
-    click.echo(f"Overall pass rate: {overall_rate:.0f}% ({total_pass}/{total_runs})")
+        print(f"Cache: {cached_count} cached, {fresh_count} fresh")
+    print(f"Overall pass rate: {overall_rate:.0f}% ({total_pass}/{total_runs})")
 
     # Generate summary of failures if any
     failures = [r for r in results if not r["pass"]]
     if failures and fresh_count > 0:  # Only summarize if we ran fresh evals
-        click.echo()
-        click.echo("What Claude did instead:")
-        summary = await summarize_responses_async(failures)
-        click.echo(summary)
+        print()
+        print("What Claude did instead:")
+        summary = await summarize_responses(failures)
+        print(summary)
 
 
-async def summarize_responses_async(results: list[dict]) -> str:
+async def summarize_responses(results: list[dict]) -> str:
     """Summarize what Claude actually did across failed responses."""
     from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
@@ -443,19 +446,3 @@ Focus on the FORMAT or BEHAVIOR patterns, not the content quality.
                     result += block.text
 
     return result
-
-
-def run_eval(
-    name: str,
-    skill_path: Path | None = None,
-    samples: int = 3,
-    max_gaps: int | None = None,
-    allowed_tools: list[str] | None = None,
-    parallel: int = 3,
-):
-    """Sync wrapper for run_eval_async."""
-    try:
-        asyncio.run(run_eval_async(name, skill_path, samples, max_gaps, allowed_tools, parallel))
-    except KeyboardInterrupt:
-        click.echo("\n\nAborted.")
-        raise SystemExit(0) from None

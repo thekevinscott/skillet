@@ -1,9 +1,7 @@
 """LLM-as-judge for evaluating responses against expected behavior."""
 
-import asyncio
 
-
-async def judge_response_async(prompt: str, response: str, expected: str) -> dict:
+async def judge_response(prompt: str, response: str, expected: str) -> dict:
     """Use Claude as a judge to evaluate if a response meets expectations.
 
     Args:
@@ -60,8 +58,3 @@ REASONING: one sentence explanation
         "reasoning": reasoning,
         "raw": result,
     }
-
-
-def judge_response(prompt: str, response: str, expected: str) -> dict:
-    """Sync wrapper for judge_response_async."""
-    return asyncio.run(judge_response_async(prompt, response, expected))
