@@ -1,5 +1,9 @@
 # skillet
 
+[![CI](https://github.com/thekevinscott/skillet/actions/workflows/test.yml/badge.svg)](https://github.com/thekevinscott/skillet/actions/workflows/test.yml)
+[![License](https://img.shields.io/github/license/thekevinscott/skillet)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+
 Evaluation-driven Claude Code skill development.
 
 ## Install
