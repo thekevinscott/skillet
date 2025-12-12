@@ -5,7 +5,8 @@ from pathlib import Path
 
 import yaml
 
-SKILLET_DIR = Path.home() / ".skillet"
+from skillet.config import SKILLET_DIR
+
 CACHE_DIR = SKILLET_DIR / "cache"
 
 
