@@ -35,7 +35,7 @@ build: clean
 test *args:
     uv run pytest {{args}}
 
-# Run tests with coverage
+# Run tests with coverage (fails if under threshold)
 test-cov:
     uv run pytest --cov --cov-report=term-missing
 

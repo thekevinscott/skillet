@@ -63,8 +63,11 @@ source = ["skillet"]
 branch = true
 
 [tool.coverage.report]
+fail_under = 7
+show_missing = true
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
+    "if __name__ == .__main__.:",
 ]
