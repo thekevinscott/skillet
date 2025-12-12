@@ -72,3 +72,19 @@ test-integration:
 # Run e2e tests
 test-e2e:
     uv run pytest tests/e2e/
+
+# Watch mode - re-run tests on file changes
+watch *args:
+    uv run ptw skillet tests/ {{args}}
+
+# Watch unit tests only
+watch-unit *args:
+    uv run ptw skillet tests/unit/ {{args}}
+
+# Watch integration tests only
+watch-integration *args:
+    uv run ptw skillet tests/integration/ {{args}}
+
+# Watch e2e tests only
+watch-e2e *args:
+    uv run ptw skillet tests/e2e/ {{args}}
