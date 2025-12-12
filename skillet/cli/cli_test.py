@@ -11,7 +11,7 @@ def describe_cli():
 
     def it_shows_help():
         result = subprocess.run(
-            [sys.executable, "-m", "skillet.cli", "--help"],
+            [sys.executable, "-m", "skillet.cli.main", "--help"],
             capture_output=True,
             text=True,
         )
@@ -29,7 +29,7 @@ def describe_cli():
     )
     def it_has_subcommand_help(command):
         result = subprocess.run(
-            [sys.executable, "-m", "skillet.cli", command, "--help"],
+            [sys.executable, "-m", "skillet.cli.main", command, "--help"],
             capture_output=True,
             text=True,
         )

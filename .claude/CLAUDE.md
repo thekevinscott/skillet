@@ -1,0 +1,1 @@
+Ensure all work happens in a git worktree. There should always be an issue on Github for work, that gets tied to a PR. After pushing a PR monitor it to make sure all CI checks go green. Before pushing, lint and run unit tests.
