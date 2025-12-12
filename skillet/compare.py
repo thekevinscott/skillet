@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import click
+# removed click
 import yaml
 
 from skillet.cache import (
@@ -20,7 +20,7 @@ def load_gaps(name: str) -> list[dict]:
     gaps_dir = SKILLET_DIR / "gaps" / name
 
     if not gaps_dir.exists():
-        raise click.ClickException(f"No gaps found for '{name}'. Expected: {gaps_dir}")
+        raise Exception(f"No gaps found for '{name}'. Expected: {gaps_dir}")
 
     gaps = []
     for gap_file in sorted(gaps_dir.glob("*.yaml")):
@@ -60,7 +60,7 @@ def run_compare(name: str, skill_path: Path):
     gaps = load_gaps(name)
 
     if not gaps:
-        raise click.ClickException(f"No gaps found for '{name}'")
+        raise Exception(f"No gaps found for '{name}'")
 
     # Collect results for each gap
     results = []
@@ -100,30 +100,30 @@ def run_compare(name: str, skill_path: Path):
 
     # Check for missing data
     if missing_baseline:
-        click.echo(f"Warning: No baseline cache for: {', '.join(missing_baseline)}")
-        click.echo(f"Run: skillet eval {name}")
-        click.echo()
+        print(f"Warning: No baseline cache for: {', '.join(missing_baseline)}")
+        print(f"Run: skillet eval {name}")
+        print()
 
     if missing_skill:
-        click.echo(f"Warning: No skill cache for: {', '.join(missing_skill)}")
-        click.echo(f"Run: skillet eval {name} {skill_path}")
-        click.echo()
+        print(f"Warning: No skill cache for: {', '.join(missing_skill)}")
+        print(f"Run: skillet eval {name} {skill_path}")
+        print()
 
     if missing_baseline and len(missing_baseline) == len(gaps):
-        raise click.ClickException("No baseline results cached. Run `skillet eval {name}` first.")
+        raise Exception("No baseline results cached. Run `skillet eval {name}` first.")
 
     if missing_skill and len(missing_skill) == len(gaps):
         msg = f"No skill results cached. Run `skillet eval {name} {skill_path}` first."
-        raise click.ClickException(msg)
+        raise Exception(msg)
 
     # Print comparison table
-    click.echo(f"Comparison: {name}")
-    click.echo("=" * 50)
-    click.echo()
+    print(f"Comparison: {name}")
+    print("=" * 50)
+    print()
 
     # Header
-    click.echo(f"{'Gap':<20} {'Baseline':>10} {'Skill':>10} {'Δ':>10}")
-    click.echo("-" * 50)
+    print(f"{'Gap':<20} {'Baseline':>10} {'Skill':>10} {'Δ':>10}")
+    print("-" * 50)
 
     # Per-gap results
     for r in results:
@@ -136,10 +136,10 @@ def run_compare(name: str, skill_path: Path):
         else:
             delta_str = "-"
 
-        click.echo(f"{r['source']:<20} {baseline_str:>10} {skill_str:>10} {delta_str:>10}")
+        print(f"{r['source']:<20} {baseline_str:>10} {skill_str:>10} {delta_str:>10}")
 
     # Overall
-    click.echo("-" * 50)
+    print("-" * 50)
 
     overall_baseline = baseline_pass / baseline_total * 100 if baseline_total > 0 else None
     overall_skill = skill_pass / skill_total * 100 if skill_total > 0 else None
@@ -153,4 +153,4 @@ def run_compare(name: str, skill_path: Path):
     else:
         delta_str = "-"
 
-    click.echo(f"{'Overall':<20} {baseline_str:>10} {skill_str:>10} {delta_str:>10}")
+    print(f"{'Overall':<20} {baseline_str:>10} {skill_str:>10} {delta_str:>10}")

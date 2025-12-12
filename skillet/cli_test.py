@@ -1,23 +1,22 @@
 """Tests for CLI module."""
 
+import subprocess
+import sys
+
 import pytest
-from click.testing import CliRunner
-
-from skillet.cli import main
-
-
-@pytest.fixture
-def runner():
-    return CliRunner()
 
 
 def describe_cli():
     """Tests for main CLI."""
 
-    def it_shows_help(runner):
-        result = runner.invoke(main, ["--help"])
-        assert result.exit_code == 0
-        assert "skillet" in result.output.lower()
+    def it_shows_help():
+        result = subprocess.run(
+            [sys.executable, "-m", "skillet.cli", "--help"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert "skillet" in result.stdout.lower()
 
     @pytest.mark.parametrize(
         "command",
@@ -28,6 +27,10 @@ def describe_cli():
             "compare",
         ],
     )
-    def it_has_subcommand_help(runner, command):
-        result = runner.invoke(main, [command, "--help"])
-        assert result.exit_code == 0
+    def it_has_subcommand_help(command):
+        result = subprocess.run(
+            [sys.executable, "-m", "skillet.cli", command, "--help"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0

@@ -4,7 +4,6 @@ import asyncio
 import random
 from pathlib import Path
 
-import click
 import yaml
 
 from skillet.eval import LiveDisplay, load_gaps, run_prompt_async
@@ -188,61 +187,45 @@ async def tune_async(
 
     gaps = load_gaps(name)
 
-    click.echo(f"\nTuning: {name}")
-    click.echo(f"Skill: {skill_path}")
-    click.echo(f"Gaps: {len(gaps)}")
-    click.echo(f"Target: {target_pass_rate:.0f}% pass rate")
-    click.echo(f"Max rounds: {max_rounds}")
-    click.echo()
+    print(f"\nTuning: {name}")
+    print(f"Skill: {skill_path}")
+    print(f"Gaps: {len(gaps)}")
+    print(f"Target: {target_pass_rate:.0f}% pass rate")
+    print(f"Max rounds: {max_rounds}")
+    print()
 
     for round_num in range(1, max_rounds + 1):
-        click.echo(f"── Round {round_num}/{max_rounds} ──")
-        click.echo()
+        print(f"── Round {round_num}/{max_rounds} ──")
+        print()
 
         # Run evals
         pass_rate, results = await run_eval_for_tune(gaps, skill_path, samples, parallel)
 
-        click.echo()
-        click.echo(f"Pass rate: {pass_rate:.0f}%")
+        print()
+        print(f"Pass rate: {pass_rate:.0f}%")
 
         if pass_rate >= target_pass_rate:
-            click.echo()
-            click.echo("✓ Target reached! Skill tuned successfully.")
+            print()
+            print("✓ Target reached! Skill tuned successfully.")
             return
 
         # Get failures
         failures = [r for r in results if not r["pass"]]
-        click.echo(f"Failures: {len(failures)}")
-        click.echo()
+        print(f"Failures: {len(failures)}")
+        print()
 
         # Improve skill with a random tip
         tip = random.choice(TUNE_TIPS)
-        click.echo(f"Improving SKILL.md (tip: {tip[:40]}...)")
+        print(f"Improving SKILL.md (tip: {tip[:40]}...)")
         new_content = await improve_skill_async(skill_path, failures, tip)
 
         # Write new version
         skill_file = skill_path / "SKILL.md"
         skill_file.write_text(new_content + "\n")
-        click.echo("Updated SKILL.md")
-        click.echo()
+        print("Updated SKILL.md")
+        print()
 
     # Didn't reach target
-    click.echo(f"✗ Did not reach {target_pass_rate:.0f}% after {max_rounds} rounds.")
-    click.echo(f"  Current pass rate: {pass_rate:.0f}%")
-    click.echo("  Try running `skillet tune` again or edit SKILL.md manually.")
-
-
-def run_tune(
-    name: str,
-    skill_path: Path,
-    max_rounds: int = 5,
-    target_pass_rate: float = 100.0,
-    samples: int = 1,
-    parallel: int = 3,
-):
-    """Sync wrapper for tune_async."""
-    try:
-        asyncio.run(tune_async(name, skill_path, max_rounds, target_pass_rate, samples, parallel))
-    except KeyboardInterrupt:
-        click.echo("\n\nAborted.")
-        raise SystemExit(0) from None
+    print(f"✗ Did not reach {target_pass_rate:.0f}% after {max_rounds} rounds.")
+    print(f"  Current pass rate: {pass_rate:.0f}%")
+    print("  Try running `skillet tune` again or edit SKILL.md manually.")
