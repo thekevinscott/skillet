@@ -1,12 +1,14 @@
 """Create a new skill from captured gaps."""
 
-import asyncio
 from pathlib import Path
 
-import click
 import yaml
 
 SKILLET_DIR = Path.home() / ".skillet"
+
+
+class SkillError(Exception):
+    """Error during skill creation."""
 
 
 def load_gaps(name: str) -> list[dict]:
@@ -18,10 +20,10 @@ def load_gaps(name: str) -> list[dict]:
     gaps_dir = SKILLET_DIR / "gaps" / name
 
     if not gaps_dir.exists():
-        raise click.ClickException(f"No gaps found for '{name}'. Expected: {gaps_dir}")
+        raise SkillError(f"No gaps found for '{name}'. Expected: {gaps_dir}")
 
     if not gaps_dir.is_dir():
-        raise click.ClickException(f"Not a directory: {gaps_dir}")
+        raise SkillError(f"Not a directory: {gaps_dir}")
 
     gaps = []
     for gap_file in sorted(gaps_dir.glob("*.yaml")):
@@ -32,7 +34,7 @@ def load_gaps(name: str) -> list[dict]:
     return gaps
 
 
-async def draft_skill_async(name: str, gaps: list[dict], extra_prompt: str | None = None) -> str:
+async def draft_skill(name: str, gaps: list[dict], extra_prompt: str | None = None) -> str:
     """Use Claude to draft a SKILL.md based on captured gaps."""
     from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
@@ -87,14 +89,9 @@ Return ONLY the SKILL.md content."""
     return result
 
 
-def draft_skill(name: str, gaps: list[dict], extra_prompt: str | None = None) -> str:
-    """Sync wrapper for draft_skill_async."""
-    return asyncio.run(draft_skill_async(name, gaps, extra_prompt))
-
-
-def create_skill(
+async def create_skill(
     name: str,
-    output_dir: str,
+    output_dir: Path,
     extra_prompt: str | None = None,
 ):
     """Create a new skill from captured gaps.
@@ -108,33 +105,33 @@ def create_skill(
     gaps = load_gaps(name)
 
     if not gaps:
-        raise click.ClickException(f"No gap files found for '{name}'")
+        raise SkillError(f"No gap files found for '{name}'")
 
-    output_path = Path(output_dir)
-    skill_dir = output_path / name
+    skill_dir = output_dir / name
 
     # Check if already exists
     if skill_dir.exists():
-        if not click.confirm(f"Skill already exists at {skill_dir}. Overwrite?"):
+        response = input(f"Skill already exists at {skill_dir}. Overwrite? [y/N] ")
+        if response.lower() not in ("y", "yes"):
             raise SystemExit(0)
         import shutil
 
         shutil.rmtree(skill_dir)
 
     # Generate SKILL.md content
-    click.echo(f"Found {len(gaps)} gaps for '{name}', drafting SKILL.md...")
-    skill_content = draft_skill(name, gaps, extra_prompt)
+    print(f"Found {len(gaps)} gaps for '{name}', drafting SKILL.md...")
+    skill_content = await draft_skill(name, gaps, extra_prompt)
 
     # Create directory and write SKILL.md
     skill_dir.mkdir(parents=True, exist_ok=True)
     (skill_dir / "SKILL.md").write_text(skill_content + "\n")
 
     # Output summary
-    click.echo()
-    click.echo(f"Created {skill_dir}/")
-    click.echo(f"└── SKILL.md (draft from {len(gaps)} gaps)")
-    click.echo()
-    click.echo("Next steps:")
-    click.echo(f"  1. Edit {skill_dir}/SKILL.md")
-    click.echo(f"  2. Run: skillet eval {name} {skill_dir}")
-    click.echo(f"  3. Compare: skillet compare {name} {skill_dir}")
+    print()
+    print(f"Created {skill_dir}/")
+    print(f"└── SKILL.md (draft from {len(gaps)} gaps)")
+    print()
+    print("Next steps:")
+    print(f"  1. Edit {skill_dir}/SKILL.md")
+    print(f"  2. Run: skillet eval {name} {skill_dir}")
+    print(f"  3. Compare: skillet compare {name} {skill_dir}")
