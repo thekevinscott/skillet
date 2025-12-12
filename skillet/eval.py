@@ -13,7 +13,7 @@ from skillet.cache import (
     get_cached_iterations,
     save_iteration,
 )
-from skillet.judge import judge_response_async
+from skillet.judge import judge_response
 
 SKILLET_DIR = Path.home() / ".skillet"
 
@@ -188,7 +188,7 @@ def load_gaps(name: str) -> list[dict]:
     return gaps
 
 
-async def run_prompt_async(
+async def run_prompt(
     prompt: str,
     skill_path: Path | None = None,
     allowed_tools: list[str] | None = None,
@@ -263,8 +263,8 @@ async def run_single_eval(
     await display.update(task, "running")
 
     try:
-        response = await run_prompt_async(task["prompt"], skill_path, allowed_tools)
-        judgment = await judge_response_async(
+        response = await run_prompt(task["prompt"], skill_path, allowed_tools)
+        judgment = await judge_response(
             prompt=task["prompt"],
             response=response,
             expected=task["expected"],
@@ -308,7 +308,7 @@ async def run_single_eval(
         return result
 
 
-async def run_eval_async(
+async def run_eval(
     name: str,
     skill_path: Path | None = None,
     samples: int = 3,
@@ -399,11 +399,11 @@ async def run_eval_async(
     if failures and fresh_count > 0:  # Only summarize if we ran fresh evals
         print()
         print("What Claude did instead:")
-        summary = await summarize_responses_async(failures)
+        summary = await summarize_responses(failures)
         print(summary)
 
 
-async def summarize_responses_async(results: list[dict]) -> str:
+async def summarize_responses(results: list[dict]) -> str:
     """Summarize what Claude actually did across failed responses."""
     from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 

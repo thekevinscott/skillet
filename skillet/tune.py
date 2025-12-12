@@ -6,8 +6,8 @@ from pathlib import Path
 
 import yaml
 
-from skillet.eval import LiveDisplay, load_gaps, run_prompt_async
-from skillet.judge import judge_response_async
+from skillet.eval import LiveDisplay, load_gaps, run_prompt
+from skillet.judge import judge_response
 
 # Tips to explore instruction space (inspired by DSPy MIPROv2)
 TUNE_TIPS = [
@@ -52,8 +52,8 @@ async def run_eval_for_tune(
         async with semaphore:
             await display.update(task, "running")
             try:
-                response = await run_prompt_async(task["prompt"], skill_path)
-                judgment = await judge_response_async(
+                response = await run_prompt(task["prompt"], skill_path)
+                judgment = await judge_response(
                     prompt=task["prompt"],
                     response=response,
                     expected=task["expected"],
@@ -95,7 +95,7 @@ async def run_eval_for_tune(
     return pass_rate, results
 
 
-async def improve_skill_async(
+async def improve_skill(
     skill_path: Path,
     failures: list[dict],
     tip: str | None = None,
@@ -175,7 +175,7 @@ Return ONLY the improved SKILL.md content (no explanation, no code fences)."""
     return result
 
 
-async def tune_async(
+async def tune(
     name: str,
     skill_path: Path,
     max_rounds: int = 5,
@@ -217,7 +217,7 @@ async def tune_async(
         # Improve skill with a random tip
         tip = random.choice(TUNE_TIPS)
         print(f"Improving SKILL.md (tip: {tip[:40]}...)")
-        new_content = await improve_skill_async(skill_path, failures, tip)
+        new_content = await improve_skill(skill_path, failures, tip)
 
         # Write new version
         skill_file = skill_path / "SKILL.md"

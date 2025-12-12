@@ -34,7 +34,7 @@ def load_gaps(name: str) -> list[dict]:
     return gaps
 
 
-async def draft_skill_async(name: str, gaps: list[dict], extra_prompt: str | None = None) -> str:
+async def draft_skill(name: str, gaps: list[dict], extra_prompt: str | None = None) -> str:
     """Use Claude to draft a SKILL.md based on captured gaps."""
     from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
@@ -89,7 +89,7 @@ Return ONLY the SKILL.md content."""
     return result
 
 
-async def create_skill_async(
+async def create_skill(
     name: str,
     output_dir: Path,
     extra_prompt: str | None = None,
@@ -120,7 +120,7 @@ async def create_skill_async(
 
     # Generate SKILL.md content
     print(f"Found {len(gaps)} gaps for '{name}', drafting SKILL.md...")
-    skill_content = await draft_skill_async(name, gaps, extra_prompt)
+    skill_content = await draft_skill(name, gaps, extra_prompt)
 
     # Create directory and write SKILL.md
     skill_dir.mkdir(parents=True, exist_ok=True)

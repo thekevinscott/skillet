@@ -38,10 +38,10 @@ async def eval(
         skillet eval my-skill -g 5 -s 1                            # 5 random gaps, 1 sample each
         skillet eval my-skill -p 5                                 # 5 parallel workers
     """
-    from skillet.eval import run_eval_async
+    from skillet.eval import run_eval
 
     allowed_tools = [t.strip() for t in tools.split(",")] if tools else None
-    await run_eval_async(
+    await run_eval(
         name,
         skill_path=skill,
         samples=samples,
@@ -90,9 +90,9 @@ async def tune(
         skillet tune browser-fallback ~/.claude/skills/browser-fallback -r 10
         skillet tune browser-fallback ~/.claude/skills/browser-fallback -s 3
     """
-    from skillet.tune import tune_async
+    from skillet.tune import tune
 
-    await tune_async(
+    await tune(
         name,
         skill,
         max_rounds=rounds,
@@ -120,11 +120,11 @@ async def new(
         skillet new browser-fallback -d /tmp/myproj   # /tmp/myproj/.claude/skills/browser-fallback/
         skillet new browser-fallback -p "Be concise"
     """
-    from skillet.new import create_skill_async
+    from skillet.new import create_skill
 
     base = Path.home() if dir is None else dir
     output_dir = base / ".claude" / "skills"
-    await create_skill_async(name, output_dir=output_dir, extra_prompt=prompt)
+    await create_skill(name, output_dir=output_dir, extra_prompt=prompt)
 
 
 def main():
