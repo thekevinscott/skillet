@@ -203,15 +203,20 @@ async def run_prompt_async(
         cwd = str(Path(*skill_path.parts[:claude_idx]))
 
     # Build allowed_tools, ensuring Skill is included if we have a skill
-    tools = allowed_tools
-    if skill_path and tools is not None and "Skill" not in tools:
-        tools = ["Skill", *list(tools)]
-    elif skill_path and tools is None:
-        tools = ["Skill", "Bash", "Read", "Write", "WebFetch"]
+    tools: list[str]
+    if skill_path:
+        if allowed_tools is not None and "Skill" not in allowed_tools:
+            tools = ["Skill", *list(allowed_tools)]
+        elif allowed_tools is None:
+            tools = ["Skill", "Bash", "Read", "Write", "WebFetch"]
+        else:
+            tools = list(allowed_tools)
+    else:
+        tools = list(allowed_tools) if allowed_tools else []
 
     options = ClaudeAgentOptions(
         max_turns=3,
-        allowed_tools=tools,
+        allowed_tools=tools if tools else None,  # type: ignore[arg-type]
         cwd=cwd,
         setting_sources=["project"] if cwd else None,
     )
