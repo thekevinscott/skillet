@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # Detect what files changed between this tag and the previous one
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      package: ${{ steps.filter.outputs.package }}
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          # Get all tags sorted by version, find the one before current
+          prev_tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | sed -n '2p')
+          if [ -z "$prev_tag" ]; then
+            # If no previous tag, compare against initial commit
+            prev_tag=$(git rev-list --max-parents=0 HEAD)
+          fi
+          echo "prev_tag=$prev_tag" >> $GITHUB_OUTPUT
+
+      - name: Check changed files
+        id: filter
+        run: |
+          # Get list of changed files between previous tag and current
+          changed_files=$(git diff --name-only ${{ steps.prev_tag.outputs.prev_tag }}..HEAD)
+
+          # Check for package-related changes
+          if echo "$changed_files" | grep -qE '^(\.claude/|skillet/|pyproject\.toml|uv\.lock|\.python-version|LICENSE|README\.md)'; then
+            echo "package=true" >> $GITHUB_OUTPUT
+          else
+            echo "package=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check for docs changes
+          if echo "$changed_files" | grep -qE '^docs/'; then
+            echo "docs=true" >> $GITHUB_OUTPUT
+          else
+            echo "docs=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Publish to PyPI if package files changed
+  pypi:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.package == 'true'
+    permissions:
+      id-token: write  # Required for trusted publishing
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always
+
+  # Deploy docs to GitHub Pages if docs files changed
+  docs:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
