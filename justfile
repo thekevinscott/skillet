@@ -39,6 +39,10 @@ test *args:
 test-cov:
     uv run pytest --cov --cov-report=term-missing
 
+# Run tests with coverage for CI (outputs XML)
+test-ci:
+    uv run pytest --cov --cov-report=xml
+
 # Install pre-commit hooks
 hooks:
     uv run pre-commit install
