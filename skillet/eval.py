@@ -1,6 +1,7 @@
 """Evaluate Claude against captured gaps, with or without a skill."""
 
 import asyncio
+import contextlib
 import sys
 from pathlib import Path
 
@@ -14,7 +15,6 @@ from skillet.cache import (
     save_iteration,
 )
 from skillet.judge import judge_response_async
-
 
 SKILLET_DIR = Path.home() / ".skillet"
 
@@ -55,10 +55,8 @@ class LiveDisplay:
         self.running = False
         if self.spinner_task:
             self.spinner_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self.spinner_task
-            except asyncio.CancelledError:
-                pass
 
     async def _spin(self):
         """Animation loop for spinners."""
@@ -81,10 +79,7 @@ class LiveDisplay:
         for task in self.tasks:
             gap_idx = task["gap_idx"]
             if gap_idx not in gaps:
-                gaps[gap_idx] = {
-                    "source": task["gap_source"],
-                    "iterations": []
-                }
+                gaps[gap_idx] = {"source": task["gap_source"], "iterations": []}
 
             key = self._key(task)
             status = self.status[key]
@@ -129,10 +124,7 @@ class LiveDisplay:
         for task in self.tasks:
             gap_idx = task["gap_idx"]
             if gap_idx not in gaps:
-                gaps[gap_idx] = {
-                    "source": task["gap_source"],
-                    "iterations": []
-                }
+                gaps[gap_idx] = {"source": task["gap_source"], "iterations": []}
 
             key = self._key(task)
             status = self.status[key]
@@ -199,22 +191,21 @@ async def run_prompt_async(
     allowed_tools: list[str] | None = None,
 ) -> str:
     """Run a prompt through Claude and return the response."""
-    from claude_agent_sdk import query, AssistantMessage, TextBlock, ClaudeAgentOptions
+    from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
     # If skill path provided, set cwd to parent of .claude/skills so SDK discovers it
     # e.g., skill_path=/tmp/proj/.claude/skills/browser-fallback -> cwd=/tmp/proj
     cwd = None
-    if skill_path:
-        # skill_path is like /path/to/.claude/skills/skill-name
-        # We need cwd to be /path/to (parent of .claude)
-        if ".claude" in skill_path.parts:
-            claude_idx = skill_path.parts.index(".claude")
-            cwd = str(Path(*skill_path.parts[:claude_idx]))
+    # skill_path is like /path/to/.claude/skills/skill-name
+    # We need cwd to be /path/to (parent of .claude)
+    if skill_path and ".claude" in skill_path.parts:
+        claude_idx = skill_path.parts.index(".claude")
+        cwd = str(Path(*skill_path.parts[:claude_idx]))
 
     # Build allowed_tools, ensuring Skill is included if we have a skill
     tools = allowed_tools
     if skill_path and tools is not None and "Skill" not in tools:
-        tools = ["Skill"] + list(tools)
+        tools = ["Skill", *list(tools)]
     elif skill_path and tools is None:
         tools = ["Skill", "Bash", "Read", "Write", "WebFetch"]
 
@@ -282,12 +273,16 @@ async def run_single_eval(
         }
 
         # Save to cache
-        save_iteration(cache_dir, task["iteration"], {
-            "iteration": task["iteration"],
-            "response": response,
-            "judgment": judgment,
-            "pass": judgment["pass"],
-        })
+        save_iteration(
+            cache_dir,
+            task["iteration"],
+            {
+                "iteration": task["iteration"],
+                "response": response,
+                "judgment": judgment,
+                "pass": judgment["pass"],
+            },
+        )
 
         await display.update(task, "done", result)
         return result
@@ -325,11 +320,11 @@ async def run_eval_async(
 
     # Print header
     if skill_path:
-        click.echo(f"\nEval Results (with skill)")
+        click.echo("\nEval Results (with skill)")
         click.echo("=" * 25)
         click.echo(f"Skill: {skill_path}")
     else:
-        click.echo(f"\nEval Results (baseline, no skill)")
+        click.echo("\nEval Results (baseline, no skill)")
         click.echo("=" * 34)
     if max_gaps and max_gaps < total_gaps:
         click.echo(f"Gaps: {len(gaps)} (sampled from {total_gaps})")
@@ -345,15 +340,17 @@ async def run_eval_async(
     tasks = []
     for gap_idx, gap in enumerate(gaps):
         for i in range(samples):
-            tasks.append({
-                "gap_idx": gap_idx,
-                "gap_source": gap["_source"],
-                "gap_content": gap["_content"],
-                "iteration": i + 1,
-                "total_iterations": samples,
-                "prompt": gap["prompt"],
-                "expected": gap["expected"],
-            })
+            tasks.append(
+                {
+                    "gap_idx": gap_idx,
+                    "gap_source": gap["_source"],
+                    "gap_content": gap["_content"],
+                    "iteration": i + 1,
+                    "total_iterations": samples,
+                    "prompt": gap["prompt"],
+                    "expected": gap["expected"],
+                }
+            )
 
     # Create display
     display = LiveDisplay(tasks)
@@ -400,26 +397,30 @@ async def run_eval_async(
 
 async def summarize_responses_async(results: list[dict]) -> str:
     """Summarize what Claude actually did across failed responses."""
-    from claude_agent_sdk import query, AssistantMessage, TextBlock, ClaudeAgentOptions
+    from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
     response_summaries = []
     for result in results:
-        response_summaries.append({
-            "expected": result.get("expected", ""),
-            "response_preview": result["response"][:500] if result.get("response") else "",
-            "judgment": result["judgment"]["reasoning"] if result.get("judgment") else "",
-        })
+        response_summaries.append(
+            {
+                "expected": result.get("expected", ""),
+                "response_preview": result["response"][:500] if result.get("response") else "",
+                "judgment": result["judgment"]["reasoning"] if result.get("judgment") else "",
+            }
+        )
 
-    summary_prompt = f"""Analyze these AI responses that failed to meet expectations. Summarize the PATTERNS in what the AI did instead.
+    responses_yaml = yaml.dump(response_summaries, default_flow_style=False)
+    summary_prompt = f"""Analyze these AI responses that failed to meet expectations.
+Summarize the PATTERNS in what the AI did instead.
 
 ## Failed Responses
 
-{yaml.dump(response_summaries, default_flow_style=False)}
+{responses_yaml}
 
 ## Your Task
 
-Write 2-4 bullet points summarizing what the AI typically did instead of the expected behavior. Be specific and concise. Format as:
-  - Pattern description (X% of responses)
+Write 2-4 bullet points summarizing what the AI typically did instead of expected.
+Be specific and concise. Format as: - Pattern description (X% of responses)
 
 Focus on the FORMAT or BEHAVIOR patterns, not the content quality.
 """
@@ -452,4 +453,4 @@ def run_eval(
         asyncio.run(run_eval_async(name, skill_path, samples, max_gaps, allowed_tools, parallel))
     except KeyboardInterrupt:
         click.echo("\n\nAborted.")
-        raise SystemExit(0)
+        raise SystemExit(0) from None

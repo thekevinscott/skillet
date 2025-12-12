@@ -7,10 +7,8 @@ from pathlib import Path
 import click
 import yaml
 
-from skillet.cache import gap_cache_key, get_cache_dir, save_iteration, hash_directory
-from skillet.eval import load_gaps, run_prompt_async, LiveDisplay
+from skillet.eval import LiveDisplay, load_gaps, run_prompt_async
 from skillet.judge import judge_response_async
-
 
 # Tips to explore instruction space (inspired by DSPy MIPROv2)
 TUNE_TIPS = [
@@ -27,7 +25,6 @@ TUNE_TIPS = [
 
 
 async def run_eval_for_tune(
-    name: str,
     gaps: list[dict],
     skill_path: Path,
     samples: int = 1,
@@ -38,14 +35,16 @@ async def run_eval_for_tune(
     tasks = []
     for gap_idx, gap in enumerate(gaps):
         for i in range(samples):
-            tasks.append({
-                "gap_idx": gap_idx,
-                "gap_source": gap["_source"],
-                "gap_content": gap["_content"],
-                "iteration": i + 1,
-                "prompt": gap["prompt"],
-                "expected": gap["expected"],
-            })
+            tasks.append(
+                {
+                    "gap_idx": gap_idx,
+                    "gap_source": gap["_source"],
+                    "gap_content": gap["_content"],
+                    "iteration": i + 1,
+                    "prompt": gap["prompt"],
+                    "expected": gap["expected"],
+                }
+            )
 
     display = LiveDisplay(tasks)
     semaphore = asyncio.Semaphore(parallel)
@@ -99,24 +98,25 @@ async def run_eval_for_tune(
 
 async def improve_skill_async(
     skill_path: Path,
-    gaps: list[dict],
     failures: list[dict],
     tip: str | None = None,
 ) -> str:
     """Use Claude to improve the SKILL.md based on failures."""
-    from claude_agent_sdk import query, AssistantMessage, TextBlock, ClaudeAgentOptions
+    from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
     current_skill = (skill_path / "SKILL.md").read_text()
 
     # Summarize failures
     failure_summary = []
     for f in failures:
-        failure_summary.append({
-            "prompt": f["prompt"],
-            "expected": f["expected"],
-            "actual_response": f["response"][:500] if f.get("response") else "",
-            "why_failed": f["judgment"].get("reasoning", ""),
-        })
+        failure_summary.append(
+            {
+                "prompt": f["prompt"],
+                "expected": f["expected"],
+                "actual_response": f["response"][:500] if f.get("response") else "",
+                "why_failed": f["judgment"].get("reasoning", ""),
+            }
+        )
 
     prompt = f"""Improve this SKILL.md so Claude exhibits the expected behavior.
 
@@ -162,7 +162,7 @@ Return ONLY the improved SKILL.md content (no explanation, no code fences)."""
 
     # Strip markdown code fences if present
     if result.startswith("```markdown"):
-        result = result[len("```markdown"):].strip()
+        result = result[len("```markdown") :].strip()
     if result.startswith("```"):
         result = result[3:].strip()
     if result.endswith("```"):
@@ -200,16 +200,14 @@ async def tune_async(
         click.echo()
 
         # Run evals
-        pass_rate, results = await run_eval_for_tune(
-            name, gaps, skill_path, samples, parallel
-        )
+        pass_rate, results = await run_eval_for_tune(name, gaps, skill_path, samples, parallel)
 
         click.echo()
         click.echo(f"Pass rate: {pass_rate:.0f}%")
 
         if pass_rate >= target_pass_rate:
             click.echo()
-            click.echo(f"✓ Target reached! Skill tuned successfully.")
+            click.echo("✓ Target reached! Skill tuned successfully.")
             return
 
         # Get failures
@@ -220,7 +218,7 @@ async def tune_async(
         # Improve skill with a random tip
         tip = random.choice(TUNE_TIPS)
         click.echo(f"Improving SKILL.md (tip: {tip[:40]}...)")
-        new_content = await improve_skill_async(skill_path, gaps, failures, tip)
+        new_content = await improve_skill_async(skill_path, failures, tip)
 
         # Write new version
         skill_file = skill_path / "SKILL.md"
@@ -231,7 +229,7 @@ async def tune_async(
     # Didn't reach target
     click.echo(f"✗ Did not reach {target_pass_rate:.0f}% after {max_rounds} rounds.")
     click.echo(f"  Current pass rate: {pass_rate:.0f}%")
-    click.echo(f"  Try running `skillet tune` again or edit SKILL.md manually.")
+    click.echo("  Try running `skillet tune` again or edit SKILL.md manually.")
 
 
 def run_tune(
@@ -244,9 +242,7 @@ def run_tune(
 ):
     """Sync wrapper for tune_async."""
     try:
-        asyncio.run(tune_async(
-            name, skill_path, max_rounds, target_pass_rate, samples, parallel
-        ))
+        asyncio.run(tune_async(name, skill_path, max_rounds, target_pass_rate, samples, parallel))
     except KeyboardInterrupt:
         click.echo("\n\nAborted.")
-        raise SystemExit(0)
+        raise SystemExit(0) from None

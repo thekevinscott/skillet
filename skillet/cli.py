@@ -17,9 +17,16 @@ def main():
 @click.argument("skill", default=None, required=False, type=click.Path(exists=True))
 @click.option("--samples", "-s", default=3, help="Number of samples per gap (default: 3)")
 @click.option("--gaps", "-g", default=None, type=int, help="Number of gaps to sample (random)")
-@click.option("--tools", "-t", default=None, help="Comma-separated list of allowed tools (default: all)")
-@click.option("--parallel", "-p", default=3, help="Number of parallel workers (default: 3)")
-def eval(name: str, skill: str | None, samples: int, gaps: int | None, tools: str | None, parallel: int):
+@click.option("--tools", "-t", default=None, help="Comma-separated allowed tools")
+@click.option("--parallel", "-p", default=3, help="Parallel workers (default: 3)")
+def eval(
+    name: str,
+    skill: str | None,
+    samples: int,
+    gaps: int | None,
+    tools: str | None,
+    parallel: int,
+):
     """Evaluate Claude against captured gaps.
 
     Reads gap YAML files from ~/.skillet/gaps/<name>/ and runs each prompt
@@ -46,7 +53,14 @@ def eval(name: str, skill: str | None, samples: int, gaps: int | None, tools: st
         allowed_tools = [t.strip() for t in tools.split(",")]
 
     skill_path = Path(skill) if skill else None
-    run_eval(name, skill_path=skill_path, samples=samples, max_gaps=gaps, allowed_tools=allowed_tools, parallel=parallel)
+    run_eval(
+        name,
+        skill_path=skill_path,
+        samples=samples,
+        max_gaps=gaps,
+        allowed_tools=allowed_tools,
+        parallel=parallel,
+    )
 
 
 @main.command()
@@ -99,8 +113,8 @@ def tune(name: str, skill: str, rounds: int, target: float, samples: int, parall
 
 @main.command()
 @click.argument("name")
-@click.option("--dir", "-d", default=None, type=click.Path(), help="Project root directory (default: ~, outputs to <dir>/.claude/skills/)")
-@click.option("--prompt", "-p", default=None, help="Additional instructions for generating the SKILL.md")
+@click.option("--dir", "-d", default=None, type=click.Path(), help="Project root (default: ~)")
+@click.option("--prompt", "-p", default=None, help="Extra instructions for SKILL.md")
 def new(name: str, dir: str | None, prompt: str | None):
     """Create a new skill from captured gaps.
 
@@ -115,12 +129,7 @@ def new(name: str, dir: str | None, prompt: str | None):
     """
     from skillet.new import create_skill
 
-    # Default to home directory
-    if dir is None:
-        base = Path.home()
-    else:
-        base = Path(dir)
-
+    base = Path.home() if dir is None else Path(dir)
     output_dir = base / ".claude" / "skills"
     create_skill(name, output_dir=str(output_dir), extra_prompt=prompt)
 

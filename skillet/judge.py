@@ -14,7 +14,7 @@ async def judge_response_async(prompt: str, response: str, expected: str) -> dic
     Returns:
         dict with 'pass' (bool) and 'reasoning' (str)
     """
-    from claude_agent_sdk import query, AssistantMessage, TextBlock, ClaudeAgentOptions
+    from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
     judge_prompt = f"""You are evaluating whether an AI response meets the user's expectations.
 
