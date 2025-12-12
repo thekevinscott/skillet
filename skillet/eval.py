@@ -1,11 +1,12 @@
 """Evaluate Claude against captured gaps, with or without a skill."""
 
 import asyncio
-import contextlib
-import sys
 from pathlib import Path
 
 import yaml
+from rich.console import Console
+from rich.live import Live
+from rich.table import Table
 
 from skillet.cache import (
     gap_cache_key,
@@ -16,63 +17,35 @@ from skillet.cache import (
 from skillet.judge import judge_response
 
 SKILLET_DIR = Path.home() / ".skillet"
+console = Console()
 
-# Status symbols
-PENDING = "○"
-CACHED = "●"
-PASS = "✓"
-FAIL = "✗"
-
-# Spinner frames for running state
-SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+# Status symbols with colors
+PENDING = "[dim]○[/dim]"
+CACHED = "[blue]●[/blue]"
+RUNNING = "[yellow]◐[/yellow]"
+PASS = "[green]✓[/green]"
+FAIL = "[red]✗[/red]"
 
 
 class LiveDisplay:
-    """Live updating display for parallel eval runs."""
+    """Live updating display for parallel eval runs using rich."""
 
     def __init__(self, tasks: list[dict]):
-        """Initialize with list of tasks.
-
-        Each task dict has: gap_source, gap_idx, iteration, total_iterations
-        """
+        """Initialize with list of tasks."""
         self.tasks = tasks
         self.status = {self._key(t): {"state": "pending", "result": None} for t in tasks}
         self.lock = asyncio.Lock()
-        self.spinner_task = None
-        self.running = False
+        self.live: Live | None = None
 
     def _key(self, task: dict) -> str:
         return f"{task['gap_idx']}:{task['iteration']}"
 
-    async def start(self):
-        """Start the spinner animation loop."""
-        self.running = True
-        self.spinner_task = asyncio.create_task(self._spin())
+    def _build_table(self) -> Table:
+        """Build the status table."""
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_column("Gap", style="cyan")
+        table.add_column("Status")
 
-    async def stop(self):
-        """Stop the spinner animation loop."""
-        self.running = False
-        if self.spinner_task:
-            self.spinner_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self.spinner_task
-
-    async def _spin(self):
-        """Animation loop for spinners."""
-        frame_idx = 0
-        while self.running:
-            async with self.lock:
-                self._render(frame_idx)
-            frame_idx = (frame_idx + 1) % len(SPINNER_FRAMES)
-            await asyncio.sleep(0.08)
-
-    async def update(self, task: dict, state: str, result: dict | None = None):
-        async with self.lock:
-            key = self._key(task)
-            self.status[key] = {"state": state, "result": result}
-
-    def _render(self, frame_idx: int = 0):
-        """Render current status to stderr."""
         # Group by gap
         gaps = {}
         for task in self.tasks:
@@ -84,13 +57,11 @@ class LiveDisplay:
             status = self.status[key]
             gaps[gap_idx]["iterations"].append(status)
 
-        # Build output
-        lines = []
+        # Build rows
         for gap_idx in sorted(gaps.keys()):
             gap = gaps[gap_idx]
             iterations = gap["iterations"]
 
-            # Build iteration symbols
             symbols = []
             for it in iterations:
                 if it["state"] == "pending":
@@ -98,27 +69,38 @@ class LiveDisplay:
                 elif it["state"] == "cached":
                     symbols.append(CACHED)
                 elif it["state"] == "running":
-                    symbols.append(SPINNER_FRAMES[frame_idx])
+                    symbols.append(RUNNING)
                 elif it["state"] == "done":
                     if it["result"] and it["result"].get("pass"):
                         symbols.append(PASS)
                     else:
                         symbols.append(FAIL)
 
-            line = f"  {gap['source']}: {' '.join(symbols)}"
-            lines.append(line)
+            table.add_row(gap["source"], " ".join(symbols))
 
-        # Clear and redraw
-        output = "\r\033[K" + "\n\033[K".join(lines)
-        # Move cursor back up
-        if len(lines) > 1:
-            output += f"\033[{len(lines) - 1}A\r"
+        return table
 
-        sys.stderr.write(output)
-        sys.stderr.flush()
+    async def start(self):
+        """Start the live display."""
+        self.live = Live(self._build_table(), console=console, refresh_per_second=4)
+        self.live.start()
+
+    async def stop(self):
+        """Stop the live display."""
+        if self.live:
+            self.live.stop()
+
+    async def update(self, task: dict, state: str, result: dict | None = None):
+        """Update task status and refresh display."""
+        async with self.lock:
+            key = self._key(task)
+            self.status[key] = {"state": state, "result": result}
+            if self.live:
+                self.live.update(self._build_table())
 
     def finalize(self):
-        """Print final state without cursor manipulation."""
+        """Print final state with pass rates."""
+        # Group by gap
         gaps = {}
         for task in self.tasks:
             gap_idx = task["gap_idx"]
@@ -129,10 +111,7 @@ class LiveDisplay:
             status = self.status[key]
             gaps[gap_idx]["iterations"].append(status)
 
-        # Move to end and print final state
-        sys.stderr.write("\n" * len(gaps))
-        sys.stderr.write("\r")
-
+        # Print final results
         for gap_idx in sorted(gaps.keys()):
             gap = gaps[gap_idx]
             iterations = gap["iterations"]
@@ -150,10 +129,11 @@ class LiveDisplay:
                     symbols.append(PENDING)
 
             pct = pass_count / len(iterations) * 100 if iterations else 0
-            line = f"  {gap['source']}: {' '.join(symbols)} ({pct:.0f}%)\n"
-            sys.stderr.write(line)
-
-        sys.stderr.flush()
+            pct_color = "green" if pct >= 80 else "yellow" if pct >= 50 else "red"
+            console.print(
+                f"  [cyan]{gap['source']}[/cyan]: {' '.join(symbols)} "
+                f"[{pct_color}]({pct:.0f}%)[/{pct_color}]"
+            )
 
 
 class EvalError(Exception):
@@ -327,22 +307,22 @@ async def run_eval(
         gaps = random.sample(gaps, max_gaps)
 
     # Print header
+    console.print()
     if skill_path:
-        print("\nEval Results (with skill)")
-        print("=" * 25)
-        print(f"Skill: {skill_path}")
+        console.print("[bold]Eval Results (with skill)[/bold]")
+        console.print(f"Skill: [cyan]{skill_path}[/cyan]")
     else:
-        print("\nEval Results (baseline, no skill)")
-        print("=" * 34)
+        console.print("[bold]Eval Results (baseline, no skill)[/bold]")
+
     if max_gaps and max_gaps < total_gaps:
-        print(f"Gaps: {len(gaps)} (sampled from {total_gaps})")
+        console.print(f"Gaps: {len(gaps)} [dim](sampled from {total_gaps})[/dim]")
     else:
-        print(f"Gaps: {len(gaps)}")
-    print(f"Samples: {samples} per gap")
-    print(f"Parallel: {parallel}")
-    print(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
-    print(f"Total runs: {len(gaps) * samples}")
-    print()
+        console.print(f"Gaps: {len(gaps)}")
+    console.print(f"Samples: {samples} per gap")
+    console.print(f"Parallel: {parallel}")
+    console.print(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
+    console.print(f"Total runs: {len(gaps) * samples}")
+    console.print()
 
     # Build task list
     tasks = []
@@ -370,13 +350,13 @@ async def run_eval(
         async with semaphore:
             return await run_single_eval(task, name, skill_path, allowed_tools, display)
 
-    # Start spinner animation
+    # Start live display
     await display.start()
 
     # Run all tasks
     results = await asyncio.gather(*[run_with_semaphore(t) for t in tasks])
 
-    # Stop spinner and finalize display
+    # Stop live display and show final results
     await display.stop()
     display.finalize()
 
@@ -389,18 +369,23 @@ async def run_eval(
     total_runs = len(results)
     overall_rate = total_pass / total_runs * 100 if total_runs > 0 else 0
 
-    print()
+    console.print()
     if cached_count > 0:
-        print(f"Cache: {cached_count} cached, {fresh_count} fresh")
-    print(f"Overall pass rate: {overall_rate:.0f}% ({total_pass}/{total_runs})")
+        console.print(f"Cache: [blue]{cached_count} cached[/blue], {fresh_count} fresh")
+
+    rate_color = "green" if overall_rate >= 80 else "yellow" if overall_rate >= 50 else "red"
+    console.print(
+        f"Overall pass rate: [{rate_color}]{overall_rate:.0f}%[/{rate_color}] "
+        f"({total_pass}/{total_runs})"
+    )
 
     # Generate summary of failures if any
     failures = [r for r in results if not r["pass"]]
     if failures and fresh_count > 0:  # Only summarize if we ran fresh evals
-        print()
-        print("What Claude did instead:")
+        console.print()
+        console.print("[bold]What Claude did instead:[/bold]")
         summary = await summarize_responses(failures)
-        print(summary)
+        console.print(summary)
 
 
 async def summarize_responses(results: list[dict]) -> str:
