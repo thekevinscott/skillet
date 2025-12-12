@@ -113,6 +113,19 @@ actual: "This code has a SQL injection..."
 expected: "Should start with **issue** (blocking):"
 ```
 
+## Future Ideas
+
+- **Backup/restore** - Save original SKILL.md before tuning, add `--restore` flag
+- **DSPy integration** - Use DSPy optimizers for more sophisticated prompt tuning
+- **Bayesian optimization** - Search instruction/example combinations like MIPROv2
+- **Bootstrap examples** - Keep passing responses as few-shot examples
+- **Synthetic gaps** - LLM-generated gaps to pad out the eval set (`skillet generate`)
+- **Watch mode** - Live reload on SKILL.md changes (`skillet watch`)
+- **Tool mocking** - Mock tool responses to test behavioral skills (force WebFetch to fail, etc.)
+- **Tool usage assertions** - Check that Claude called specific tools (or didn't)
+- **Multi-model testing** - Run evals across Haiku/Sonnet/Opus to ensure consistency
+- **Confidence intervals** - Wilson score intervals instead of simple pass rates
+
 ## License
 
 MIT
