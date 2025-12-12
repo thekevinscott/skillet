@@ -2,63 +2,174 @@
 
 import asyncio
 import sys
-import threading
-import time
 from pathlib import Path
 
 import click
 import yaml
 
-from skillet.judge import judge_response
-
-
-class Spinner:
-    """A simple spinner for showing progress."""
-
-    def __init__(self, message: str = ""):
-        self.message = message
-        self.spinning = False
-        self.thread = None
-        self.frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-        self.current = 0
-
-    def _spin(self):
-        while self.spinning:
-            frame = self.frames[self.current % len(self.frames)]
-            sys.stderr.write(f"\r  {frame} {self.message}")
-            sys.stderr.flush()
-            self.current += 1
-            time.sleep(0.08)
-
-    def start(self, message: str = None):
-        if message:
-            self.message = message
-        self.spinning = True
-        self.thread = threading.Thread(target=self._spin)
-        self.thread.start()
-
-    def update(self, message: str):
-        self.message = message
-
-    def stop(self, final_message: str = None):
-        self.spinning = False
-        if self.thread:
-            self.thread.join()
-        if final_message:
-            sys.stderr.write(f"\r  ✓ {final_message}\n")
-        else:
-            sys.stderr.write("\r" + " " * (len(self.message) + 10) + "\r")
-        sys.stderr.flush()
+from skillet.cache import (
+    gap_cache_key,
+    get_cache_dir,
+    get_cached_iterations,
+    save_iteration,
+)
+from skillet.judge import judge_response_async
 
 
 SKILLET_DIR = Path.home() / ".skillet"
+
+# Status symbols
+PENDING = "○"
+CACHED = "●"
+PASS = "✓"
+FAIL = "✗"
+
+# Spinner frames for running state
+SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
+
+class LiveDisplay:
+    """Live updating display for parallel eval runs."""
+
+    def __init__(self, tasks: list[dict]):
+        """Initialize with list of tasks.
+
+        Each task dict has: gap_source, gap_idx, iteration, total_iterations
+        """
+        self.tasks = tasks
+        self.status = {self._key(t): {"state": "pending", "result": None} for t in tasks}
+        self.lock = asyncio.Lock()
+        self.spinner_task = None
+        self.running = False
+
+    def _key(self, task: dict) -> str:
+        return f"{task['gap_idx']}:{task['iteration']}"
+
+    async def start(self):
+        """Start the spinner animation loop."""
+        self.running = True
+        self.spinner_task = asyncio.create_task(self._spin())
+
+    async def stop(self):
+        """Stop the spinner animation loop."""
+        self.running = False
+        if self.spinner_task:
+            self.spinner_task.cancel()
+            try:
+                await self.spinner_task
+            except asyncio.CancelledError:
+                pass
+
+    async def _spin(self):
+        """Animation loop for spinners."""
+        frame_idx = 0
+        while self.running:
+            async with self.lock:
+                self._render(frame_idx)
+            frame_idx = (frame_idx + 1) % len(SPINNER_FRAMES)
+            await asyncio.sleep(0.08)
+
+    async def update(self, task: dict, state: str, result: dict | None = None):
+        async with self.lock:
+            key = self._key(task)
+            self.status[key] = {"state": state, "result": result}
+
+    def _render(self, frame_idx: int = 0):
+        """Render current status to stderr."""
+        # Group by gap
+        gaps = {}
+        for task in self.tasks:
+            gap_idx = task["gap_idx"]
+            if gap_idx not in gaps:
+                gaps[gap_idx] = {
+                    "source": task["gap_source"],
+                    "iterations": []
+                }
+
+            key = self._key(task)
+            status = self.status[key]
+            gaps[gap_idx]["iterations"].append(status)
+
+        # Build output
+        lines = []
+        for gap_idx in sorted(gaps.keys()):
+            gap = gaps[gap_idx]
+            iterations = gap["iterations"]
+
+            # Build iteration symbols
+            symbols = []
+            for it in iterations:
+                if it["state"] == "pending":
+                    symbols.append(PENDING)
+                elif it["state"] == "cached":
+                    symbols.append(CACHED)
+                elif it["state"] == "running":
+                    symbols.append(SPINNER_FRAMES[frame_idx])
+                elif it["state"] == "done":
+                    if it["result"] and it["result"].get("pass"):
+                        symbols.append(PASS)
+                    else:
+                        symbols.append(FAIL)
+
+            line = f"  {gap['source']}: {' '.join(symbols)}"
+            lines.append(line)
+
+        # Clear and redraw
+        output = "\r\033[K" + "\n\033[K".join(lines)
+        # Move cursor back up
+        if len(lines) > 1:
+            output += f"\033[{len(lines) - 1}A\r"
+
+        sys.stderr.write(output)
+        sys.stderr.flush()
+
+    def finalize(self):
+        """Print final state without cursor manipulation."""
+        gaps = {}
+        for task in self.tasks:
+            gap_idx = task["gap_idx"]
+            if gap_idx not in gaps:
+                gaps[gap_idx] = {
+                    "source": task["gap_source"],
+                    "iterations": []
+                }
+
+            key = self._key(task)
+            status = self.status[key]
+            gaps[gap_idx]["iterations"].append(status)
+
+        # Move to end and print final state
+        sys.stderr.write("\n" * len(gaps))
+        sys.stderr.write("\r")
+
+        for gap_idx in sorted(gaps.keys()):
+            gap = gaps[gap_idx]
+            iterations = gap["iterations"]
+
+            symbols = []
+            pass_count = 0
+            for it in iterations:
+                if it["state"] in ("done", "cached"):
+                    if it["result"] and it["result"].get("pass"):
+                        symbols.append(PASS)
+                        pass_count += 1
+                    else:
+                        symbols.append(FAIL)
+                else:
+                    symbols.append(PENDING)
+
+            pct = pass_count / len(iterations) * 100 if iterations else 0
+            line = f"  {gap['source']}: {' '.join(symbols)} ({pct:.0f}%)\n"
+            sys.stderr.write(line)
+
+        sys.stderr.flush()
 
 
 def load_gaps(name: str) -> list[dict]:
     """Load all gap files for a skill from ~/.skillet/gaps/<name>/.
 
     Returns:
-        List of gap dicts
+        List of gap dicts with _source and _content fields
     """
     gaps_dir = SKILLET_DIR / "gaps" / name
 
@@ -70,10 +181,11 @@ def load_gaps(name: str) -> list[dict]:
 
     gaps = []
     for gap_file in sorted(gaps_dir.glob("*.yaml")):
-        with open(gap_file) as f:
-            gap = yaml.safe_load(f)
-            gap["_source"] = gap_file.name
-            gaps.append(gap)
+        content = gap_file.read_text()
+        gap = yaml.safe_load(content)
+        gap["_source"] = gap_file.name
+        gap["_content"] = content
+        gaps.append(gap)
 
     if not gaps:
         raise click.ClickException(f"No gap files found in {gaps_dir}")
@@ -83,20 +195,34 @@ def load_gaps(name: str) -> list[dict]:
 
 async def run_prompt_async(
     prompt: str,
-    skill: str | None = None,
+    skill_path: Path | None = None,
     allowed_tools: list[str] | None = None,
 ) -> str:
     """Run a prompt through Claude and return the response."""
     from claude_agent_sdk import query, AssistantMessage, TextBlock, ClaudeAgentOptions
 
-    # TODO: Load skill into Claude agent when skill path is provided
-    # For now, skills need to be loaded via CLI --plugin flag or installed globally
-    if skill:
-        click.echo(f"  (Note: skill loading via SDK not yet implemented, using installed plugins)")
+    # If skill path provided, set cwd to parent of .claude/skills so SDK discovers it
+    # e.g., skill_path=/tmp/proj/.claude/skills/browser-fallback -> cwd=/tmp/proj
+    cwd = None
+    if skill_path:
+        # skill_path is like /path/to/.claude/skills/skill-name
+        # We need cwd to be /path/to (parent of .claude)
+        if ".claude" in skill_path.parts:
+            claude_idx = skill_path.parts.index(".claude")
+            cwd = str(Path(*skill_path.parts[:claude_idx]))
+
+    # Build allowed_tools, ensuring Skill is included if we have a skill
+    tools = allowed_tools
+    if skill_path and tools is not None and "Skill" not in tools:
+        tools = ["Skill"] + list(tools)
+    elif skill_path and tools is None:
+        tools = ["Skill", "Bash", "Read", "Write", "WebFetch"]
 
     options = ClaudeAgentOptions(
         max_turns=3,
-        allowed_tools=allowed_tools,  # None means all tools
+        allowed_tools=tools,
+        cwd=cwd,
+        setting_sources=["project"] if cwd else None,
     )
 
     response_text = ""
@@ -112,24 +238,177 @@ async def run_prompt_async(
     return response_text
 
 
-def run_prompt(prompt: str, skill: str | None = None, allowed_tools: list[str] | None = None) -> str:
-    """Sync wrapper for run_prompt_async."""
-    return asyncio.run(run_prompt_async(prompt, skill, allowed_tools))
+async def run_single_eval(
+    task: dict,
+    name: str,
+    skill_path: Path | None,
+    allowed_tools: list[str] | None,
+    display: LiveDisplay,
+) -> dict:
+    """Run a single evaluation task, using cache if available."""
+    # Check cache first
+    gap_key = gap_cache_key(task["gap_source"], task["gap_content"])
+    cache_dir = get_cache_dir(name, gap_key, skill_path)
+    cached = get_cached_iterations(cache_dir)
+
+    # If we have this iteration cached, use it
+    if len(cached) >= task["iteration"]:
+        result = cached[task["iteration"] - 1]
+        result["gap_idx"] = task["gap_idx"]
+        result["gap_source"] = task["gap_source"]
+        result["cached"] = True
+        await display.update(task, "cached", result)
+        return result
+
+    # Otherwise, run it
+    await display.update(task, "running")
+
+    try:
+        response = await run_prompt_async(task["prompt"], skill_path, allowed_tools)
+        judgment = await judge_response_async(
+            prompt=task["prompt"],
+            response=response,
+            expected=task["expected"],
+        )
+
+        result = {
+            "gap_idx": task["gap_idx"],
+            "gap_source": task["gap_source"],
+            "iteration": task["iteration"],
+            "response": response,
+            "judgment": judgment,
+            "pass": judgment["pass"],
+            "cached": False,
+        }
+
+        # Save to cache
+        save_iteration(cache_dir, task["iteration"], {
+            "iteration": task["iteration"],
+            "response": response,
+            "judgment": judgment,
+            "pass": judgment["pass"],
+        })
+
+        await display.update(task, "done", result)
+        return result
+    except Exception as e:
+        result = {
+            "gap_idx": task["gap_idx"],
+            "gap_source": task["gap_source"],
+            "iteration": task["iteration"],
+            "response": str(e),
+            "judgment": {"pass": False, "reasoning": f"Error: {e}"},
+            "pass": False,
+            "cached": False,
+        }
+        await display.update(task, "done", result)
+        return result
+
+
+async def run_eval_async(
+    name: str,
+    skill_path: Path | None = None,
+    samples: int = 3,
+    max_gaps: int | None = None,
+    allowed_tools: list[str] | None = None,
+    parallel: int = 3,
+):
+    """Run evaluation for gaps in parallel, with caching."""
+    import random
+
+    gaps = load_gaps(name)
+    total_gaps = len(gaps)
+
+    # Sample gaps if requested
+    if max_gaps and max_gaps < len(gaps):
+        gaps = random.sample(gaps, max_gaps)
+
+    # Print header
+    if skill_path:
+        click.echo(f"\nEval Results (with skill)")
+        click.echo("=" * 25)
+        click.echo(f"Skill: {skill_path}")
+    else:
+        click.echo(f"\nEval Results (baseline, no skill)")
+        click.echo("=" * 34)
+    if max_gaps and max_gaps < total_gaps:
+        click.echo(f"Gaps: {len(gaps)} (sampled from {total_gaps})")
+    else:
+        click.echo(f"Gaps: {len(gaps)}")
+    click.echo(f"Samples: {samples} per gap")
+    click.echo(f"Parallel: {parallel}")
+    click.echo(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
+    click.echo(f"Total runs: {len(gaps) * samples}")
+    click.echo()
+
+    # Build task list
+    tasks = []
+    for gap_idx, gap in enumerate(gaps):
+        for i in range(samples):
+            tasks.append({
+                "gap_idx": gap_idx,
+                "gap_source": gap["_source"],
+                "gap_content": gap["_content"],
+                "iteration": i + 1,
+                "total_iterations": samples,
+                "prompt": gap["prompt"],
+                "expected": gap["expected"],
+            })
+
+    # Create display
+    display = LiveDisplay(tasks)
+
+    # Run with semaphore for parallelism control
+    semaphore = asyncio.Semaphore(parallel)
+
+    async def run_with_semaphore(task):
+        async with semaphore:
+            return await run_single_eval(task, name, skill_path, allowed_tools, display)
+
+    # Start spinner animation
+    await display.start()
+
+    # Run all tasks
+    results = await asyncio.gather(*[run_with_semaphore(t) for t in tasks])
+
+    # Stop spinner and finalize display
+    await display.stop()
+    display.finalize()
+
+    # Count cached vs fresh
+    cached_count = sum(1 for r in results if r.get("cached"))
+    fresh_count = len(results) - cached_count
+
+    # Calculate stats
+    total_pass = sum(1 for r in results if r["pass"])
+    total_runs = len(results)
+    overall_rate = total_pass / total_runs * 100 if total_runs > 0 else 0
+
+    click.echo()
+    if cached_count > 0:
+        click.echo(f"Cache: {cached_count} cached, {fresh_count} fresh")
+    click.echo(f"Overall pass rate: {overall_rate:.0f}% ({total_pass}/{total_runs})")
+
+    # Generate summary of failures if any
+    failures = [r for r in results if not r["pass"]]
+    if failures and fresh_count > 0:  # Only summarize if we ran fresh evals
+        click.echo()
+        click.echo("What Claude did instead:")
+        summary = await summarize_responses_async(failures)
+        click.echo(summary)
 
 
 async def summarize_responses_async(results: list[dict]) -> str:
-    """Summarize what Claude actually did across all responses."""
+    """Summarize what Claude actually did across failed responses."""
     from claude_agent_sdk import query, AssistantMessage, TextBlock, ClaudeAgentOptions
 
-    # Collect all responses and their judgments
     response_summaries = []
     for result in results:
-        for iteration in result["iterations"]:
-            response_summaries.append({
-                "expected": result["expected"],
-                "response_preview": iteration["response"][:500],
-                "judgment": iteration["judgment"]["reasoning"],
-            })
+        response_summaries.append({
+            "expected": result.get("expected", ""),
+            "response_preview": result["response"][:500] if result.get("response") else "",
+            "judgment": result["judgment"]["reasoning"] if result.get("judgment") else "",
+        })
 
     summary_prompt = f"""Analyze these AI responses that failed to meet expectations. Summarize the PATTERNS in what the AI did instead.
 
@@ -160,106 +439,17 @@ Focus on the FORMAT or BEHAVIOR patterns, not the content quality.
     return result
 
 
-def summarize_responses(results: list[dict]) -> str:
-    """Sync wrapper for summarize_responses_async."""
-    return asyncio.run(summarize_responses_async(results))
-
-
 def run_eval(
     name: str,
-    skill: str | None = None,
-    iterations: int = 3,
+    skill_path: Path | None = None,
+    samples: int = 3,
     max_gaps: int | None = None,
     allowed_tools: list[str] | None = None,
+    parallel: int = 3,
 ):
-    """Run evaluation for gaps, optionally with a skill.
-
-    Args:
-        name: Skill name (gaps loaded from ~/.skillet/gaps/<name>/)
-        skill: Path to skill plugin directory, or None for baseline
-        iterations: Number of times to run each gap
-        max_gaps: If set, randomly sample this many gaps
-        allowed_tools: List of allowed tools, or None for all tools
-    """
-    import random
-
-    gaps = load_gaps(name)
-    total_gaps = len(gaps)
-
-    # Sample gaps if requested
-    if max_gaps and max_gaps < len(gaps):
-        gaps = random.sample(gaps, max_gaps)
-
-    if skill:
-        click.echo(f"\nEval Results (with skill)")
-        click.echo("=" * 25)
-        click.echo(f"Skill: {skill}")
-    else:
-        click.echo(f"\nEval Results (baseline, no skill)")
-        click.echo("=" * 34)
-    if max_gaps and max_gaps < total_gaps:
-        click.echo(f"Gaps: {len(gaps)} (sampled from {total_gaps})")
-    else:
-        click.echo(f"Gaps: {len(gaps)}")
-    click.echo(f"Iterations: {iterations} per gap")
-    click.echo(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
-    click.echo(f"Total runs: {len(gaps) * iterations}")
-    click.echo()
-
-    results = []
-    total_pass = 0
-    total_runs = 0
-
-    for gap in gaps:
-        gap_results = []
-        gap_pass = 0
-
-        click.echo(f"Gap: {gap['_source']}")
-        click.echo(f"  Prompt: {gap['prompt'][:50]}...")
-        click.echo(f"  Expected: {gap['expected'][:50]}...")
-
-        for i in range(iterations):
-            click.echo(f"  [{i + 1}/{iterations}] generating response...")
-            response = run_prompt(gap["prompt"], skill, allowed_tools)
-            click.echo(f"  Response ({len(response)} chars): {response[:200]}...")
-            click.echo()
-            click.echo(f"  [{i + 1}/{iterations}] judging response...")
-            judgment = judge_response(
-                prompt=gap["prompt"],
-                response=response,
-                expected=gap["expected"],
-            )
-            click.echo(f"  Judgment: {'PASS' if judgment['pass'] else 'FAIL'} - {judgment['reasoning']}")
-            click.echo()
-
-            gap_results.append({
-                "iteration": i + 1,
-                "response": response,
-                "judgment": judgment,
-            })
-
-            if judgment["pass"]:
-                gap_pass += 1
-                total_pass += 1
-            total_runs += 1
-
-        pass_rate = gap_pass / iterations * 100
-        click.echo(f"  Result: {pass_rate:.0f}% ({gap_pass}/{iterations})")
-        click.echo()
-
-        results.append({
-            "source": gap["_source"],
-            "prompt": gap["prompt"],
-            "expected": gap["expected"],
-            "pass_rate": pass_rate,
-            "iterations": gap_results,
-        })
-
-    overall_rate = total_pass / total_runs * 100 if total_runs > 0 else 0
-    click.echo(f"Overall pass rate: {overall_rate:.0f}% ({total_pass}/{total_runs})")
-
-    # Generate summary of what Claude actually did
-    click.echo()
-    click.echo("What Claude did instead:")
-    summary = summarize_responses(results)
-    click.echo(summary)
+    """Sync wrapper for run_eval_async."""
+    try:
+        asyncio.run(run_eval_async(name, skill_path, samples, max_gaps, allowed_tools, parallel))
+    except KeyboardInterrupt:
+        click.echo("\n\nAborted.")
+        raise SystemExit(0)

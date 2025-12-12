@@ -9,4 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
+# Local/dev files
 scribbles
+tmp
+deprecated
+.claude/settings.local.json
