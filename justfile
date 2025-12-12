@@ -64,3 +64,11 @@ security:
 # Run type checker
 typecheck:
     uv run ty check skillet/
+
+# Run integration tests
+test-integration:
+    uv run pytest tests/integration/
+
+# Run e2e tests
+test-e2e:
+    uv run pytest tests/e2e/
