@@ -14,3 +14,4 @@ jobs:
       - uses: clankerbot/pr-monitor@v1
         with:
           job-name: 'CI Gate'
+          excluded-jobs: 'deploy/netlify, Header rules, Pages changed, Redirect rules'
