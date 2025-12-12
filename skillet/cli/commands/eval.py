@@ -124,8 +124,10 @@ async def eval_command(
         )
 
     rate_color = (
-        "green" if eval_result["pass_rate"] >= 80
-        else "yellow" if eval_result["pass_rate"] >= 50
+        "green"
+        if eval_result["pass_rate"] >= 80
+        else "yellow"
+        if eval_result["pass_rate"] >= 50
         else "red"
     )
     console.print(

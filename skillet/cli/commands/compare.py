@@ -38,8 +38,7 @@ def compare_command(name: str, skill_path: Path):
 
     if result["missing_skill"]:
         console.print(
-            f"[yellow]Warning:[/yellow] No skill cache for: "
-            f"{', '.join(result['missing_skill'])}"
+            f"[yellow]Warning:[/yellow] No skill cache for: {', '.join(result['missing_skill'])}"
         )
         console.print(f"Run: [bold]skillet eval {name} {skill_path}[/bold]")
         console.print()
@@ -61,15 +60,9 @@ def compare_command(name: str, skill_path: Path):
 
     # Overall row
     baseline_str = (
-        f"{result['overall_baseline']:.0f}%"
-        if result["overall_baseline"] is not None
-        else "-"
+        f"{result['overall_baseline']:.0f}%" if result["overall_baseline"] is not None else "-"
     )
-    skill_str = (
-        f"{result['overall_skill']:.0f}%"
-        if result["overall_skill"] is not None
-        else "-"
-    )
+    skill_str = f"{result['overall_skill']:.0f}%" if result["overall_skill"] is not None else "-"
     delta_str = format_delta(result["overall_baseline"], result["overall_skill"])
 
     table.add_section()

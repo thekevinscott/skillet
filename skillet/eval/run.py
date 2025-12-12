@@ -43,7 +43,7 @@ async def run_prompt(
 
     options = ClaudeAgentOptions(
         max_turns=3,
-        allowed_tools=tools if tools else None,
+        allowed_tools=tools or None,  # type: ignore[arg-type]
         cwd=cwd,
         setting_sources=["project"] if cwd else None,
     )

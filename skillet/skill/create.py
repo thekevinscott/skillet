@@ -40,6 +40,7 @@ async def create_skill(
 
     if skill_dir.exists():
         import shutil
+
         shutil.rmtree(skill_dir)
 
     # Generate SKILL.md content
