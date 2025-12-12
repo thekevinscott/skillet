@@ -1,0 +1,29 @@
+name: Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip if labeled
+        if: contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+        run: echo "Skipping changelog check (skip-changelog label present)"
+
+      - name: Install uv
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+        run: uv sync --extra dev
+
+      - name: Check changelog
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
+        run: uv run just check-changelog origin/${{ github.base_ref }}
