@@ -194,14 +194,16 @@ async def tune(
 
     # Print header
     console.print()
-    console.print(Panel.fit(
-        f"[bold]Tuning:[/bold] {name}\n"
-        f"[bold]Skill:[/bold] [cyan]{skill_path}[/cyan]\n"
-        f"[bold]Gaps:[/bold] {len(gaps)}\n"
-        f"[bold]Target:[/bold] {target_pass_rate:.0f}% pass rate\n"
-        f"[bold]Max rounds:[/bold] {max_rounds}",
-        title="Skill Tuner",
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]Tuning:[/bold] {name}\n"
+            f"[bold]Skill:[/bold] [cyan]{skill_path}[/cyan]\n"
+            f"[bold]Gaps:[/bold] {len(gaps)}\n"
+            f"[bold]Target:[/bold] {target_pass_rate:.0f}% pass rate\n"
+            f"[bold]Max rounds:[/bold] {max_rounds}",
+            title="Skill Tuner",
+        )
+    )
 
     for round_num in range(1, max_rounds + 1):
         console.print()
@@ -249,8 +251,7 @@ async def tune(
     # Didn't reach target
     console.print()
     console.print(
-        f"[bold red]✗ Did not reach {target_pass_rate:.0f}% "
-        f"after {max_rounds} rounds.[/bold red]"
+        f"[bold red]✗ Did not reach {target_pass_rate:.0f}% after {max_rounds} rounds.[/bold red]"
     )
     console.print(f"  Current pass rate: {pass_rate:.0f}%")
     console.print("  Try running [bold]skillet tune[/bold] again or edit SKILL.md manually.")

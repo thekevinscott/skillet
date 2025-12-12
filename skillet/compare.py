@@ -122,9 +122,7 @@ def run_compare(name: str, skill_path: Path):
         console.print()
 
     if missing_skill:
-        console.print(
-            f"[yellow]Warning:[/yellow] No skill cache for: {', '.join(missing_skill)}"
-        )
+        console.print(f"[yellow]Warning:[/yellow] No skill cache for: {', '.join(missing_skill)}")
         console.print(f"Run: [bold]skillet eval {name} {skill_path}[/bold]")
         console.print()
 
