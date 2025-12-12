@@ -3,6 +3,8 @@
 from pathlib import Path
 
 import yaml
+from rich.console import Console
+from rich.table import Table
 
 from skillet.cache import (
     CACHE_DIR,
@@ -12,6 +14,7 @@ from skillet.cache import (
 )
 
 SKILLET_DIR = Path.home() / ".skillet"
+console = Console()
 
 
 def load_gaps(name: str) -> list[dict]:
@@ -52,6 +55,19 @@ def calculate_pass_rate(iterations: list[dict]) -> float | None:
         return None
     passes = sum(1 for it in iterations if it.get("pass"))
     return passes / len(iterations) * 100
+
+
+def format_delta(baseline: float | None, skill: float | None) -> str:
+    """Format delta with color."""
+    if baseline is None or skill is None:
+        return "-"
+    delta = skill - baseline
+    if delta > 0:
+        return f"[green]+{delta:.0f}%[/green]"
+    elif delta < 0:
+        return f"[red]{delta:.0f}%[/red]"
+    else:
+        return "0%"
 
 
 def run_compare(name: str, skill_path: Path):
@@ -99,14 +115,18 @@ def run_compare(name: str, skill_path: Path):
 
     # Check for missing data
     if missing_baseline:
-        print(f"Warning: No baseline cache for: {', '.join(missing_baseline)}")
-        print(f"Run: skillet eval {name}")
-        print()
+        console.print(
+            f"[yellow]Warning:[/yellow] No baseline cache for: {', '.join(missing_baseline)}"
+        )
+        console.print(f"Run: [bold]skillet eval {name}[/bold]")
+        console.print()
 
     if missing_skill:
-        print(f"Warning: No skill cache for: {', '.join(missing_skill)}")
-        print(f"Run: skillet eval {name} {skill_path}")
-        print()
+        console.print(
+            f"[yellow]Warning:[/yellow] No skill cache for: {', '.join(missing_skill)}"
+        )
+        console.print(f"Run: [bold]skillet eval {name} {skill_path}[/bold]")
+        console.print()
 
     if missing_baseline and len(missing_baseline) == len(gaps):
         raise Exception("No baseline results cached. Run `skillet eval {name}` first.")
@@ -115,41 +135,30 @@ def run_compare(name: str, skill_path: Path):
         msg = f"No skill results cached. Run `skillet eval {name} {skill_path}` first."
         raise Exception(msg)
 
-    # Print comparison table
-    print(f"Comparison: {name}")
-    print("=" * 50)
-    print()
-
-    # Header
-    print(f"{'Gap':<20} {'Baseline':>10} {'Skill':>10} {'Δ':>10}")
-    print("-" * 50)
+    # Build comparison table
+    table = Table(title=f"Comparison: {name}")
+    table.add_column("Gap", style="cyan")
+    table.add_column("Baseline", justify="right")
+    table.add_column("Skill", justify="right")
+    table.add_column("Δ", justify="right")
 
     # Per-gap results
     for r in results:
         baseline_str = f"{r['baseline']:.0f}%" if r["baseline"] is not None else "-"
         skill_str = f"{r['skill']:.0f}%" if r["skill"] is not None else "-"
+        delta_str = format_delta(r["baseline"], r["skill"])
 
-        if r["baseline"] is not None and r["skill"] is not None:
-            delta = r["skill"] - r["baseline"]
-            delta_str = f"{delta:+.0f}%"
-        else:
-            delta_str = "-"
+        table.add_row(r["source"], baseline_str, skill_str, delta_str)
 
-        print(f"{r['source']:<20} {baseline_str:>10} {skill_str:>10} {delta_str:>10}")
-
-    # Overall
-    print("-" * 50)
-
+    # Overall row
     overall_baseline = baseline_pass / baseline_total * 100 if baseline_total > 0 else None
     overall_skill = skill_pass / skill_total * 100 if skill_total > 0 else None
 
     baseline_str = f"{overall_baseline:.0f}%" if overall_baseline is not None else "-"
     skill_str = f"{overall_skill:.0f}%" if overall_skill is not None else "-"
+    delta_str = format_delta(overall_baseline, overall_skill)
 
-    if overall_baseline is not None and overall_skill is not None:
-        delta = overall_skill - overall_baseline
-        delta_str = f"{delta:+.0f}%"
-    else:
-        delta_str = "-"
+    table.add_section()
+    table.add_row("[bold]Overall[/bold]", baseline_str, skill_str, delta_str)
 
-    print(f"{'Overall':<20} {baseline_str:>10} {skill_str:>10} {delta_str:>10}")
+    console.print(table)

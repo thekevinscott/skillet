@@ -3,8 +3,12 @@
 from pathlib import Path
 
 import yaml
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.tree import Tree
 
 SKILLET_DIR = Path.home() / ".skillet"
+console = Console()
 
 
 class SkillError(Exception):
@@ -111,27 +115,39 @@ async def create_skill(
 
     # Check if already exists
     if skill_dir.exists():
-        response = input(f"Skill already exists at {skill_dir}. Overwrite? [y/N] ")
+        response = console.input(
+            f"[yellow]Skill already exists at {skill_dir}. Overwrite?[/yellow] [y/N] "
+        )
         if response.lower() not in ("y", "yes"):
             raise SystemExit(0)
         import shutil
 
         shutil.rmtree(skill_dir)
 
-    # Generate SKILL.md content
-    print(f"Found {len(gaps)} gaps for '{name}', drafting SKILL.md...")
-    skill_content = await draft_skill(name, gaps, extra_prompt)
+    # Generate SKILL.md content with spinner
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        progress.add_task(
+            f"Drafting SKILL.md from {len(gaps)} gaps for [cyan]{name}[/cyan]...", total=None
+        )
+        skill_content = await draft_skill(name, gaps, extra_prompt)
 
     # Create directory and write SKILL.md
     skill_dir.mkdir(parents=True, exist_ok=True)
     (skill_dir / "SKILL.md").write_text(skill_content + "\n")
 
-    # Output summary
-    print()
-    print(f"Created {skill_dir}/")
-    print(f"└── SKILL.md (draft from {len(gaps)} gaps)")
-    print()
-    print("Next steps:")
-    print(f"  1. Edit {skill_dir}/SKILL.md")
-    print(f"  2. Run: skillet eval {name} {skill_dir}")
-    print(f"  3. Compare: skillet compare {name} {skill_dir}")
+    # Output summary with tree
+    console.print()
+    tree = Tree(f"[bold green]Created[/bold green] [cyan]{skill_dir}/[/cyan]")
+    tree.add(f"SKILL.md [dim](draft from {len(gaps)} gaps)[/dim]")
+    console.print(tree)
+
+    # Next steps
+    console.print()
+    console.print("[bold]Next steps:[/bold]")
+    console.print(f"  1. Edit [cyan]{skill_dir}/SKILL.md[/cyan]")
+    console.print(f"  2. Run: [bold]skillet eval {name} {skill_dir}[/bold]")
+    console.print(f"  3. Compare: [bold]skillet compare {name} {skill_dir}[/bold]")
