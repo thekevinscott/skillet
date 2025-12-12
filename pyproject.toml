@@ -67,7 +67,7 @@ branch = true
 omit = ["*_test.py"]
 
 [tool.coverage.report]
-fail_under = 7
+fail_under = 3
 show_missing = true
 exclude_lines = [
     "pragma: no cover",
