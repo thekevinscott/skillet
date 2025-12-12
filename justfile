@@ -30,3 +30,11 @@ clean:
 # Build package
 build: clean
     uv build
+
+# Run tests
+test *args:
+    uv run pytest {{args}}
+
+# Run tests with coverage
+test-cov:
+    uv run pytest --cov --cov-report=term-missing
