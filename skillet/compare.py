@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-# removed click
 import yaml
 
 from skillet.cache import (
