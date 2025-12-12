@@ -54,13 +54,15 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["skillet"]
+python_files = ["*_test.py"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["skillet"]
 branch = true
+omit = ["*_test.py"]
 
 [tool.coverage.report]
 exclude_lines = [
