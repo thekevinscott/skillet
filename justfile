@@ -56,3 +56,7 @@ check-changelog base_ref='origin/main':
         echo "Error: CHANGELOG.md was not updated"
         exit 1
     fi
+
+# Run security scan
+security:
+    uv run bandit -r skillet/ --skip B101,B105,B311,B324 -x '*_test.py'
