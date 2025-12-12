@@ -20,7 +20,7 @@ jobs:
 
       - name: Install uv
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
         if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
