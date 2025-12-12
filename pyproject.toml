@@ -23,6 +23,7 @@ dev = [
     "pytest-describe>=2.0",
     "pre-commit>=4.0",
     "bandit>=1.7",
+    "ty>=0.0.1a7",
 ]
 
 [tool.ruff]

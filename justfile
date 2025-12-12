@@ -60,3 +60,7 @@ check-changelog base_ref='origin/main':
 # Run security scan
 security:
     uv run bandit -r skillet/ --skip B101,B105,B311,B324 -x '*_test.py'
+
+# Run type checker
+typecheck:
+    uv run ty check skillet/
