@@ -1,0 +1,1 @@
+{"pass": false, "reasoning": "The commit message does not follow conventional commits format, which requires a type(scope): description structure like 'fix(termui): correct type annotation', instead it uses a plain descriptive title."}

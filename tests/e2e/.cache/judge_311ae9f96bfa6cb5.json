@@ -1,0 +1,1 @@
+{"pass": false, "reasoning": "The AI response does not follow the conventional commits format which requires a structured prefix like 'fix(termui): description' - instead it uses a traditional commit message format starting with 'Fix confirm() prompt...'"}

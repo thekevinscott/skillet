@@ -9,4 +9,4 @@ Commits must follow [Conventional Commits](https://www.conventionalcommits.org/)
 - `feat!: ...` or `BREAKING CHANGE:` in body → major release (0.1.0 → 1.0.0)
 - `chore:`, `docs:`, `refactor:`, `test:`, etc. → patch release
 
-PRs labeled with `skip-release` will not trigger version bumps or releases.
+Releases run nightly at 2am UTC. All commits since the last release are batched together, and the highest-priority bump type wins (breaking > feat > fix).

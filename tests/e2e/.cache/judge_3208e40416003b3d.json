@@ -1,0 +1,1 @@
+{"pass": false, "reasoning": "The AI response does not follow conventional commits format - it uses a plain descriptive message starting with 'Fix confirm()...' instead of the required 'type(scope): description' format like 'fix(termui): correct confirm() prompt disappearing when readline is imported'."}
