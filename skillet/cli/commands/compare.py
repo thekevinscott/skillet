@@ -2,12 +2,10 @@
 
 from pathlib import Path
 
-from rich.console import Console
 from rich.table import Table
 
+from skillet.cli import console
 from skillet.compare import compare
-
-console = Console()
 
 
 def format_delta(baseline: float | None, skill: float | None) -> str:
