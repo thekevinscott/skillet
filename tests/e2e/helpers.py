@@ -207,10 +207,7 @@ async def query_assistant_text(
     # Allow SlashCommand tool for slash command testing
     # Load settings from project to pick up .claude/commands/
     opts = ClaudeAgentOptions(
-        max_turns=10,
-        allowed_tools=["SlashCommand"],
-        setting_sources=["project"],
-        **options
+        max_turns=10, allowed_tools=["SlashCommand"], setting_sources=["project"], **options
     )
     if resume:
         opts.resume = resume

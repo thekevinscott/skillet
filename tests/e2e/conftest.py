@@ -39,9 +39,8 @@ def _ensure_claude_config_built():
     if not template_dir.exists():
         return  # No template, nothing to build
 
-    needs_build = (
-        not commands_dir.exists()
-        or _template_mtime(template_dir) > _output_mtime(commands_dir)
+    needs_build = not commands_dir.exists() or _template_mtime(template_dir) > _output_mtime(
+        commands_dir
     )
 
     if needs_build:
