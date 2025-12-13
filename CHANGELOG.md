@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Template-based command system for `{{SKILLET_DIR}}` substitution
+- `scripts/build_claude_config.py` for building `.claude/commands/` from templates
+- `just build-claude` command for template building
+- E2E test helpers with `Conversation` class for multi-turn testing
+- Auto-build of commands in e2e test conftest
+
 ### Changed
+- Renamed `/skillet:gap` command to `/skillet:add`
 - Reorganized codebase into domain modules (eval/, compare/, tune/, skill/, gaps/)
 - Separated CLI layer from core API logic
 - Renamed public API functions: `run_eval` -> `evaluate`, `run_compare` -> `compare`, `run_tune` -> `tune`

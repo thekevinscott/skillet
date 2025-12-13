@@ -17,3 +17,6 @@ deprecated
 .coverage
 .pnpm-store
 .worktrees
+
+# Generated from .claude-template/
+.claude/commands/
