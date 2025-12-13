@@ -31,3 +31,45 @@ async def query_assistant_text(prompt: str, **options: Any) -> str:
     async for block in for_query(prompt, AssistantMessage, TextBlock, **options):
         result += block.text
     return result.strip()
+
+
+async def query_multiturn(
+    prompts: list[str],
+    **options: Any,
+) -> str:
+    """Run a multi-turn conversation and return the final assistant text response.
+
+    Args:
+        prompts: List of prompts to send sequentially, resuming the session
+        **options: Options passed to ClaudeAgentOptions
+
+    Returns:
+        The final assistant response text
+    """
+    opts = ClaudeAgentOptions(**options)
+    session_id: str | None = None
+    response_text = ""
+
+    for p in prompts:
+        response_text = ""
+
+        # Resume session for subsequent turns
+        if session_id:
+            opts.resume = session_id
+
+        async for message in query(prompt=p, options=opts):
+            # Capture session ID from init message
+            if hasattr(message, "subtype") and message.subtype == "init":
+                if hasattr(message, "session_id"):
+                    session_id = str(message.session_id)  # type: ignore[attr-defined]
+                elif hasattr(message, "data"):
+                    data = getattr(message, "data", None)
+                    if isinstance(data, dict) and "session_id" in data:
+                        session_id = str(data["session_id"])
+
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        response_text += block.text
+
+    return response_text.strip() if response_text else ""

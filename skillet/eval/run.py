@@ -4,14 +4,13 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
-
 from skillet._internal.cache import (
     gap_cache_key,
     get_cache_dir,
     get_cached_iterations,
     save_iteration,
 )
+from skillet._internal.sdk import query_multiturn
 from skillet.gaps import load_gaps
 
 from .judge import judge_response
@@ -55,35 +54,13 @@ async def run_prompt(
     else:
         tools = list(allowed_tools) if allowed_tools else []
 
-    options = ClaudeAgentOptions(
+    response_text = await query_multiturn(
+        prompts,
         max_turns=10,
-        allowed_tools=tools or None,  # type: ignore[arg-type]
+        allowed_tools=tools or None,
         cwd=cwd,
         setting_sources=["project"] if cwd else None,
     )
-
-    session_id: str | None = None
-    response_text = ""
-
-    for p in prompts:
-        response_text = ""
-
-        # Resume session for subsequent turns
-        if session_id:
-            options.resume = session_id
-
-        async for message in query(prompt=p, options=options):
-            # Capture session ID from init message
-            if hasattr(message, "subtype") and message.subtype == "init":
-                if hasattr(message, "session_id"):
-                    session_id = message.session_id
-                elif hasattr(message, "data") and isinstance(message.data, dict):
-                    session_id = message.data.get("session_id")
-
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        response_text += block.text
 
     if not response_text:
         response_text = "(no text response - Claude may have only used tools)"

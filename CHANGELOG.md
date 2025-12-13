@@ -14,9 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - E2E test helpers with `Conversation` class for multi-turn testing
 - Auto-build of commands in e2e test conftest
 - 13 eval files for testing `/skillet:add` command behavior
+- Multi-turn conversation support in eval system
+- Session resumption for sequential prompts in evals
 
 ### Changed
 - Renamed `/skillet:gap` command to `/skillet:add`
+- Increased `max_turns` from 3 to 10 for complex command workflows
 - Reorganized codebase into domain modules (eval/, compare/, tune/, skill/, gaps/)
 - Separated CLI layer from core API logic
 - Renamed public API functions: `run_eval` -> `evaluate`, `run_compare` -> `compare`, `run_tune` -> `tune`
