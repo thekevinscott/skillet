@@ -1,0 +1,97 @@
+name: Nightly Release
+
+on:
+  schedule:
+    # Run at 2:00 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for new commits since last tag
+        id: check
+        run: |
+          # Get the latest tag
+          latest_tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | head -n1)
+
+          if [ -z "$latest_tag" ]; then
+            echo "No tags found, will create initial release"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "compare_base=$(git rev-list --max-parents=0 HEAD)" >> $GITHUB_OUTPUT
+          else
+            # Check if there are commits since the last tag
+            commits_since_tag=$(git rev-list ${latest_tag}..HEAD --count)
+            if [ "$commits_since_tag" -gt 0 ]; then
+              echo "Found $commits_since_tag commits since $latest_tag"
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+              echo "compare_base=$latest_tag" >> $GITHUB_OUTPUT
+            else
+              echo "No new commits since $latest_tag"
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Configure git
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install uv
+        if: steps.check.outputs.has_changes == 'true'
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install python-semantic-release
+        if: steps.check.outputs.has_changes == 'true'
+        run: uv tool install python-semantic-release
+
+      - name: Determine version bump
+        if: steps.check.outputs.has_changes == 'true'
+        id: version
+        run: |
+          compare_base="${{ steps.check.outputs.compare_base }}"
+
+          # Analyze all commits since last tag to determine bump type
+          # Check for breaking changes (highest priority)
+          if git log --format=%B ${compare_base}..HEAD | grep -qiE '(BREAKING CHANGE|^[a-z]+!:)'; then
+            echo "bump=major" >> $GITHUB_OUTPUT
+            echo "Detected: BREAKING CHANGE -> major bump"
+          # Check for features
+          elif git log --format=%B ${compare_base}..HEAD | grep -qE '^feat(\(.+\))?:'; then
+            echo "bump=minor" >> $GITHUB_OUTPUT
+            echo "Detected: feat commit -> minor bump"
+          # Default to patch
+          else
+            echo "bump=patch" >> $GITHUB_OUTPUT
+            echo "Detected: fixes/chores only -> patch bump"
+          fi
+
+      - name: Bump version
+        if: steps.check.outputs.has_changes == 'true'
+        id: bump
+        run: |
+          semantic-release version --${{ steps.version.outputs.bump }} --no-changelog --no-push --no-vcs-release
+          new_version=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Commit and tag
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          git add pyproject.toml
+          git commit -m "chore: release v${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
+          git tag "v${{ steps.bump.outputs.new_version }}"
+
+      - name: Push changes and tag
+        if: steps.check.outputs.has_changes == 'true'
+        run: |
+          git push origin main
+          git push origin "v${{ steps.bump.outputs.new_version }}"

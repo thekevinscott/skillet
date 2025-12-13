@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 13 eval files for testing `/skillet:add` command behavior
 - Multi-turn conversation support in eval system
 - Session resumption for sequential prompts in evals
+- Automated nightly release workflow (2am UTC) triggered by git tags
+- Version bump automation using conventional commits
+- Conditional docs deployment to GitHub Pages
+- Commit convention documentation in `CLAUDE.md`
 
 ### Changed
 - Renamed `/skillet:gap` command to `/skillet:add`
