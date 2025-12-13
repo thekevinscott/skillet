@@ -1,0 +1,4 @@
+timestamp: 2025-01-15T00:00:00Z
+prompt: "/skillet:add"
+expected: "Should ask what behavior or format I expected"
+name: add-command

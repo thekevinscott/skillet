@@ -1,0 +1,10 @@
+# Test: it_confirms_save_location
+# Should report the full path where eval was saved
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "Summarize this text: Hello world"
+  - "/skillet:add"
+  - "Should be more concise"
+  - "conciseness"
+expected: "Should confirm save location with full path like ~/.skillet/evals/conciseness/001.yaml"
+name: add-command-confirm-path

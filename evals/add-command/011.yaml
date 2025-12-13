@@ -1,0 +1,10 @@
+# Test: it_reports_eval_count
+# Should report how many evals exist for this category
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "Write some code"
+  - "/skillet:add"
+  - "Should include type hints"
+  - "type-hints"
+expected: "Should report how many evals exist for the category after saving"
+name: add-command-report-count

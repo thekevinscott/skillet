@@ -1,0 +1,10 @@
+# Test: it_numbers_evals_sequentially
+# Eval files should be numbered 001.yaml, 002.yaml, etc.
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "Help me debug this"
+  - "/skillet:add"
+  - "Should ask clarifying questions first"
+  - "clarifying-questions"
+expected: "Should save to a numbered file like 001.yaml, 002.yaml following sequential numbering"
+name: add-command-sequential-numbering
