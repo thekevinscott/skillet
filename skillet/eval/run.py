@@ -4,28 +4,41 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
-
 from skillet._internal.cache import (
     gap_cache_key,
     get_cache_dir,
     get_cached_iterations,
     save_iteration,
 )
+from skillet._internal.sdk import query_multiturn
 from skillet.gaps import load_gaps
 
 from .judge import judge_response
 
 
 async def run_prompt(
-    prompt: str,
+    prompt: str | list[str],
     skill_path: Path | None = None,
     allowed_tools: list[str] | None = None,
+    cwd: str | None = None,
 ) -> str:
-    """Run a prompt through Claude and return the response."""
-    # If skill path provided, set cwd to parent of .claude/skills so SDK discovers it
-    cwd = None
-    if skill_path and ".claude" in skill_path.parts:
+    """Run a prompt (or multi-turn conversation) through Claude and return the response.
+
+    Args:
+        prompt: Single prompt string, or list of prompts for multi-turn conversation.
+                For multi-turn, each prompt is sent sequentially, resuming the session.
+        skill_path: Path to skill directory for Skill tool
+        allowed_tools: List of allowed tools
+        cwd: Working directory for Claude
+
+    Returns:
+        The final assistant response text
+    """
+    # Normalize to list
+    prompts = [prompt] if isinstance(prompt, str) else prompt
+
+    # If skill path provided and no cwd, set cwd to parent of .claude/skills
+    if cwd is None and skill_path and ".claude" in skill_path.parts:
         claude_idx = skill_path.parts.index(".claude")
         cwd = str(Path(*skill_path.parts[:claude_idx]))
 
@@ -41,19 +54,13 @@ async def run_prompt(
     else:
         tools = list(allowed_tools) if allowed_tools else []
 
-    options = ClaudeAgentOptions(
-        max_turns=3,
-        allowed_tools=tools or None,  # type: ignore[arg-type]
+    response_text = await query_multiturn(
+        prompts,
+        max_turns=10,
+        allowed_tools=tools or None,
         cwd=cwd,
         setting_sources=["project"] if cwd else None,
     )
-
-    response_text = ""
-    async for message in query(prompt=prompt, options=options):
-        if isinstance(message, AssistantMessage):
-            for block in message.content:
-                if isinstance(block, TextBlock):
-                    response_text += block.text
 
     if not response_text:
         response_text = "(no text response - Claude may have only used tools)"
