@@ -57,6 +57,11 @@ quote-style = "double"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[dependency-groups]
+dev = [
+    "ruff>=0.14.9",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["skillet"]
 python_files = ["*_test.py"]

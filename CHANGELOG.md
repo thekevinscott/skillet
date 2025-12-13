@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Isolated HOME environment for every eval execution
+- Optional `setup` and `teardown` scripts in eval YAML for pre/post test hooks
 - Template-based command system for `{{SKILLET_DIR}}` substitution
 - `scripts/build_claude_config.py` for building `.claude/commands/` from templates
 - `just build-claude` command for template building
