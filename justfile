@@ -53,6 +53,10 @@ security:
 typecheck:
     uv run ty check skillet/
 
+# Build .claude/commands/ from templates
+build-claude:
+    uv run python scripts/build_claude_config.py
+
 # Run unit tests
 test-unit *args:
     uv run pytest {{args}}
