@@ -1,6 +1,6 @@
 [project]
-name = "skillet"
-version = "0.1.0"
+name = "pyskillet"
+version = "0.0.1"
 description = "Evaluation-driven Claude Code skill development"
 readme = "README.md"
 requires-python = ">=3.12"
