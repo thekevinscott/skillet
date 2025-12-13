@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from skillet._internal.sdk import query_assistant_text
-from skillet._internal.text import strip_markdown
+from skillet._internal.text import strip_markdown, summarize_failure_for_tuning
 from skillet.config import MAX_SKILL_LINES
 
 # Tips to explore instruction space (inspired by DSPy MIPROv2)
@@ -40,16 +40,7 @@ async def improve_skill(
     current_skill = (skill_path / "SKILL.md").read_text()
 
     # Summarize failures
-    failure_summary = []
-    for f in failures:
-        failure_summary.append(
-            {
-                "prompt": f["prompt"],
-                "expected": f["expected"],
-                "actual_response": f["response"][:500] if f.get("response") else "",
-                "why_failed": f["judgment"].get("reasoning", ""),
-            }
-        )
+    failure_summary = [summarize_failure_for_tuning(f) for f in failures]
 
     prompt = f"""Improve this SKILL.md so Claude exhibits the expected behavior.
 
