@@ -1,0 +1,10 @@
+# Test: it_uses_write_tool_not_cat
+# Should use Write tool, not Bash cat/echo for file creation
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "Generate a haiku"
+  - "/skillet:add"
+  - "Should be about nature"
+  - "haiku-quality"
+expected: "Should use the Write tool (not Bash with cat or echo) to save the eval file"
+name: add-command-uses-write-tool

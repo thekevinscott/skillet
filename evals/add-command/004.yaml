@@ -1,0 +1,7 @@
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "Write a commit message for: Fixed typo in README"
+  - "/skillet:add"
+  - "Should use conventional commits format: fix(docs): description"
+expected: "Should suggest an eval name like 'conventional-commits' or similar"
+name: add-command-multiturn

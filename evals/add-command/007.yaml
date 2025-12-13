@@ -1,0 +1,8 @@
+# Test: it_suggests_new_names_when_no_evals_exist
+# When no evals exist, should suggest new category names
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "/skillet:add"
+  - "Should use conventional commits format"
+expected: "Should suggest category name options containing 'conventional' or 'commit'"
+name: add-command-suggest-new-names

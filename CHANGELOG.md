@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `just build-claude` command for template building
 - E2E test helpers with `Conversation` class for multi-turn testing
 - Auto-build of commands in e2e test conftest
+- 13 eval files for testing `/skillet:add` command behavior
 
 ### Changed
 - Renamed `/skillet:gap` command to `/skillet:add`

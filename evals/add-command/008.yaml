@@ -1,0 +1,8 @@
+# Test: it_suggests_existing_folder_when_one_matches
+# When an existing eval folder matches, should suggest it first
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "/skillet:add"
+  - "Should format commit messages properly"
+expected: "Should check ~/.skillet/evals/ for existing categories and mention any that exist"
+name: add-command-check-existing

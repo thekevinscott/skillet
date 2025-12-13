@@ -1,0 +1,10 @@
+# Test: it_saves_eval_in_yaml_format
+# Eval should be saved as valid YAML with required fields
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "Tell me a joke"
+  - "/skillet:add"
+  - "Should be funnier"
+  - "humor-quality"
+expected: "Should save a YAML file containing timestamp, prompt, expected, and name fields"
+name: add-command-yaml-format

@@ -1,0 +1,4 @@
+timestamp: 2025-01-15T00:00:00Z
+prompt: "/skillet:add"
+expected: "Should NOT immediately try to save an eval or suggest names - must first ask what the user expected"
+name: add-command

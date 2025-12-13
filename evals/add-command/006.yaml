@@ -1,0 +1,9 @@
+# Test: it_captures_and_saves_eval - full workflow through to save
+timestamp: 2025-01-15T00:00:00Z
+prompt:
+  - "Write a commit message for this diff:\n\n- def foo():\n+ def foo(x: int):\n    pass"
+  - "/skillet:add"
+  - "Should use conventional commits format: type(scope): description"
+  - "conventional-commits"
+expected: "Should confirm the eval was saved (mention 'saved' or the file path)"
+name: add-command-full-workflow
