@@ -18,14 +18,28 @@ from .judge import judge_response
 
 
 async def run_prompt(
-    prompt: str,
+    prompt: str | list[str],
     skill_path: Path | None = None,
     allowed_tools: list[str] | None = None,
+    cwd: str | None = None,
 ) -> str:
-    """Run a prompt through Claude and return the response."""
-    # If skill path provided, set cwd to parent of .claude/skills so SDK discovers it
-    cwd = None
-    if skill_path and ".claude" in skill_path.parts:
+    """Run a prompt (or multi-turn conversation) through Claude and return the response.
+
+    Args:
+        prompt: Single prompt string, or list of prompts for multi-turn conversation.
+                For multi-turn, each prompt is sent sequentially, resuming the session.
+        skill_path: Path to skill directory for Skill tool
+        allowed_tools: List of allowed tools
+        cwd: Working directory for Claude
+
+    Returns:
+        The final assistant response text
+    """
+    # Normalize to list
+    prompts = [prompt] if isinstance(prompt, str) else prompt
+
+    # If skill path provided and no cwd, set cwd to parent of .claude/skills
+    if cwd is None and skill_path and ".claude" in skill_path.parts:
         claude_idx = skill_path.parts.index(".claude")
         cwd = str(Path(*skill_path.parts[:claude_idx]))
 
@@ -42,18 +56,34 @@ async def run_prompt(
         tools = list(allowed_tools) if allowed_tools else []
 
     options = ClaudeAgentOptions(
-        max_turns=3,
+        max_turns=10,
         allowed_tools=tools or None,  # type: ignore[arg-type]
         cwd=cwd,
         setting_sources=["project"] if cwd else None,
     )
 
+    session_id: str | None = None
     response_text = ""
-    async for message in query(prompt=prompt, options=options):
-        if isinstance(message, AssistantMessage):
-            for block in message.content:
-                if isinstance(block, TextBlock):
-                    response_text += block.text
+
+    for p in prompts:
+        response_text = ""
+
+        # Resume session for subsequent turns
+        if session_id:
+            options.resume = session_id
+
+        async for message in query(prompt=p, options=options):
+            # Capture session ID from init message
+            if hasattr(message, "subtype") and message.subtype == "init":
+                if hasattr(message, "session_id"):
+                    session_id = message.session_id
+                elif hasattr(message, "data") and isinstance(message.data, dict):
+                    session_id = message.data.get("session_id")
+
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        response_text += block.text
 
     if not response_text:
         response_text = "(no text response - Claude may have only used tools)"

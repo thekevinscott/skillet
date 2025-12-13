@@ -3,21 +3,35 @@
 from skillet._internal.sdk import query_assistant_text
 
 
-async def judge_response(prompt: str, response: str, expected: str) -> dict:
+def format_prompt_for_judge(prompt: str | list[str]) -> str:
+    """Format prompt(s) for the judge, handling multi-turn conversations."""
+    if isinstance(prompt, str):
+        return prompt
+
+    # Multi-turn: format as numbered conversation
+    lines = []
+    for i, p in enumerate(prompt, 1):
+        lines.append(f"Turn {i}: {p}")
+    return "\n".join(lines)
+
+
+async def judge_response(prompt: str | list[str], response: str, expected: str) -> dict:
     """Use Claude as a judge to evaluate if a response meets expectations.
 
     Args:
-        prompt: The original user prompt
-        response: Claude's response to evaluate
+        prompt: The original user prompt, or list of prompts for multi-turn
+        response: Claude's final response to evaluate
         expected: What the user expected (from the gap file)
 
     Returns:
         dict with 'pass' (bool), 'reasoning' (str), and 'raw' (str)
     """
+    formatted_prompt = format_prompt_for_judge(prompt)
+
     judge_prompt = f"""You are evaluating whether an AI response meets the user's expectations.
 
 ## Original Prompt
-{prompt}
+{formatted_prompt}
 
 ## AI Response
 {response}
