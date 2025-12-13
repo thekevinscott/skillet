@@ -2,15 +2,13 @@
 
 from pathlib import Path
 
-from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.tree import Tree
 
+from skillet.cli import console
 from skillet.errors import SkillError
 from skillet.gaps import load_gaps
 from skillet.skill import create_skill
-
-console = Console()
 
 
 async def new_command(

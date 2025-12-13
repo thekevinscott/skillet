@@ -3,13 +3,11 @@
 from pathlib import Path
 
 import yaml
-from rich.console import Console
 
 from skillet._internal.sdk import query_assistant_text
+from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.eval import evaluate
-
-console = Console()
 
 
 async def summarize_responses(results: list[dict]) -> str:
