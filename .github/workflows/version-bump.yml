@@ -83,12 +83,13 @@ jobs:
           new_version=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
-      - name: Check if tag exists
+      - name: Check if tag exists on remote
         if: steps.check.outputs.has_changes == 'true'
         id: tag_check
         run: |
-          if git rev-parse "v${{ steps.bump.outputs.new_version }}" >/dev/null 2>&1; then
-            echo "Tag v${{ steps.bump.outputs.new_version }} already exists, skipping"
+          # Check remote tags, not local (semantic-release creates local tags)
+          if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.bump.outputs.new_version }}$"; then
+            echo "Tag v${{ steps.bump.outputs.new_version }} already exists on remote, skipping"
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
