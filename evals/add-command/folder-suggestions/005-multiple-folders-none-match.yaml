@@ -1,0 +1,26 @@
+# Multiple existing folders, none match - suggest 3 new names
+timestamp: 2025-01-15T00:00:00Z
+name: suggest-folders-multiple-none-match
+
+setup: |
+  mkdir -p ~/.skillet/evals/haiku-quality
+  touch ~/.skillet/evals/haiku-quality/001.yaml
+  mkdir -p ~/.skillet/evals/image-generation
+  touch ~/.skillet/evals/image-generation/001.yaml
+  mkdir -p ~/.skillet/evals/sql-formatting
+  touch ~/.skillet/evals/sql-formatting/001.yaml
+
+prompt:
+  - "Write a commit message for: Updated README"
+  - "/skillet:add"
+  - "Should use conventional commits format like docs(readme): update"
+
+expected: |
+  Should suggest 3 NEW folder names related to "conventional commits" or "commit format".
+  Should NOT include any of the existing folders (haiku-quality, image-generation, sql-formatting)
+  since none of them are related to commit message formatting.
+
+teardown: |
+  rm -rf ~/.skillet/evals/haiku-quality
+  rm -rf ~/.skillet/evals/image-generation
+  rm -rf ~/.skillet/evals/sql-formatting

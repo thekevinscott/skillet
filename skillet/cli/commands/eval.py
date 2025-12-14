@@ -43,6 +43,8 @@ async def eval_command(
     parallel: int = 3,
 ):
     """Run eval command with display."""
+    from skillet.gaps import load_gaps
+
     # Print header
     console.print()
     if skill_path:
@@ -51,43 +53,45 @@ async def eval_command(
     else:
         console.print("[bold]Eval Results (baseline, no skill)[/bold]")
 
-    # We need to create the display before running, but we need tasks first
-    # So we do a preliminary setup here - a bit awkward but keeps API clean
+    # Load gaps first to build the task list for display
+    gaps = load_gaps(name)
+    if max_gaps and max_gaps < len(gaps):
+        import random
 
-    # Create a wrapper to track tasks and display
-    display: LiveDisplay | None = None
-    tasks_ref: list[dict] = []
+        gaps = random.sample(gaps, max_gaps)
+
+    # Build task list for display initialization
+    tasks = []
+    for gap_idx, gap in enumerate(gaps):
+        for i in range(samples):
+            tasks.append(
+                {
+                    "gap_idx": gap_idx,
+                    "gap_source": gap["_source"],
+                    "iteration": i + 1,
+                }
+            )
+
+    # Create and start live display
+    display = LiveDisplay(tasks)
+    await display.start()
 
     async def on_status(task: dict, state: str, result: dict | None):
-        nonlocal display, tasks_ref
-        # Initialize display on first task
-        if display is None:
-            # We need the full task list - get it from the eval module
-            # This is called with each task, so we build incrementally
-            if task not in tasks_ref:
-                tasks_ref.append(task)
-        else:
-            await display.update(task, state, result)
+        await display.update(task, state, result)
 
-    # Run the evaluation
-    eval_result = await evaluate(
-        name,
-        skill_path=skill_path,
-        samples=samples,
-        max_gaps=max_gaps,
-        allowed_tools=allowed_tools,
-        parallel=parallel,
-    )
-
-    # Now create and run display with full task list
-    display = LiveDisplay(eval_result["tasks"])
-    for task in eval_result["tasks"]:
-        # Find matching result
-        for r in eval_result["results"]:
-            if r["gap_idx"] == task["gap_idx"] and r["iteration"] == task["iteration"]:
-                state = "cached" if r.get("cached") else "done"
-                await display.update(task, state, r)
-                break
+    try:
+        # Run the evaluation with live updates
+        eval_result = await evaluate(
+            name,
+            skill_path=skill_path,
+            samples=samples,
+            max_gaps=max_gaps,
+            allowed_tools=allowed_tools,
+            parallel=parallel,
+            on_status=on_status,
+        )
+    finally:
+        await display.stop()
 
     # Print results info
     if max_gaps and eval_result["sampled_gaps"] < eval_result["total_gaps"]:

@@ -1,0 +1,22 @@
+# Folder with partial/fuzzy match - should still recognize relevance
+timestamp: 2025-01-15T00:00:00Z
+name: suggest-folders-partial-match
+
+setup: |
+  mkdir -p ~/.skillet/evals/git-commits
+  touch ~/.skillet/evals/git-commits/001.yaml
+  touch ~/.skillet/evals/git-commits/002.yaml
+  touch ~/.skillet/evals/git-commits/003.yaml
+
+prompt:
+  - "Write a commit message for: Deleted unused code"
+  - "/skillet:add"
+  - "Should use conventional commits with type chore"
+
+expected: |
+  Should recognize "git-commits" as relevant to "conventional commits" (both about commits)
+  and suggest it as an option (existing, 3 evals). Should also offer new suggestions
+  that might be more specific like "conventional-commits" or "commit-format".
+
+teardown: |
+  rm -rf ~/.skillet/evals/git-commits

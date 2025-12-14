@@ -1,0 +1,20 @@
+# One existing folder that closely matches - should include it plus 2 new suggestions
+timestamp: 2025-01-15T00:00:00Z
+name: suggest-folders-one-close-match
+
+setup: |
+  mkdir -p ~/.skillet/evals/conventional-commits
+  touch ~/.skillet/evals/conventional-commits/001.yaml
+
+prompt:
+  - "Write a commit message for: Added new feature"
+  - "/skillet:add"
+  - "Should use conventional commits format like feat(scope): description"
+
+expected: |
+  Should suggest the existing "conventional-commits" folder first (marked as existing with eval count),
+  plus 2 new name suggestions. The existing folder should be prominently featured since it's
+  a close match to "conventional commits".
+
+teardown: |
+  rm -rf ~/.skillet/evals/conventional-commits

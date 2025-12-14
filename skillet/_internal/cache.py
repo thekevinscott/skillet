@@ -41,13 +41,19 @@ def gap_cache_key(gap_source: str, gap_content: str) -> str:
     return f"{name}-{content_hash}"
 
 
+def normalize_cache_name(name: str) -> str:
+    """Normalize name to cache key: if path exists, use directory name."""
+    name_path = Path(name)
+    return name_path.resolve().name if name_path.exists() else name
+
+
 def get_cache_dir(name: str, gap_key: str, skill_path: Path | None = None) -> Path:
     """Get cache directory for a specific gap + skill combo.
 
     Structure: ~/.skillet/cache/<name>/<gap-key>/baseline/
            or: ~/.skillet/cache/<name>/<gap-key>/skills/<skill-hash>/
     """
-    base = CACHE_DIR / name / gap_key
+    base = CACHE_DIR / normalize_cache_name(name) / gap_key
 
     if skill_path is None:
         return base / "baseline"
@@ -83,7 +89,7 @@ def get_all_cached_results(name: str, skill_path: Path | None = None) -> dict[st
 
     Returns: {"001.yaml": [iter1, iter2, ...], "002.yaml": [...], ...}
     """
-    cache_base = CACHE_DIR / name
+    cache_base = CACHE_DIR / normalize_cache_name(name)
     if not cache_base.exists():
         return {}
 

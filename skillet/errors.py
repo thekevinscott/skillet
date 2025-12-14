@@ -5,12 +5,16 @@ class SkilletError(Exception):
     """Base exception for skillet errors."""
 
 
-class GapError(SkilletError):
-    """Error loading or processing gaps."""
-
-
 class EvalError(SkilletError):
-    """Error during evaluation."""
+    """Error loading or processing evals."""
+
+
+class EvalValidationError(EvalError):
+    """Error validating eval file format."""
+
+
+class EmptyFolderError(EvalError):
+    """Error when eval folder is empty or doesn't exist."""
 
 
 class SkillError(SkilletError):

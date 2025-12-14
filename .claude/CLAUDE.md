@@ -38,6 +38,17 @@ just test-e2e        # Run e2e tests
 just test-unit       # Run unit tests
 ```
 
+## Container Development
+When running inside a Docker container with the project mounted, use a separate venv to avoid conflicts with the host:
+
+```bash
+export UV_PROJECT_ENVIRONMENT=/.venv
+uv sync --all-extras
+uv run pytest tests/ -v
+```
+
+This prevents the host's `.venv` from being invalidated when switching contexts.
+
 ## Commit Convention
 
 Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format for automatic version bumping:

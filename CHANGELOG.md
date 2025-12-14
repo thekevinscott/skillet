@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 7 folder-suggestion evals for `/skillet:add` command testing
+- Recursive eval loading (supports subdirectories in eval folders)
+- Container development docs in CLAUDE.md (use `/.venv` for isolated venv)
 - Isolated HOME environment for every eval execution
 - Optional `setup` and `teardown` scripts in eval YAML for pre/post test hooks
 - Git worktree workflow documentation in CLAUDE.md
@@ -39,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved internal utilities to `_internal/` module
 
 ### Fixed
+- `load_gaps` now accepts paths (e.g., `./evals/add-command/`) in addition to names
+- Cache normalizes paths to directory name for consistent caching
+- Eval CLI live display now updates in real-time during execution
 - Release workflow permissions for checkout
 - Nightly release tag check now uses remote refs instead of local (semantic-release creates local tags)
 - Removed redundant commit/tag step since semantic-release already creates them
@@ -46,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - semantic-release config to update pyproject.toml version
 
 ### Removed
+- `GapError` exception (use `EvalError` instead)
 - Separate `release.yml` workflow (now part of nightly workflow)
 - GitHub Pages deployment from release workflow (not needed)
 

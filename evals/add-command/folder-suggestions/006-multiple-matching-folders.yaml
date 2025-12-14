@@ -1,0 +1,27 @@
+# Multiple existing folders that ALL match - present them all
+timestamp: 2025-01-15T00:00:00Z
+name: suggest-folders-multiple-all-match
+
+setup: |
+  mkdir -p ~/.skillet/evals/conventional-commits
+  touch ~/.skillet/evals/conventional-commits/001.yaml
+  touch ~/.skillet/evals/conventional-commits/002.yaml
+  mkdir -p ~/.skillet/evals/commit-format
+  touch ~/.skillet/evals/commit-format/001.yaml
+  mkdir -p ~/.skillet/evals/commit-style
+  touch ~/.skillet/evals/commit-style/001.yaml
+
+prompt:
+  - "Write a commit message for: Added tests"
+  - "/skillet:add"
+  - "Should follow conventional commits spec"
+
+expected: |
+  Should present the existing matching folders as options: conventional-commits (2 evals),
+  commit-format (1 eval), commit-style (1 eval). All three are relevant to commit formatting.
+  May include these as the 3 options, or prioritize by eval count.
+
+teardown: |
+  rm -rf ~/.skillet/evals/conventional-commits
+  rm -rf ~/.skillet/evals/commit-format
+  rm -rf ~/.skillet/evals/commit-style
