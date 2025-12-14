@@ -49,6 +49,10 @@ uv run pytest tests/ -v
 
 This prevents the host's `.venv` from being invalidated when switching contexts.
 
+## Guidelines
+- Check `uv.lock` for dependency versions - don't ask the user for info you can look up
+- Don't make up installation commands - verify in docs or source code first
+
 ## Commit Convention
 
 Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format for automatic version bumping:

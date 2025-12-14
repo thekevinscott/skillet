@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- CLAUDE.md guidelines: check uv.lock for versions, verify commands in docs
 - 7 folder-suggestion evals for `/skillet:add` command testing
 - Recursive eval loading (supports subdirectories in eval folders)
 - Container development docs in CLAUDE.md (use `/.venv` for isolated venv)
