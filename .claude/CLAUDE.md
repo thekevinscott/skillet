@@ -42,7 +42,7 @@ just test-unit       # Run unit tests
 When running inside a Docker container with the project mounted, use a separate venv to avoid conflicts with the host:
 
 ```bash
-export UV_PROJECT_ENVIRONMENT=.venv-container
+export UV_PROJECT_ENVIRONMENT=/.venv
 uv sync --all-extras
 uv run pytest tests/ -v
 ```

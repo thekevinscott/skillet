@@ -41,12 +41,8 @@ def load_gaps(name: str) -> list[dict]:
     Raises:
         GapError: If gaps directory doesn't exist, is empty, or contains invalid files
     """
-    # Check if name is a path (contains / or .)
     name_path = Path(name)
-    if name_path.exists() and name_path.is_dir():
-        gaps_dir = name_path
-    else:
-        gaps_dir = SKILLET_DIR / "gaps" / name
+    gaps_dir = name_path if name_path.is_dir() else SKILLET_DIR / "gaps" / name
 
     if not gaps_dir.exists():
         raise GapError(f"No gaps found for '{name}'. Expected: {gaps_dir}")
@@ -55,11 +51,14 @@ def load_gaps(name: str) -> list[dict]:
         raise GapError(f"Not a directory: {gaps_dir}")
 
     gaps = []
-    for gap_file in sorted(gaps_dir.glob("*.yaml")):
+    # Use rglob to recursively find all yaml files in subdirectories too
+    for gap_file in sorted(gaps_dir.rglob("*.yaml")):
         content = gap_file.read_text()
         gap = yaml.safe_load(content)
-        validate_gap(gap, gap_file.name)
-        gap["_source"] = gap_file.name
+        # Use relative path from gaps_dir as source for better identification
+        relative_path = gap_file.relative_to(gaps_dir)
+        validate_gap(gap, str(relative_path))
+        gap["_source"] = str(relative_path)
         gap["_content"] = content
         gaps.append(gap)
 
