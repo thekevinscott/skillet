@@ -1,9 +1,23 @@
 # Skillet Development
 
 ## Workflow
-- Work in git worktrees, tie PRs to GitHub issues
+- Work in git worktrees under `.worktrees/` folder, tie PRs to GitHub issues
 - Before pushing: `just lint && just test-unit`
 - After pushing: monitor CI checks
+
+### Git Worktrees
+All development work should happen in git worktrees, not on the main branch directly:
+
+```bash
+# Create a new worktree for a feature branch
+git worktree add .worktrees/my-feature -b feat/my-feature
+
+# Work in the worktree
+cd .worktrees/my-feature
+
+# When done, remove the worktree
+git worktree remove .worktrees/my-feature
+```
 
 ## Project Structure
 - `.claude-template/` - Source templates with `{{SKILLET_DIR}}` placeholders

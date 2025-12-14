@@ -9,7 +9,7 @@ Evaluation-driven Claude Code skill development.
 ## Install
 
 ```bash
-pip install skillet
+pip install pyskillet
 ```
 
 ## Why
