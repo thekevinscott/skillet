@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       package: ${{ steps.filter.outputs.package }}
-      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -42,13 +41,6 @@ jobs:
             echo "package=false" >> $GITHUB_OUTPUT
           fi
 
-          # Check for docs changes
-          if echo "$changed_files" | grep -qE '^docs/'; then
-            echo "docs=true" >> $GITHUB_OUTPUT
-          else
-            echo "docs=false" >> $GITHUB_OUTPUT
-          fi
-
   # Publish to PyPI if package files changed
   pypi:
     runs-on: ubuntu-latest
@@ -68,30 +60,3 @@ jobs:
 
       - name: Publish to PyPI
         run: uv publish --trusted-publishing always
-
-  # Deploy docs to GitHub Pages if docs files changed
-  docs:
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.docs == 'true'
-    permissions:
-      contents: read   # Required for checkout
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'docs/'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
