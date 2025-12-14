@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Switched to dynamic versioning via `hatch-vcs` (version derived from git tags at build time)
 - Simplified nightly release workflow to only create/push tags (no commits to main needed)
+- Simplified release workflow to always publish (removed unnecessary changes detection)
 - Renamed PyPI package from `skillet` to `pyskillet` (name was taken)
 - Renamed `/skillet:gap` command to `/skillet:add`
 - Increased `max_turns` from 3 to 10 for complex command workflows
