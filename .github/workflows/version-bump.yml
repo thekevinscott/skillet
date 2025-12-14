@@ -15,7 +15,6 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for new commits since last tag
         id: check
@@ -27,6 +26,7 @@ jobs:
             echo "No tags found, will create initial release"
             echo "has_changes=true" >> $GITHUB_OUTPUT
             echo "compare_base=$(git rev-list --max-parents=0 HEAD)" >> $GITHUB_OUTPUT
+            echo "current_version=0.0.0" >> $GITHUB_OUTPUT
           else
             # Check if there are commits since the last tag
             commits_since_tag=$(git rev-list ${latest_tag}..HEAD --count)
@@ -34,70 +34,57 @@ jobs:
               echo "Found $commits_since_tag commits since $latest_tag"
               echo "has_changes=true" >> $GITHUB_OUTPUT
               echo "compare_base=$latest_tag" >> $GITHUB_OUTPUT
+              # Extract version number from tag (remove 'v' prefix)
+              echo "current_version=${latest_tag#v}" >> $GITHUB_OUTPUT
             else
               echo "No new commits since $latest_tag"
               echo "has_changes=false" >> $GITHUB_OUTPUT
             fi
           fi
 
-      - name: Configure git
-        if: steps.check.outputs.has_changes == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Install uv
-        if: steps.check.outputs.has_changes == 'true'
-        uses: astral-sh/setup-uv@v7
-
-      - name: Install python-semantic-release
-        if: steps.check.outputs.has_changes == 'true'
-        run: uv tool install python-semantic-release
-
       - name: Determine version bump
         if: steps.check.outputs.has_changes == 'true'
         id: version
         run: |
           compare_base="${{ steps.check.outputs.compare_base }}"
+          current="${{ steps.check.outputs.current_version }}"
+
+          # Parse current version
+          IFS='.' read -r major minor patch <<< "$current"
 
           # Analyze all commits since last tag to determine bump type
           # Check for breaking changes (highest priority)
           if git log --format=%B ${compare_base}..HEAD | grep -qiE '(BREAKING CHANGE|^[a-z]+!:)'; then
-            echo "bump=major" >> $GITHUB_OUTPUT
             echo "Detected: BREAKING CHANGE -> major bump"
+            new_version="$((major + 1)).0.0"
           # Check for features
           elif git log --format=%B ${compare_base}..HEAD | grep -qE '^feat(\(.+\))?:'; then
-            echo "bump=minor" >> $GITHUB_OUTPUT
             echo "Detected: feat commit -> minor bump"
+            new_version="${major}.$((minor + 1)).0"
           # Default to patch
           else
-            echo "bump=patch" >> $GITHUB_OUTPUT
             echo "Detected: fixes/chores only -> patch bump"
+            new_version="${major}.${minor}.$((patch + 1))"
           fi
 
-      - name: Bump version
-        if: steps.check.outputs.has_changes == 'true'
-        id: bump
-        run: |
-          semantic-release version --${{ steps.version.outputs.bump }} --no-changelog --no-push --no-vcs-release
-          new_version=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "New version will be: $new_version"
 
       - name: Check if tag exists on remote
         if: steps.check.outputs.has_changes == 'true'
         id: tag_check
         run: |
-          # Check remote tags, not local (semantic-release creates local tags)
-          if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.bump.outputs.new_version }}$"; then
-            echo "Tag v${{ steps.bump.outputs.new_version }} already exists on remote, skipping"
+          if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.version.outputs.new_version }}$"; then
+            echo "Tag v${{ steps.version.outputs.new_version }} already exists on remote, skipping"
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Push changes and tag
+      - name: Create and push tag
         if: steps.check.outputs.has_changes == 'true' && steps.tag_check.outputs.exists == 'false'
         run: |
-          # semantic-release already created the commit and tag locally
-          git push origin main
-          git push origin "v${{ steps.bump.outputs.new_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
