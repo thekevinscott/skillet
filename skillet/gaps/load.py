@@ -31,10 +31,13 @@ def validate_eval(eval_data: dict, source: str) -> None:
 
 
 def load_gaps(name: str) -> list[dict]:
-    """Load all eval files for an eval set.
+    """Load eval files for an eval set.
 
     Args:
-        name: Either a name (looks in ~/.skillet/evals/<name>/) or a path to a directory
+        name: One of:
+            - A name (looks in ~/.skillet/evals/<name>/)
+            - A path to a directory (loads all .yaml files recursively)
+            - A path to a single .yaml file
 
     Returns:
         List of eval dicts with _source and _content fields added
@@ -43,6 +46,20 @@ def load_gaps(name: str) -> list[dict]:
         EvalError: If evals directory doesn't exist, is empty, or contains invalid files
     """
     name_path = Path(name)
+
+    # Handle single file case
+    if name_path.is_file():
+        if not name_path.suffix == ".yaml":
+            raise EvalValidationError(f"Expected .yaml file, got: {name_path}")
+
+        content = name_path.read_text()
+        eval_data = yaml.safe_load(content)
+        validate_eval(eval_data, name_path.name)
+        eval_data["_source"] = name_path.name
+        eval_data["_content"] = content
+        return [eval_data]
+
+    # Handle directory case
     evals_dir = name_path if name_path.is_dir() else SKILLET_DIR / "evals" / name
 
     if not evals_dir.exists():
