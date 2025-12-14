@@ -8,7 +8,7 @@ from skillet._internal.cache import (
     get_cached_iterations,
     hash_directory,
 )
-from skillet.errors import EvalError
+from skillet.errors import EmptyFolderError
 from skillet.gaps import load_gaps
 
 
@@ -43,7 +43,7 @@ def compare(name: str, skill_path: Path) -> dict:
     gaps = load_gaps(name)
 
     if not gaps:
-        raise EvalError(f"No evals found for '{name}'")
+        raise EmptyFolderError(f"No evals found for '{name}'")
 
     # Collect results for each gap
     results = []

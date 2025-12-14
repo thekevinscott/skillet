@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from skillet.config import SKILLET_DIR
-from skillet.errors import EvalError
+from skillet.errors import EmptyFolderError, EvalValidationError
 
 # Required fields for a valid gap file
 REQUIRED_GAP_FIELDS = {"timestamp", "prompt", "expected", "name"}
@@ -19,14 +19,15 @@ def validate_eval(eval_data: dict, source: str) -> None:
         source: Source filename for error messages
 
     Raises:
-        EvalError: If required fields are missing
+        EvalValidationError: If required fields are missing or format is invalid
     """
     if not isinstance(eval_data, dict):
-        raise EvalError(f"Eval {source} is not a valid YAML dictionary")
+        raise EvalValidationError(f"Eval {source} is not a valid YAML dictionary")
 
     missing = REQUIRED_GAP_FIELDS - set(eval_data.keys())
     if missing:
-        raise EvalError(f"Eval {source} missing required fields: {', '.join(sorted(missing))}")
+        missing_str = ", ".join(sorted(missing))
+        raise EvalValidationError(f"Eval {source} missing required fields: {missing_str}")
 
 
 def load_gaps(name: str) -> list[dict]:
@@ -45,10 +46,10 @@ def load_gaps(name: str) -> list[dict]:
     evals_dir = name_path if name_path.is_dir() else SKILLET_DIR / "evals" / name
 
     if not evals_dir.exists():
-        raise EvalError(f"No evals found for '{name}'. Expected: {evals_dir}")
+        raise EmptyFolderError(f"No evals found for '{name}'. Expected: {evals_dir}")
 
     if not evals_dir.is_dir():
-        raise EvalError(f"Not a directory: {evals_dir}")
+        raise EmptyFolderError(f"Not a directory: {evals_dir}")
 
     evals = []
     # Use rglob to recursively find all yaml files in subdirectories too
@@ -63,6 +64,6 @@ def load_gaps(name: str) -> list[dict]:
         evals.append(eval_data)
 
     if not evals:
-        raise EvalError(f"No eval files found in {evals_dir}")
+        raise EmptyFolderError(f"No eval files found in {evals_dir}")
 
     return evals
