@@ -95,15 +95,9 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and tag
-        if: steps.check.outputs.has_changes == 'true' && steps.tag_check.outputs.exists == 'false'
-        run: |
-          git add pyproject.toml
-          git commit -m "chore: release v${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
-          git tag "v${{ steps.bump.outputs.new_version }}"
-
       - name: Push changes and tag
         if: steps.check.outputs.has_changes == 'true' && steps.tag_check.outputs.exists == 'false'
         run: |
+          # semantic-release already created the commit and tag locally
           git push origin main
           git push origin "v${{ steps.bump.outputs.new_version }}"
