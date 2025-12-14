@@ -1,0 +1,27 @@
+# Multiple existing folders, some match the description - include matching ones
+timestamp: 2025-01-15T00:00:00Z
+name: suggest-folders-multiple-some-match
+
+setup: |
+  mkdir -p ~/.skillet/evals/commit-format
+  touch ~/.skillet/evals/commit-format/001.yaml
+  touch ~/.skillet/evals/commit-format/002.yaml
+  mkdir -p ~/.skillet/evals/code-review
+  touch ~/.skillet/evals/code-review/001.yaml
+  mkdir -p ~/.skillet/evals/haiku-quality
+  touch ~/.skillet/evals/haiku-quality/001.yaml
+
+prompt:
+  - "Write a commit message for: Fixed typo in docs"
+  - "/skillet:add"
+  - "Should use conventional commits format like fix(docs): typo"
+
+expected: |
+  Should include "commit-format" as an option (existing, 2 evals) since it matches.
+  Should NOT include "code-review" or "haiku-quality" since they don't match commit formatting.
+  Should fill remaining slots with new suggestions related to conventional commits.
+
+teardown: |
+  rm -rf ~/.skillet/evals/commit-format
+  rm -rf ~/.skillet/evals/code-review
+  rm -rf ~/.skillet/evals/haiku-quality

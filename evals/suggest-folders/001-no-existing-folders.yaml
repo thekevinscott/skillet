@@ -1,0 +1,13 @@
+# No existing folders - should suggest 3 new names based on description
+timestamp: 2025-01-15T00:00:00Z
+name: suggest-folders-no-existing
+
+prompt:
+  - "Write a commit message for: Fixed login bug"
+  - "/skillet:add"
+  - "Should use conventional commits format like fix(auth): description"
+
+expected: |
+  Should suggest exactly 3 NEW folder name options (no existing folders to reference).
+  Names should be relevant to "conventional commits" like: conventional-commits,
+  commit-format, commit-style, etc.

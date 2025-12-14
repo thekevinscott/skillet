@@ -1,0 +1,20 @@
+# One existing folder that doesn't match - should NOT include it, suggest 3 new
+timestamp: 2025-01-15T00:00:00Z
+name: suggest-folders-one-not-close
+
+setup: |
+  mkdir -p ~/.skillet/evals/haiku-quality
+  touch ~/.skillet/evals/haiku-quality/001.yaml
+
+prompt:
+  - "Write a commit message for: Refactored auth module"
+  - "/skillet:add"
+  - "Should use conventional commits format like refactor(auth): description"
+
+expected: |
+  Should suggest 3 NEW folder names related to "conventional commits" or "commit format".
+  Should NOT suggest "haiku-quality" since it's completely unrelated to commit messages.
+  The existing folder should be ignored, not presented as an option.
+
+teardown: |
+  rm -rf ~/.skillet/evals/haiku-quality

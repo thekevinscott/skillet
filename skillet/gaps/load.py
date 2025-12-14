@@ -1,5 +1,7 @@
 """Load gaps from disk."""
 
+from pathlib import Path
+
 import yaml
 
 from skillet.config import SKILLET_DIR
@@ -28,7 +30,10 @@ def validate_gap(gap: dict, source: str) -> None:
 
 
 def load_gaps(name: str) -> list[dict]:
-    """Load all gap files for a skill from ~/.skillet/gaps/<name>/.
+    """Load all gap files for a skill.
+
+    Args:
+        name: Either a name (looks in ~/.skillet/gaps/<name>/) or a path to a directory
 
     Returns:
         List of gap dicts with _source and _content fields added
@@ -36,7 +41,12 @@ def load_gaps(name: str) -> list[dict]:
     Raises:
         GapError: If gaps directory doesn't exist, is empty, or contains invalid files
     """
-    gaps_dir = SKILLET_DIR / "gaps" / name
+    # Check if name is a path (contains / or .)
+    name_path = Path(name)
+    if name_path.exists() and name_path.is_dir():
+        gaps_dir = name_path
+    else:
+        gaps_dir = SKILLET_DIR / "gaps" / name
 
     if not gaps_dir.exists():
         raise GapError(f"No gaps found for '{name}'. Expected: {gaps_dir}")
