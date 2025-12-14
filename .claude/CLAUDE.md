@@ -1,9 +1,23 @@
 # Skillet Development
 
 ## Workflow
-- Work in git worktrees, tie PRs to GitHub issues
+- Work in git worktrees under `.worktrees/` folder, tie PRs to GitHub issues
 - Before pushing: `just lint && just test-unit`
 - After pushing: monitor CI checks
+
+### Git Worktrees
+All development work should happen in git worktrees, not on the main branch directly:
+
+```bash
+# Create a new worktree for a feature branch
+git worktree add .worktrees/my-feature -b feat/my-feature
+
+# Work in the worktree
+cd .worktrees/my-feature
+
+# When done, remove the worktree
+git worktree remove .worktrees/my-feature
+```
 
 ## Project Structure
 - `.claude-template/` - Source templates with `{{SKILLET_DIR}}` placeholders
@@ -23,3 +37,14 @@ just build-claude    # Build .claude/commands/ from templates
 just test-e2e        # Run e2e tests
 just test-unit       # Run unit tests
 ```
+
+## Commit Convention
+
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format for automatic version bumping:
+
+- `fix: ...` → patch release (0.1.0 → 0.1.1)
+- `feat: ...` → minor release (0.1.0 → 0.2.0)
+- `feat!: ...` or `BREAKING CHANGE:` in body → major release (0.1.0 → 1.0.0)
+- `chore:`, `docs:`, `refactor:`, `test:`, etc. → patch release
+
+Releases run nightly at 2am UTC. All commits since the last release are batched together, and the highest-priority bump type wins (breaking > feat > fix).

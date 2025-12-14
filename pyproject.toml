@@ -1,6 +1,6 @@
 [project]
-name = "skillet"
-version = "0.1.0"
+name = "pyskillet"
+dynamic = ["version"]
 description = "Evaluation-driven Claude Code skill development"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -54,13 +54,17 @@ known-first-party = ["skillet"]
 quote-style = "double"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
-[dependency-groups]
-dev = [
-    "ruff>=0.14.9",
-]
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
+[tool.hatch.build.targets.wheel]
+packages = ["skillet"]
 
 [tool.pytest.ini_options]
 testpaths = ["skillet"]
@@ -82,4 +86,3 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
-

@@ -2,14 +2,12 @@
 
 from pathlib import Path
 
-from rich.console import Console
 from rich.panel import Panel
 
+from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.gaps import load_gaps
 from skillet.tune import tune
-
-console = Console()
 
 
 async def tune_command(

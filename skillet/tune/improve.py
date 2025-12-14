@@ -5,7 +5,8 @@ from pathlib import Path
 import yaml
 
 from skillet._internal.sdk import query_assistant_text
-from skillet._internal.text import strip_markdown
+from skillet._internal.text import strip_markdown, summarize_failure_for_tuning
+from skillet.config import MAX_SKILL_LINES
 
 # Tips to explore instruction space (inspired by DSPy MIPROv2)
 TUNE_TIPS = [
@@ -39,16 +40,7 @@ async def improve_skill(
     current_skill = (skill_path / "SKILL.md").read_text()
 
     # Summarize failures
-    failure_summary = []
-    for f in failures:
-        failure_summary.append(
-            {
-                "prompt": f["prompt"],
-                "expected": f["expected"],
-                "actual_response": f["response"][:500] if f.get("response") else "",
-                "why_failed": f["judgment"].get("reasoning", ""),
-            }
-        )
+    failure_summary = [summarize_failure_for_tuning(f) for f in failures]
 
     prompt = f"""Improve this SKILL.md so Claude exhibits the expected behavior.
 
@@ -70,7 +62,7 @@ Revise the SKILL.md to fix these failures. Common issues:
 - Missing "do NOT ask" or "IMMEDIATELY" language for automatic behaviors
 
 IMPORTANT CONSTRAINTS:
-- Keep the SKILL.md under 50 lines total
+- Keep the SKILL.md under {MAX_SKILL_LINES} lines total
 - Be concise - shorter is better
 - Replace verbose instructions with terse, direct ones
 - Do NOT keep adding more text - rewrite to be minimal
@@ -81,9 +73,9 @@ Return ONLY the improved SKILL.md content (no explanation, no code fences)."""
     result = await query_assistant_text(prompt, max_turns=1, allowed_tools=[])
     result = strip_markdown(result)
 
-    # Hard limit: truncate to 50 lines if still too long
+    # Hard limit: truncate to MAX_SKILL_LINES if still too long
     lines = result.split("\n")
-    if len(lines) > 50:
-        result = "\n".join(lines[:50])
+    if len(lines) > MAX_SKILL_LINES:
+        result = "\n".join(lines[:MAX_SKILL_LINES])
 
     return result

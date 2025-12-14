@@ -16,6 +16,7 @@ from skillet._internal.cache import (
     save_iteration,
 )
 from skillet._internal.sdk import query_multiturn
+from skillet.config import DEFAULT_SKILL_TOOLS
 from skillet.gaps import load_gaps
 
 from .judge import judge_response
@@ -98,7 +99,7 @@ async def run_prompt(
         if allowed_tools is not None and "Skill" not in allowed_tools:
             tools = ["Skill", *list(allowed_tools)]
         elif allowed_tools is None:
-            tools = ["Skill", "Bash", "Read", "Write", "WebFetch"]
+            tools = list(DEFAULT_SKILL_TOOLS)
         else:
             tools = list(allowed_tools)
     else:

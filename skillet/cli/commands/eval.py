@@ -3,26 +3,17 @@
 from pathlib import Path
 
 import yaml
-from rich.console import Console
 
 from skillet._internal.sdk import query_assistant_text
+from skillet._internal.text import summarize_failure_for_eval
+from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.eval import evaluate
-
-console = Console()
 
 
 async def summarize_responses(results: list[dict]) -> str:
     """Summarize what Claude actually did across failed responses."""
-    response_summaries = []
-    for result in results:
-        response_summaries.append(
-            {
-                "expected": result.get("expected", ""),
-                "response_preview": result["response"][:500] if result.get("response") else "",
-                "judgment": result["judgment"]["reasoning"] if result.get("judgment") else "",
-            }
-        )
+    response_summaries = [summarize_failure_for_eval(r) for r in results]
 
     responses_yaml = yaml.dump(response_summaries, default_flow_style=False)
     summary_prompt = f"""Analyze these AI responses that failed to meet expectations.
