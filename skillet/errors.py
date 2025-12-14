@@ -5,12 +5,8 @@ class SkilletError(Exception):
     """Base exception for skillet errors."""
 
 
-class GapError(SkilletError):
-    """Error loading or processing gaps."""
-
-
 class EvalError(SkilletError):
-    """Error during evaluation."""
+    """Error loading or processing evals."""
 
 
 class SkillError(SkilletError):
