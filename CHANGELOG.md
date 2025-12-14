@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automated nightly release workflow (2am UTC) triggered by git tags
 - Manual trigger for release workflow (workaround for GITHUB_TOKEN limitation)
 - Skip release if tag already exists (prevents duplicate tag errors)
+
+### Fixed
+- Release workflow permissions for checkout
 - Version bump automation using conventional commits
 - Conditional docs deployment to GitHub Pages
 - Commit convention documentation in `CLAUDE.md`
