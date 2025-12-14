@@ -23,8 +23,10 @@ async def eval(
 ):
     """Evaluate Claude against captured gaps.
 
-    Reads gap YAML files from ~/.skillet/gaps/<name>/ and runs each prompt
-    through Claude, using LLM-as-judge to evaluate against expected behavior.
+    NAME can be:
+    - A name (looks in ~/.skillet/evals/<name>/)
+    - A path to a directory (loads all .yaml files recursively)
+    - A path to a single .yaml file
 
     Results are cached by gap content hash and skill content hash.
 
@@ -34,6 +36,7 @@ async def eval(
     Examples:
         skillet eval browser-fallback                              # baseline
         skillet eval browser-fallback ~/.claude/skills/browser-fallback  # with skill
+        skillet eval ./evals/my-skill/001.yaml skill/              # single file
         skillet eval browser-fallback -s 5                         # 5 samples per gap
         skillet eval my-skill -g 5 -s 1                            # 5 random gaps, 1 sample each
         skillet eval my-skill -p 5                                 # 5 parallel workers

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed eval files with descriptive suffixes (e.g., `001.yaml` → `001-ask-expectation.yaml`)
 
 ### Added
+- Single eval file support (`skillet eval ./evals/my-skill/001.yaml`)
+- ROADMAP.md with planned features
 - CLAUDE.md guidelines: check uv.lock for versions, verify commands in docs
 - 7 folder-suggestion evals for `/skillet:add` command testing
 - Recursive eval loading (supports subdirectories in eval folders)
