@@ -22,9 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Release workflow permissions for checkout
-- Version bump automation using conventional commits
-- Conditional docs deployment to GitHub Pages
-- Commit convention documentation in `CLAUDE.md`
+
+### Removed
+- GitHub Pages deployment from release workflow (not needed)
+
+### Fixed
+- semantic-release config to update pyproject.toml version
 
 ### Changed
 - Renamed PyPI package from `skillet` to `pyskillet` (name was taken)
