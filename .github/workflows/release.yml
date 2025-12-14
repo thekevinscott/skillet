@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:  # Allow manual trigger (needed because GITHUB_TOKEN tags don't trigger workflows)
 
 jobs:
   # Detect what files changed between this tag and the previous one
