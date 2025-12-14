@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Release workflow permissions for checkout
 - Nightly release tag check now uses remote refs instead of local (semantic-release creates local tags)
+- Removed redundant commit/tag step since semantic-release already creates them
 
 ### Removed
 - GitHub Pages deployment from release workflow (not needed)
