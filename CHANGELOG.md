@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Commit convention documentation in `CLAUDE.md`
 
 ### Changed
+- Renamed PyPI package from `skillet` to `pyskillet` (name was taken)
 - Renamed `/skillet:gap` command to `/skillet:add`
 - Increased `max_turns` from 3 to 10 for complex command workflows
 - Reorganized codebase into domain modules (eval/, compare/, tune/, skill/, gaps/)
