@@ -46,8 +46,9 @@ check-changelog base_ref='origin/main':
     fi
 
 # Run security scan
+# B404, B603, B607: subprocess used for running setup/teardown scripts in evals
 security:
-    uv run bandit -r skillet/ --skip B101,B105,B311,B324 -x '*_test.py'
+    uv run bandit -r skillet/ --skip B101,B105,B311,B324,B404,B603,B607 -x '*_test.py'
 
 # Run type checker
 typecheck:

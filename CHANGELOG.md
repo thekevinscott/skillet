@@ -8,17 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Isolated HOME environment for every eval execution
+- Optional `setup` and `teardown` scripts in eval YAML for pre/post test hooks
 - Git worktree workflow documentation in CLAUDE.md
 - RELEASING.md documenting the fully automated release process
-
-### Changed
-- Consolidated release workflow into nightly workflow (fully automated, no manual trigger needed)
-- Fixed README install command (`skillet` → `pyskillet`)
-
-### Removed
-- Separate `release.yml` workflow (now part of nightly workflow)
-
-### Added
 - Template-based command system for `{{SKILLET_DIR}}` substitution
 - `scripts/build_claude_config.py` for building `.claude/commands/` from templates
 - `just build-claude` command for template building
@@ -31,19 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual trigger for release workflow (workaround for GITHUB_TOKEN limitation)
 - Skip release if tag already exists (prevents duplicate tag errors)
 
-### Fixed
-- Release workflow permissions for checkout
-- Nightly release tag check now uses remote refs instead of local (semantic-release creates local tags)
-- Removed redundant commit/tag step since semantic-release already creates them
-- Release workflow now uses `fetch-depth: 0` so hatch-vcs can read tags for versioning
-
-### Removed
-- GitHub Pages deployment from release workflow (not needed)
-
-### Fixed
-- semantic-release config to update pyproject.toml version
-
 ### Changed
+- Consolidated release workflow into nightly workflow (fully automated, no manual trigger needed)
+- Fixed README install command (`skillet` → `pyskillet`)
 - Switched to dynamic versioning via `hatch-vcs` (version derived from git tags at build time)
 - Simplified nightly release workflow to only create/push tags (no commits to main needed)
 - Simplified release workflow to always publish (removed unnecessary changes detection)
@@ -54,6 +37,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separated CLI layer from core API logic
 - Renamed public API functions: `run_eval` -> `evaluate`, `run_compare` -> `compare`, `run_tune` -> `tune`
 - Moved internal utilities to `_internal/` module
+
+### Fixed
+- Release workflow permissions for checkout
+- Nightly release tag check now uses remote refs instead of local (semantic-release creates local tags)
+- Removed redundant commit/tag step since semantic-release already creates them
+- Release workflow now uses `fetch-depth: 0` so hatch-vcs can read tags for versioning
+- semantic-release config to update pyproject.toml version
+
+### Removed
+- Separate `release.yml` workflow (now part of nightly workflow)
+- GitHub Pages deployment from release workflow (not needed)
 
 ### Added
 - Initial CLI with `eval`, `new`, `tune`, and `compare` commands

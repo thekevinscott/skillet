@@ -1,7 +1,12 @@
 """Run evaluations against gaps."""
 
 import asyncio
-from collections.abc import Awaitable, Callable
+import os
+import shutil
+import subprocess
+import tempfile
+from collections.abc import Awaitable, Callable, Generator
+from contextlib import contextmanager
 from pathlib import Path
 
 from skillet._internal.cache import (
@@ -17,11 +22,55 @@ from skillet.gaps import load_gaps
 from .judge import judge_response
 
 
+@contextmanager
+def isolated_home() -> Generator[str, None, None]:
+    """Context manager for isolated HOME directory.
+
+    Creates a temporary HOME directory for isolated eval execution,
+    and ensures cleanup after the eval completes.
+
+    Yields:
+        Path to the temporary HOME directory
+    """
+    home_dir = tempfile.mkdtemp(prefix="skillet-eval-")
+    try:
+        yield home_dir
+    finally:
+        if Path(home_dir).exists():
+            shutil.rmtree(home_dir, ignore_errors=True)
+
+
+def run_script(script: str, home_dir: str, cwd: str | None = None) -> tuple[int, str, str]:
+    """Run a setup or teardown script with the isolated HOME.
+
+    Args:
+        script: Shell script to execute
+        home_dir: HOME directory to use
+        cwd: Working directory for script execution
+
+    Returns:
+        Tuple of (return_code, stdout, stderr)
+    """
+    env = os.environ.copy()
+    env["HOME"] = home_dir
+
+    result = subprocess.run(
+        ["bash", "-c", script],
+        env=env,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+
+    return result.returncode, result.stdout, result.stderr
+
+
 async def run_prompt(
     prompt: str | list[str],
     skill_path: Path | None = None,
     allowed_tools: list[str] | None = None,
     cwd: str | None = None,
+    home_dir: str | None = None,
 ) -> str:
     """Run a prompt (or multi-turn conversation) through Claude and return the response.
 
@@ -31,6 +80,7 @@ async def run_prompt(
         skill_path: Path to skill directory for Skill tool
         allowed_tools: List of allowed tools
         cwd: Working directory for Claude
+        home_dir: Custom HOME directory for isolated execution
 
     Returns:
         The final assistant response text
@@ -55,12 +105,19 @@ async def run_prompt(
     else:
         tools = list(allowed_tools) if allowed_tools else []
 
+    # Build environment with custom HOME if provided
+    env = None
+    if home_dir:
+        env = os.environ.copy()
+        env["HOME"] = home_dir
+
     response_text = await query_multiturn(
         prompts,
         max_turns=10,
         allowed_tools=tools or None,
         cwd=cwd,
         setting_sources=["project"] if cwd else None,
+        env=env,
     )
 
     if not response_text:
@@ -76,7 +133,11 @@ async def run_single_eval(
     allowed_tools: list[str] | None,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
 ) -> dict:
-    """Run a single evaluation task, using cache if available."""
+    """Run a single evaluation task, using cache if available.
+
+    Every eval runs in an isolated HOME directory. If the task contains
+    'setup' or 'teardown' scripts, they are executed before/after the prompts.
+    """
     # Check cache first
     gap_key = gap_cache_key(task["gap_source"], task["gap_content"])
     cache_dir = get_cache_dir(name, gap_key, skill_path)
@@ -96,52 +157,92 @@ async def run_single_eval(
     if on_status:
         await on_status(task, "running", None)
 
-    try:
-        response = await run_prompt(task["prompt"], skill_path, allowed_tools)
-        judgment = await judge_response(
-            prompt=task["prompt"],
-            response=response,
-            expected=task["expected"],
-        )
+    # Determine cwd for scripts (use skill path parent or current dir)
+    script_cwd: str | None = None
+    if skill_path and ".claude" in skill_path.parts:
+        claude_idx = skill_path.parts.index(".claude")
+        script_cwd = str(Path(*skill_path.parts[:claude_idx]))
 
-        result = {
-            "gap_idx": task["gap_idx"],
-            "gap_source": task["gap_source"],
-            "iteration": task["iteration"],
-            "response": response,
-            "judgment": judgment,
-            "pass": judgment["pass"],
-            "cached": False,
-        }
+    # Run in isolated HOME environment
+    with isolated_home() as home_dir:
+        try:
+            # Run setup script if present
+            if task.get("setup"):
+                returncode, stdout, stderr = run_script(task["setup"], home_dir, script_cwd)
+                if returncode != 0:
+                    result = {
+                        "gap_idx": task["gap_idx"],
+                        "gap_source": task["gap_source"],
+                        "iteration": task["iteration"],
+                        "response": f"Setup failed (exit {returncode}): {stderr or stdout}",
+                        "judgment": {
+                            "pass": False,
+                            "reasoning": f"Setup script failed: {stderr or stdout}",
+                        },
+                        "pass": False,
+                        "cached": False,
+                    }
+                    if on_status:
+                        await on_status(task, "done", result)
+                    return result
 
-        # Save to cache
-        save_iteration(
-            cache_dir,
-            task["iteration"],
-            {
+            # Run the eval with isolated HOME
+            response = await run_prompt(
+                task["prompt"], skill_path, allowed_tools, home_dir=home_dir
+            )
+
+            # Run teardown script if present (best effort, don't fail the eval)
+            if task.get("teardown"):
+                run_script(task["teardown"], home_dir, script_cwd)
+
+            judgment = await judge_response(
+                prompt=task["prompt"],
+                response=response,
+                expected=task["expected"],
+            )
+
+            result = {
+                "gap_idx": task["gap_idx"],
+                "gap_source": task["gap_source"],
                 "iteration": task["iteration"],
                 "response": response,
                 "judgment": judgment,
                 "pass": judgment["pass"],
-            },
-        )
+                "cached": False,
+            }
 
-        if on_status:
-            await on_status(task, "done", result)
-        return result
-    except Exception as e:
-        result = {
-            "gap_idx": task["gap_idx"],
-            "gap_source": task["gap_source"],
-            "iteration": task["iteration"],
-            "response": str(e),
-            "judgment": {"pass": False, "reasoning": f"Error: {e}"},
-            "pass": False,
-            "cached": False,
-        }
-        if on_status:
-            await on_status(task, "done", result)
-        return result
+            # Save to cache
+            save_iteration(
+                cache_dir,
+                task["iteration"],
+                {
+                    "iteration": task["iteration"],
+                    "response": response,
+                    "judgment": judgment,
+                    "pass": judgment["pass"],
+                },
+            )
+
+            if on_status:
+                await on_status(task, "done", result)
+            return result
+        except Exception as e:
+            # Run teardown on error too (best effort)
+            if task.get("teardown"):
+                run_script(task["teardown"], home_dir, script_cwd)
+
+            result = {
+                "gap_idx": task["gap_idx"],
+                "gap_source": task["gap_source"],
+                "iteration": task["iteration"],
+                "response": str(e),
+                "judgment": {"pass": False, "reasoning": f"Error: {e}"},
+                "pass": False,
+                "cached": False,
+            }
+            if on_status:
+                await on_status(task, "done", result)
+            return result
 
 
 async def evaluate(
@@ -180,17 +281,21 @@ async def evaluate(
     tasks = []
     for gap_idx, gap in enumerate(gaps):
         for i in range(samples):
-            tasks.append(
-                {
-                    "gap_idx": gap_idx,
-                    "gap_source": gap["_source"],
-                    "gap_content": gap["_content"],
-                    "iteration": i + 1,
-                    "total_iterations": samples,
-                    "prompt": gap["prompt"],
-                    "expected": gap["expected"],
-                }
-            )
+            task = {
+                "gap_idx": gap_idx,
+                "gap_source": gap["_source"],
+                "gap_content": gap["_content"],
+                "iteration": i + 1,
+                "total_iterations": samples,
+                "prompt": gap["prompt"],
+                "expected": gap["expected"],
+            }
+            # Include setup/teardown if present in the gap
+            if gap.get("setup"):
+                task["setup"] = gap["setup"]
+            if gap.get("teardown"):
+                task["teardown"] = gap["teardown"]
+            tasks.append(task)
 
     # Run with semaphore for parallelism control
     semaphore = asyncio.Semaphore(parallel)
