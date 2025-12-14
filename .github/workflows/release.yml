@@ -55,6 +55,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.package == 'true'
     permissions:
+      contents: read   # Required for checkout
       id-token: write  # Required for trusted publishing
     steps:
       - uses: actions/checkout@v6
@@ -74,6 +75,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.docs == 'true'
     permissions:
+      contents: read   # Required for checkout
       pages: write
       id-token: write
     environment:
