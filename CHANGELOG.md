@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Git worktree workflow documentation in CLAUDE.md
+
+### Removed
+- RELEASING.md (consolidated into CLAUDE.md conventions)
+- ROADMAP.md (not needed)
+
+### Added
 - Template-based command system for `{{SKILLET_DIR}}` substitution
 - `scripts/build_claude_config.py` for building `.claude/commands/` from templates
 - `just build-claude` command for template building
