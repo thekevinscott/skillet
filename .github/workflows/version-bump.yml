@@ -83,15 +83,26 @@ jobs:
           new_version=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
 
-      - name: Commit and tag
+      - name: Check if tag exists
         if: steps.check.outputs.has_changes == 'true'
+        id: tag_check
+        run: |
+          if git rev-parse "v${{ steps.bump.outputs.new_version }}" >/dev/null 2>&1; then
+            echo "Tag v${{ steps.bump.outputs.new_version }} already exists, skipping"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and tag
+        if: steps.check.outputs.has_changes == 'true' && steps.tag_check.outputs.exists == 'false'
         run: |
           git add pyproject.toml
           git commit -m "chore: release v${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
           git tag "v${{ steps.bump.outputs.new_version }}"
 
       - name: Push changes and tag
-        if: steps.check.outputs.has_changes == 'true'
+        if: steps.check.outputs.has_changes == 'true' && steps.tag_check.outputs.exists == 'false'
         run: |
           git push origin main
           git push origin "v${{ steps.bump.outputs.new_version }}"
