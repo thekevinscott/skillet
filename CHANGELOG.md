@@ -9,10 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Git worktree workflow documentation in CLAUDE.md
+- RELEASING.md documenting the fully automated release process
+
+### Changed
+- Consolidated release workflow into nightly workflow (fully automated, no manual trigger needed)
+- Fixed README install command (`skillet` → `pyskillet`)
 
 ### Removed
-- RELEASING.md (consolidated into CLAUDE.md conventions)
-- ROADMAP.md (not needed)
+- Separate `release.yml` workflow (now part of nightly workflow)
 
 ### Added
 - Template-based command system for `{{SKILLET_DIR}}` substitution

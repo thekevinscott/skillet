@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write  # Required for PyPI trusted publishing
     steps:
       - uses: actions/checkout@v6
         with:
@@ -83,8 +84,22 @@ jobs:
 
       - name: Create and push tag
         if: steps.check.outputs.has_changes == 'true' && steps.tag_check.outputs.exists == 'false'
+        id: tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
           git push origin "v${{ steps.version.outputs.new_version }}"
+          echo "created=true" >> $GITHUB_OUTPUT
+
+      - name: Install uv
+        if: steps.tag.outputs.created == 'true'
+        uses: astral-sh/setup-uv@v7
+
+      - name: Build package
+        if: steps.tag.outputs.created == 'true'
+        run: uv build
+
+      - name: Publish to PyPI
+        if: steps.tag.outputs.created == 'true'
+        run: uv publish --trusted-publishing always
