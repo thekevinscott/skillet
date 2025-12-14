@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Renamed eval files with descriptive suffixes (e.g., `001.yaml` → `001-ask-expectation.yaml`)
+
 ### Added
 - CLAUDE.md guidelines: check uv.lock for versions, verify commands in docs
 - 7 folder-suggestion evals for `/skillet:add` command testing
