@@ -18,13 +18,13 @@ All commits merged during the day are batched into a single nightly release.
 
 ## Version Calculation
 
-Versions follow [Semantic Versioning](https://semver.org/). The workflow analyzes all commits since the last tag and picks the highest-priority bump:
+Versions follow [Semantic Versioning](https://semver.org/). **All releases default to patch.** Minor and major releases require explicit markers in the commit body:
 
-| Commit Type | Example | Version Bump |
-|-------------|---------|--------------|
-| Breaking change | `feat!: remove deprecated API` or `BREAKING CHANGE:` in body | Major (1.0.0 → 2.0.0) |
-| Feature | `feat: add new command` | Minor (1.0.0 → 1.1.0) |
-| Fix/chore/other | `fix: correct typo`, `chore: update deps` | Patch (1.0.0 → 1.0.1) |
+| Marker | Example | Version Bump |
+|--------|---------|--------------|
+| `BREAKING CHANGE:` in body | See below | Major (1.0.0 → 2.0.0) |
+| `[minor]` in body | See below | Minor (1.0.0 → 1.1.0) |
+| (default) | Any commit type | Patch (1.0.0 → 1.0.1) |
 
 ## Commit Message Format
 
@@ -39,16 +39,30 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
-- `feat:` - New feature (minor bump)
-- `fix:` - Bug fix (patch bump)
+- `feat:` - New user-facing feature
+- `fix:` - Bug fix
 - `docs:` - Documentation only
-- `chore:` - Maintenance tasks
+- `chore:` - Maintenance tasks, CI, internal tooling
 - `refactor:` - Code refactoring
-- `test:` - Adding/updating tests
+- `test:` - Adding/updating tests, evals, test infrastructure
 
-**Breaking changes:**
-- Add `!` after type: `feat!: remove old API`
-- Or include `BREAKING CHANGE:` in the commit body
+**Note:** The commit type does NOT determine the version bump. Use explicit markers for minor/major releases.
+
+**Minor release** - include `[minor]` in the commit body:
+```
+feat: add CSV export support
+
+Adds ability to export data in CSV format.
+
+[minor]
+```
+
+**Major release** - include `BREAKING CHANGE:` in the commit body:
+```
+feat: redesign configuration format
+
+BREAKING CHANGE: config.yaml structure has changed, see migration guide.
+```
 
 ## Manual Release
 

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Renamed eval files with descriptive suffixes (e.g., `001.yaml` → `001-ask-expectation.yaml`)
+- **Release workflow now defaults to patch releases.** Minor releases require `[minor]` marker in commit body, major releases require `BREAKING CHANGE:` marker. This prevents version inflation from mislabeled commits.
+- Updated commit type guidelines in CLAUDE.md with clearer distinction between `feat:`, `test:`, and `chore:`
 
 ### Added
 - Single eval file support (`skillet eval ./evals/my-skill/001.yaml`)
