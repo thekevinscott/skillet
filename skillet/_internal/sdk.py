@@ -22,6 +22,7 @@ class QueryResult:
     text: str
     tool_calls: list[dict] = field(default_factory=list)
 
+
 T = TypeVar("T")
 
 
