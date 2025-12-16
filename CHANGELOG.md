@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--skip-cache` flag for eval command to ignore cached results
 
 ### Fixed
+- Tune display now shows all evals from the start of each round (was only showing first few)
 - Capture and display stderr output from Claude CLI during evals
 - Symlink ~/.claude to isolated HOME so evals can access credentials
 

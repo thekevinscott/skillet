@@ -36,27 +36,30 @@ async def tune_command(
 
     # Track display state
     display: LiveDisplay | None = None
-    current_tasks: list[dict] = []
 
     async def on_round_start(round_num: int, total_rounds: int):
-        nonlocal display, current_tasks
+        nonlocal display
         console.print()
         console.rule(f"[bold]Round {round_num}/{total_rounds}[/bold]")
         console.print()
-        # Reset for new round
-        display = None
-        current_tasks = []
+
+        # Build full task list upfront for display
+        tasks = []
+        for gap_idx, gap in enumerate(gaps):
+            for i in range(samples):
+                tasks.append(
+                    {
+                        "gap_idx": gap_idx,
+                        "gap_source": gap["_source"],
+                        "iteration": i + 1,
+                    }
+                )
+
+        display = LiveDisplay(tasks)
+        await display.start()
 
     async def on_eval_status(task: dict, state: str, result: dict | None):
-        nonlocal display, current_tasks
-        if task not in current_tasks:
-            current_tasks.append(task)
-
-        if display is None and len(current_tasks) > 0:
-            # Initialize display with tasks we've seen so far
-            display = LiveDisplay(current_tasks)
-            await display.start()
-
+        nonlocal display
         if display:
             await display.update(task, state, result)
 
