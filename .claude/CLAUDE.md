@@ -57,18 +57,6 @@ This prevents the host's `.venv` from being invalidated when switching contexts.
 
 Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format:
 
-- `fix: ...` → patch release
-- `feat: ...` → patch release (default)
-- `chore:`, `docs:`, `refactor:`, `test:`, etc. → patch release
-- `[minor]` in commit body → minor release (0.1.0 → 0.2.0)
-- `BREAKING CHANGE:` in commit body → major release (0.1.0 → 1.0.0)
-
-**Releases default to patch.** Minor and major releases require explicit markers in the commit body.
-
-### Commit Type Guidelines
-
-Use the correct type for your change:
-
 | Type | Use for | Examples |
 |------|---------|----------|
 | `feat:` | New user-facing functionality | New CLI command, new API endpoint, new config option |
@@ -80,24 +68,8 @@ Use the correct type for your change:
 
 **Key distinction:** `feat:` is for significant user-facing features, not internal improvements. Adding tests, evals, or CI infrastructure should use `test:` or `chore:`.
 
-### Triggering Minor/Major Releases
+### Releases
 
-To trigger a minor release, include `[minor]` in the commit body:
-
-```
-feat: add new export format
-
-Adds CSV export capability to the CLI.
-
-[minor]
-```
-
-To trigger a major release, include `BREAKING CHANGE:` in the commit body:
-
-```
-feat: redesign configuration API
-
-BREAKING CHANGE: config.yaml format has changed, see migration guide.
-```
-
-Releases run nightly at 2am UTC. All commits since the last release are batched together.
+- **Patch releases** run nightly at 2am UTC (automatic)
+- **Minor releases** are triggered manually via GitHub Actions → "Minor Release"
+- **Major releases** are done manually by creating a tag

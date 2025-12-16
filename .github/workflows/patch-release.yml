@@ -1,4 +1,4 @@
-name: Nightly Release
+name: Patch Release (Nightly)
 
 on:
   schedule:
@@ -47,27 +47,14 @@ jobs:
         if: steps.check.outputs.has_changes == 'true'
         id: version
         run: |
-          compare_base="${{ steps.check.outputs.compare_base }}"
           current="${{ steps.check.outputs.current_version }}"
 
           # Parse current version
           IFS='.' read -r major minor patch <<< "$current"
 
-          # Analyze all commits since last tag to determine bump type
-          # Default to patch - minor/major require explicit markers
-          # Check for breaking changes (highest priority)
-          if git log --format=%B ${compare_base}..HEAD | grep -qE 'BREAKING CHANGE:'; then
-            echo "Detected: BREAKING CHANGE -> major bump"
-            new_version="$((major + 1)).0.0"
-          # Check for explicit minor marker
-          elif git log --format=%B ${compare_base}..HEAD | grep -qE '\[minor\]'; then
-            echo "Detected: [minor] marker -> minor bump"
-            new_version="${major}.$((minor + 1)).0"
-          # Default to patch for all other commits (including feat:)
-          else
-            echo "Detected: standard commits -> patch bump"
-            new_version="${major}.${minor}.$((patch + 1))"
-          fi
+          # Nightly releases are always patch bumps
+          # Use the Minor Release workflow for minor bumps
+          new_version="${major}.${minor}.$((patch + 1))"
 
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
           echo "New version will be: $new_version"
