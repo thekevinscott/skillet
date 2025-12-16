@@ -9,7 +9,7 @@ from skillet.eval.judge import judge_response
 from skillet.eval.run import run_prompt
 from skillet.gaps import load_gaps
 
-from .improve import TUNE_TIPS, improve_skill
+from .improve import TUNE_TIPS, get_skill_file, improve_skill
 
 
 async def run_tune_eval(
@@ -151,7 +151,7 @@ async def tune(
         new_content = await improve_skill(skill_path, failures, tip)
 
         # Write new version
-        skill_file = skill_path / "SKILL.md"
+        skill_file = get_skill_file(skill_path)
         skill_file.write_text(new_content + "\n")
 
         if on_improved:
