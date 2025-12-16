@@ -1,0 +1,117 @@
+name: Publish Release
+
+on:
+  workflow_call:
+    inputs:
+      bump_type:
+        description: 'Version bump type: patch or minor'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write  # Required for PyPI trusted publishing
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get current version
+        id: current
+        run: |
+          latest_tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | head -n1)
+
+          if [ -z "$latest_tag" ]; then
+            echo "No tags found"
+            echo "version=0.0.0" >> $GITHUB_OUTPUT
+            echo "has_tags=false" >> $GITHUB_OUTPUT
+          else
+            echo "Latest tag: $latest_tag"
+            echo "version=${latest_tag#v}" >> $GITHUB_OUTPUT
+            echo "has_tags=true" >> $GITHUB_OUTPUT
+
+            # Check for commits since last tag (for patch releases)
+            commits_since_tag=$(git rev-list ${latest_tag}..HEAD --count)
+            echo "commits_since_tag=$commits_since_tag" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for changes (patch only)
+        if: inputs.bump_type == 'patch' && steps.current.outputs.has_tags == 'true'
+        id: check_changes
+        run: |
+          if [ "${{ steps.current.outputs.commits_since_tag }}" -eq 0 ]; then
+            echo "No new commits since last tag, skipping release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found ${{ steps.current.outputs.commits_since_tag }} commits since last tag"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate new version
+        id: version
+        run: |
+          current="${{ steps.current.outputs.version }}"
+          IFS='.' read -r major minor patch <<< "$current"
+
+          if [ "${{ inputs.bump_type }}" == "minor" ]; then
+            new_version="${major}.$((minor + 1)).0"
+          else
+            new_version="${major}.${minor}.$((patch + 1))"
+          fi
+
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          echo "New version will be: $new_version"
+
+      - name: Check if tag exists
+        id: tag_check
+        run: |
+          if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.version.outputs.new_version }}$"; then
+            echo "Tag v${{ steps.version.outputs.new_version }} already exists on remote"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine if release should proceed
+        id: should_release
+        run: |
+          # Skip if tag exists
+          if [ "${{ steps.tag_check.outputs.exists }}" == "true" ]; then
+            echo "proceed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # For patch releases, skip if no changes
+          if [ "${{ inputs.bump_type }}" == "patch" ] && [ "${{ steps.current.outputs.has_tags }}" == "true" ]; then
+            if [ "${{ steps.check_changes.outputs.should_release }}" == "false" ]; then
+              echo "proceed=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          echo "proceed=true" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        if: steps.should_release.outputs.proceed == 'true'
+        id: tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+          echo "created=true" >> $GITHUB_OUTPUT
+
+      - name: Install uv
+        if: steps.tag.outputs.created == 'true'
+        uses: astral-sh/setup-uv@v7
+
+      - name: Build package
+        if: steps.tag.outputs.created == 'true'
+        run: uv build
+
+      - name: Publish to PyPI
+        if: steps.tag.outputs.created == 'true'
+        run: uv publish --trusted-publishing always

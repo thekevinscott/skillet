@@ -9,8 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Renamed eval files with descriptive suffixes (e.g., `001.yaml` → `001-ask-expectation.yaml`)
+- **Nightly releases are now patch-only.** Minor releases are triggered manually via the "Minor Release" workflow. This prevents version inflation from mislabeled commits.
+- Renamed `version-bump.yml` to `patch-release.yml` for clarity
+- Updated commit type guidelines in CLAUDE.md with clearer distinction between `feat:`, `test:`, and `chore:`
 
 ### Added
+- `minor-release.yml` workflow for manual minor version bumps
 - Single eval file support (`skillet eval ./evals/my-skill/001.yaml`)
 - ROADMAP.md with planned features
 - CLAUDE.md guidelines: check uv.lock for versions, verify commands in docs

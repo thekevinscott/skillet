@@ -55,11 +55,21 @@ This prevents the host's `.venv` from being invalidated when switching contexts.
 
 ## Commit Convention
 
-Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format for automatic version bumping:
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format:
 
-- `fix: ...` → patch release (0.1.0 → 0.1.1)
-- `feat: ...` → minor release (0.1.0 → 0.2.0)
-- `feat!: ...` or `BREAKING CHANGE:` in body → major release (0.1.0 → 1.0.0)
-- `chore:`, `docs:`, `refactor:`, `test:`, etc. → patch release
+| Type | Use for | Examples |
+|------|---------|----------|
+| `feat:` | New user-facing functionality | New CLI command, new API endpoint, new config option |
+| `fix:` | Bug fixes | Fixing broken behavior, correcting errors |
+| `test:` | Test additions/changes | New test files, test infrastructure, eval additions |
+| `chore:` | Internal tooling, CI, maintenance | CI workflow changes, dependency updates, build scripts |
+| `refactor:` | Code restructuring without behavior change | Renaming, reorganizing, extracting functions |
+| `docs:` | Documentation only | README updates, code comments, docstrings |
 
-Releases run nightly at 2am UTC. All commits since the last release are batched together, and the highest-priority bump type wins (breaking > feat > fix).
+**Key distinction:** `feat:` is for significant user-facing features, not internal improvements. Adding tests, evals, or CI infrastructure should use `test:` or `chore:`.
+
+### Releases
+
+- **Patch releases** run nightly at 2am UTC (automatic)
+- **Minor releases** are triggered manually via GitHub Actions → "Minor Release"
+- **Major releases** are done manually by creating a tag

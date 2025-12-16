@@ -18,13 +18,13 @@ All commits merged during the day are batched into a single nightly release.
 
 ## Version Calculation
 
-Versions follow [Semantic Versioning](https://semver.org/). The workflow analyzes all commits since the last tag and picks the highest-priority bump:
+Versions follow [Semantic Versioning](https://semver.org/):
 
-| Commit Type | Example | Version Bump |
-|-------------|---------|--------------|
-| Breaking change | `feat!: remove deprecated API` or `BREAKING CHANGE:` in body | Major (1.0.0 → 2.0.0) |
-| Feature | `feat: add new command` | Minor (1.0.0 → 1.1.0) |
-| Fix/chore/other | `fix: correct typo`, `chore: update deps` | Patch (1.0.0 → 1.0.1) |
+| Release Type | How to Trigger |
+|--------------|----------------|
+| Patch (1.0.0 → 1.0.1) | Automatic nightly, or manual via "Patch Release" workflow |
+| Minor (1.0.0 → 1.1.0) | Manual via "Minor Release" workflow |
+| Major (1.0.0 → 2.0.0) | Manual tag creation |
 
 ## Commit Message Format
 
@@ -39,25 +39,33 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
-- `feat:` - New feature (minor bump)
-- `fix:` - Bug fix (patch bump)
+- `feat:` - New user-facing feature
+- `fix:` - Bug fix
 - `docs:` - Documentation only
-- `chore:` - Maintenance tasks
+- `chore:` - Maintenance tasks, CI, internal tooling
 - `refactor:` - Code refactoring
-- `test:` - Adding/updating tests
+- `test:` - Adding/updating tests, evals, test infrastructure
 
-**Breaking changes:**
-- Add `!` after type: `feat!: remove old API`
-- Or include `BREAKING CHANGE:` in the commit body
+**Note:** Commit types are for categorization only. They do NOT determine version bumps.
 
-## Manual Release
+## Triggering Releases
 
-To trigger a release immediately (without waiting for the nightly run):
-
-1. Go to [Actions → Nightly Release](../../actions/workflows/version-bump.yml)
+### Patch Release (automatic)
+Runs nightly at 2am UTC if there are new commits. Can also be triggered manually:
+1. Go to [Actions → Patch Release](../../actions/workflows/patch-release.yml)
 2. Click "Run workflow"
 
-The workflow handles everything - version calculation, tagging, building, and publishing.
+### Minor Release
+1. Go to [Actions → Minor Release](../../actions/workflows/minor-release.yml)
+2. Click "Run workflow"
+
+### Major Release
+Create and push a tag manually:
+```bash
+git tag -a v2.0.0 -m "Release v2.0.0"
+git push origin v2.0.0
+```
+Then build and publish manually or create a workflow if needed.
 
 ## Dynamic Versioning
 

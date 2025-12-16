@@ -1,0 +1,16 @@
+name: Patch Release (Nightly)
+
+on:
+  schedule:
+    # Run at 2:00 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  release:
+    uses: ./.github/workflows/publish.yml
+    with:
+      bump_type: patch
+    permissions:
+      contents: write
+      id-token: write
