@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Capture and display stderr output from Claude CLI during evals
+- Symlink ~/.claude to isolated HOME so evals can access credentials
+
+### Documentation
+- CLAUDE.md: Always run worktree setup steps, never give user commands to run
+
 ### Changed
 - Renamed eval files with descriptive suffixes (e.g., `001.yaml` → `001-ask-expectation.yaml`)
 
