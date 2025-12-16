@@ -24,20 +24,8 @@ def format_tool_calls_for_judge(tool_calls: list[dict]) -> str:
 
     lines = []
     for call in tool_calls:
-        # Summarize large inputs to keep judge prompt reasonable
-        input_summary = call.get("input", {})
-        if isinstance(input_summary, dict):
-            # Truncate long string values
-            summarized = {}
-            for k, v in input_summary.items():
-                if isinstance(v, str) and len(v) > 200:
-                    summarized[k] = v[:200] + "..."
-                else:
-                    summarized[k] = v
-            input_str = json.dumps(summarized, indent=2)
-        else:
-            input_str = str(input_summary)
-
+        input_data = call.get("input", {})
+        input_str = json.dumps(input_data, indent=2)
         lines.append(f"- {call['name']}: {input_str}")
 
     return "\n".join(lines)

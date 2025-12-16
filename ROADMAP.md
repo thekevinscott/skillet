@@ -3,7 +3,7 @@
 ## Completed
 
 - Single eval file support (`skillet eval ./evals/my-skill/001.yaml`)
-- Clear cache flag (`skillet eval my-skill --clear-cache`)
+- Skip cache flag (`skillet eval my-skill --skip-cache`)
 
 ## Planned
 

@@ -41,6 +41,7 @@ async def eval_command(
     max_gaps: int | None = None,
     allowed_tools: list[str] | None = None,
     parallel: int = 3,
+    skip_cache: bool = False,
 ):
     """Run eval command with display."""
     from skillet.gaps import load_gaps
@@ -89,6 +90,7 @@ async def eval_command(
             allowed_tools=allowed_tools,
             parallel=parallel,
             on_status=on_status,
+            skip_cache=skip_cache,
         )
     finally:
         await display.stop()
