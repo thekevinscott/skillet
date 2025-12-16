@@ -96,12 +96,12 @@ async def eval_command(
     # Print results info
     if max_gaps and eval_result["sampled_gaps"] < eval_result["total_gaps"]:
         console.print(
-            f"Gaps: {eval_result['sampled_gaps']} "
+            f"Evals: {eval_result['sampled_gaps']} "
             f"[dim](sampled from {eval_result['total_gaps']})[/dim]"
         )
     else:
-        console.print(f"Gaps: {eval_result['sampled_gaps']}")
-    console.print(f"Samples: {samples} per gap")
+        console.print(f"Evals: {eval_result['sampled_gaps']}")
+    console.print(f"Samples: {samples} per eval")
     console.print(f"Parallel: {parallel}")
     console.print(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
     console.print(f"Total runs: {eval_result['total_runs']}")

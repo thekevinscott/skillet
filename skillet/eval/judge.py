@@ -1,5 +1,7 @@
 """LLM-as-judge for evaluating responses against expected behavior."""
 
+import json
+
 from skillet._internal.sdk import query_assistant_text
 
 
@@ -15,18 +17,51 @@ def format_prompt_for_judge(prompt: str | list[str]) -> str:
     return "\n".join(lines)
 
 
-async def judge_response(prompt: str | list[str], response: str, expected: str) -> dict:
+def format_tool_calls_for_judge(tool_calls: list[dict]) -> str:
+    """Format tool calls for the judge prompt."""
+    if not tool_calls:
+        return "(no tools used)"
+
+    lines = []
+    for call in tool_calls:
+        # Summarize large inputs to keep judge prompt reasonable
+        input_summary = call.get("input", {})
+        if isinstance(input_summary, dict):
+            # Truncate long string values
+            summarized = {}
+            for k, v in input_summary.items():
+                if isinstance(v, str) and len(v) > 200:
+                    summarized[k] = v[:200] + "..."
+                else:
+                    summarized[k] = v
+            input_str = json.dumps(summarized, indent=2)
+        else:
+            input_str = str(input_summary)
+
+        lines.append(f"- {call['name']}: {input_str}")
+
+    return "\n".join(lines)
+
+
+async def judge_response(
+    prompt: str | list[str],
+    response: str,
+    expected: str,
+    tool_calls: list[dict] | None = None,
+) -> dict:
     """Use Claude as a judge to evaluate if a response meets expectations.
 
     Args:
         prompt: The original user prompt, or list of prompts for multi-turn
         response: Claude's final response to evaluate
         expected: What the user expected (from the gap file)
+        tool_calls: Optional list of tool calls made during the response
 
     Returns:
         dict with 'pass' (bool), 'reasoning' (str), and 'raw' (str)
     """
     formatted_prompt = format_prompt_for_judge(prompt)
+    formatted_tools = format_tool_calls_for_judge(tool_calls or [])
 
     judge_prompt = f"""You are evaluating whether an AI response meets the user's expectations.
 
@@ -36,11 +71,15 @@ async def judge_response(prompt: str | list[str], response: str, expected: str) 
 ## AI Response
 {response}
 
+## Tools Used
+{formatted_tools}
+
 ## Expected Behavior
 {expected}
 
 ## Your Task
 Determine if the AI response meets the expected behavior. Be strict but fair.
+Consider both the text response AND the tools used when evaluating.
 
 Respond in this exact format:
 PASS: yes or no

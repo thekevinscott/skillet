@@ -84,6 +84,44 @@ def save_iteration(cache_dir: Path, iteration: int, result: dict):
         yaml.dump(result, f, default_flow_style=False)
 
 
+def clear_cache(name: str, skill_path: Path | None = None) -> int:
+    """Clear cached results for a name (and optionally specific skill).
+
+    Args:
+        name: Eval name or path
+        skill_path: If provided, only clear cache for this skill; otherwise clear all
+
+    Returns:
+        Number of cache entries cleared
+    """
+    import shutil
+
+    cache_base = CACHE_DIR / normalize_cache_name(name)
+    if not cache_base.exists():
+        return 0
+
+    cleared = 0
+
+    if skill_path is None:
+        # Clear entire cache for this name
+        for gap_dir in cache_base.iterdir():
+            if gap_dir.is_dir():
+                shutil.rmtree(gap_dir)
+                cleared += 1
+    else:
+        # Clear only cache for this specific skill
+        skill_hash = hash_directory(skill_path)
+        for gap_dir in cache_base.iterdir():
+            if not gap_dir.is_dir():
+                continue
+            skill_cache = gap_dir / "skills" / skill_hash
+            if skill_cache.exists():
+                shutil.rmtree(skill_cache)
+                cleared += 1
+
+    return cleared
+
+
 def get_all_cached_results(name: str, skill_path: Path | None = None) -> dict[str, list[dict]]:
     """Get all cached results for a name + skill, keyed by gap source.
 
