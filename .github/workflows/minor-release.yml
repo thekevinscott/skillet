@@ -1,66 +1,13 @@
 name: Minor Release
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/publish.yml
+    with:
+      bump_type: minor
     permissions:
       contents: write
-      id-token: write  # Required for PyPI trusted publishing
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Calculate minor version
-        id: version
-        run: |
-          # Get the latest tag
-          latest_tag=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | head -n1)
-
-          if [ -z "$latest_tag" ]; then
-            echo "No tags found, starting at 0.1.0"
-            new_version="0.1.0"
-          else
-            # Extract version number from tag (remove 'v' prefix)
-            current="${latest_tag#v}"
-            IFS='.' read -r major minor patch <<< "$current"
-            new_version="${major}.$((minor + 1)).0"
-          fi
-
-          echo "new_version=$new_version" >> $GITHUB_OUTPUT
-          echo "New version will be: $new_version"
-
-      - name: Check if tag exists on remote
-        id: tag_check
-        run: |
-          if git ls-remote --tags origin | grep -q "refs/tags/v${{ steps.version.outputs.new_version }}$"; then
-            echo "Tag v${{ steps.version.outputs.new_version }} already exists on remote"
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create and push tag
-        if: steps.tag_check.outputs.exists == 'false'
-        id: tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ steps.version.outputs.new_version }}" -m "Release v${{ steps.version.outputs.new_version }}"
-          git push origin "v${{ steps.version.outputs.new_version }}"
-          echo "created=true" >> $GITHUB_OUTPUT
-
-      - name: Install uv
-        if: steps.tag.outputs.created == 'true'
-        uses: astral-sh/setup-uv@v7
-
-      - name: Build package
-        if: steps.tag.outputs.created == 'true'
-        run: uv build
-
-      - name: Publish to PyPI
-        if: steps.tag.outputs.created == 'true'
-        run: uv publish --trusted-publishing always
+      id-token: write
