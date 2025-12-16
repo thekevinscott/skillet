@@ -96,10 +96,12 @@ async def query_multiturn(
                     if isinstance(block, TextBlock):
                         response_text += block.text
                     elif isinstance(block, ToolUseBlock):
-                        all_tool_calls.append({
-                            "name": block.name,
-                            "input": block.input,
-                        })
+                        all_tool_calls.append(
+                            {
+                                "name": block.name,
+                                "input": block.input,
+                            }
+                        )
 
     return QueryResult(
         text=response_text.strip() if response_text else "",
