@@ -22,22 +22,37 @@ TUNE_TIPS = [
 ]
 
 
+def get_skill_file(skill_path: Path) -> Path:
+    """Get the skill file path, handling both directory and file inputs.
+
+    Args:
+        skill_path: Path to skill directory or direct .md file
+
+    Returns:
+        Path to the actual skill file
+    """
+    if skill_path.is_file():
+        return skill_path
+    return skill_path / "SKILL.md"
+
+
 async def improve_skill(
     skill_path: Path,
     failures: list[dict],
     tip: str | None = None,
 ) -> str:
-    """Use Claude to improve the SKILL.md based on failures.
+    """Use Claude to improve the skill file based on failures.
 
     Args:
-        skill_path: Path to skill directory
+        skill_path: Path to skill directory or direct .md file
         failures: List of failed evaluation results
         tip: Optional style tip for improvement
 
     Returns:
-        New SKILL.md content
+        New skill content
     """
-    current_skill = (skill_path / "SKILL.md").read_text()
+    skill_file = get_skill_file(skill_path)
+    current_skill = skill_file.read_text()
 
     # Summarize failures
     failure_summary = [summarize_failure_for_tuning(f) for f in failures]
