@@ -6,18 +6,24 @@
 - After pushing: monitor CI checks
 
 ### Git Worktrees
-All development work should happen in git worktrees, not on the main branch directly:
+All development work should happen in git worktrees, not on the main branch directly.
+
+**IMPORTANT: When creating/switching worktrees, always run the setup steps yourself:**
 
 ```bash
 # Create a new worktree for a feature branch
 git worktree add .worktrees/my-feature -b feat/my-feature
 
-# Work in the worktree
+# Work in the worktree - ALWAYS run these setup steps:
 cd .worktrees/my-feature
+uv run python scripts/build_claude_config.py  # Build .claude/commands/
 
 # When done, remove the worktree
+cd ../..
 git worktree remove .worktrees/my-feature
 ```
+
+**Never give the user commands to run - execute them yourself.** The `.claude/commands/` directory is gitignored and must be rebuilt in each worktree.
 
 ## Project Structure
 - `.claude-template/` - Source templates with `{{SKILLET_DIR}}` placeholders

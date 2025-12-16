@@ -1,5 +1,6 @@
 """Claude SDK helpers."""
 
+import sys
 from typing import Any, TypeVar
 
 from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
@@ -9,6 +10,11 @@ from .types import matches_type
 T = TypeVar("T")
 
 
+def _stderr_callback(line: str) -> None:
+    """Print stderr output from Claude CLI."""
+    print(line, file=sys.stderr)
+
+
 async def for_query(
     prompt: str,
     message_type: type[T] | None = None,
@@ -16,7 +22,8 @@ async def for_query(
     **options: Any,
 ):
     """Iterate over blocks from a Claude query with optional type filtering."""
-    async for message in query(prompt=prompt, options=ClaudeAgentOptions(**options)):
+    opts = ClaudeAgentOptions(**options, stderr=_stderr_callback)
+    async for message in query(prompt=prompt, options=opts):
         if not message_type or matches_type(message, message_type):
             if not hasattr(message, "content"):
                 continue
@@ -46,7 +53,7 @@ async def query_multiturn(
     Returns:
         The final assistant response text
     """
-    opts = ClaudeAgentOptions(**options)
+    opts = ClaudeAgentOptions(**options, stderr=_stderr_callback)
     session_id: str | None = None
     response_text = ""
 
