@@ -20,6 +20,7 @@ async def eval(
     gaps: Annotated[int | None, Parameter(name=["--gaps", "-g"])] = None,
     tools: Annotated[str | None, Parameter(name=["--tools", "-t"])] = None,
     parallel: Annotated[int, Parameter(name=["--parallel", "-p"])] = 3,
+    skip_cache: Annotated[bool, Parameter(name=["--skip-cache"])] = False,
 ):
     """Evaluate Claude against captured gaps.
 
@@ -40,6 +41,7 @@ async def eval(
         skillet eval browser-fallback -s 5                         # 5 samples per gap
         skillet eval my-skill -g 5 -s 1                            # 5 random gaps, 1 sample each
         skillet eval my-skill -p 5                                 # 5 parallel workers
+        skillet eval my-skill --skip-cache                         # ignore cached results
     """
     from skillet.cli.commands.eval import eval_command
 
@@ -51,6 +53,7 @@ async def eval(
         max_gaps=gaps,
         allowed_tools=allowed_tools,
         parallel=parallel,
+        skip_cache=skip_cache,
     )
 
 

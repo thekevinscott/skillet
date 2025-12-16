@@ -41,11 +41,12 @@ async def run_tune_eval(
             if on_status:
                 await on_status(task, "running", None)
             try:
-                response = await run_prompt(task["prompt"], skill_path)
+                query_result = await run_prompt(task["prompt"], skill_path)
                 judgment = await judge_response(
                     prompt=task["prompt"],
-                    response=response,
+                    response=query_result.text,
                     expected=task["expected"],
+                    tool_calls=query_result.tool_calls,
                 )
                 result = {
                     "gap_idx": task["gap_idx"],
@@ -53,7 +54,8 @@ async def run_tune_eval(
                     "iteration": task["iteration"],
                     "prompt": task["prompt"],
                     "expected": task["expected"],
-                    "response": response,
+                    "response": query_result.text,
+                    "tool_calls": query_result.tool_calls,
                     "judgment": judgment,
                     "pass": judgment["pass"],
                 }
@@ -68,6 +70,7 @@ async def run_tune_eval(
                     "prompt": task["prompt"],
                     "expected": task["expected"],
                     "response": str(e),
+                    "tool_calls": [],
                     "judgment": {"pass": False, "reasoning": f"Error: {e}"},
                     "pass": False,
                 }

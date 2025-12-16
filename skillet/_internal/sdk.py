@@ -1,11 +1,27 @@
 """Claude SDK helpers."""
 
 import sys
+from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
-from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
+from claude_agent_sdk import (
+    AssistantMessage,
+    ClaudeAgentOptions,
+    TextBlock,
+    ToolUseBlock,
+    query,
+)
 
 from .types import matches_type
+
+
+@dataclass
+class QueryResult:
+    """Result from a query with both text and tool calls."""
+
+    text: str
+    tool_calls: list[dict] = field(default_factory=list)
+
 
 T = TypeVar("T")
 
@@ -43,19 +59,20 @@ async def query_assistant_text(prompt: str, **options: Any) -> str:
 async def query_multiturn(
     prompts: list[str],
     **options: Any,
-) -> str:
-    """Run a multi-turn conversation and return the final assistant text response.
+) -> QueryResult:
+    """Run a multi-turn conversation and return the final assistant response.
 
     Args:
         prompts: List of prompts to send sequentially, resuming the session
         **options: Options passed to ClaudeAgentOptions
 
     Returns:
-        The final assistant response text
+        QueryResult with text and all tool calls made during the conversation
     """
     opts = ClaudeAgentOptions(**options, stderr=_stderr_callback)
     session_id: str | None = None
     response_text = ""
+    all_tool_calls: list[dict] = []
 
     for p in prompts:
         response_text = ""
@@ -78,5 +95,15 @@ async def query_multiturn(
                 for block in message.content:
                     if isinstance(block, TextBlock):
                         response_text += block.text
+                    elif isinstance(block, ToolUseBlock):
+                        all_tool_calls.append(
+                            {
+                                "name": block.name,
+                                "input": block.input,
+                            }
+                        )
 
-    return response_text.strip() if response_text else ""
+    return QueryResult(
+        text=response_text.strip() if response_text else "",
+        tool_calls=all_tool_calls,
+    )

@@ -15,7 +15,7 @@ from skillet._internal.cache import (
     get_cached_iterations,
     save_iteration,
 )
-from skillet._internal.sdk import query_multiturn
+from skillet._internal.sdk import QueryResult, query_multiturn
 from skillet.config import DEFAULT_SKILL_TOOLS
 from skillet.gaps import load_gaps
 
@@ -80,7 +80,7 @@ async def run_prompt(
     allowed_tools: list[str] | None = None,
     cwd: str | None = None,
     home_dir: str | None = None,
-) -> str:
+) -> QueryResult:
     """Run a prompt (or multi-turn conversation) through Claude and return the response.
 
     Args:
@@ -92,7 +92,7 @@ async def run_prompt(
         home_dir: Custom HOME directory for isolated execution
 
     Returns:
-        The final assistant response text
+        QueryResult with text response and all tool calls made
     """
     # Normalize to list
     prompts = [prompt] if isinstance(prompt, str) else prompt
@@ -120,7 +120,7 @@ async def run_prompt(
         env = os.environ.copy()
         env["HOME"] = home_dir
 
-    response_text = await query_multiturn(
+    result = await query_multiturn(
         prompts,
         max_turns=10,
         allowed_tools=tools or None,
@@ -129,10 +129,10 @@ async def run_prompt(
         env=env,
     )
 
-    if not response_text:
-        response_text = "(no text response - Claude may have only used tools)"
+    if not result.text:
+        result.text = "(no text response - Claude may have only used tools)"
 
-    return response_text
+    return result
 
 
 async def run_single_eval(
@@ -141,26 +141,29 @@ async def run_single_eval(
     skill_path: Path | None,
     allowed_tools: list[str] | None,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
+    skip_cache: bool = False,
 ) -> dict:
     """Run a single evaluation task, using cache if available.
 
     Every eval runs in an isolated HOME directory. If the task contains
     'setup' or 'teardown' scripts, they are executed before/after the prompts.
     """
-    # Check cache first
+    # Check cache first (unless skip_cache is True)
     gap_key = gap_cache_key(task["gap_source"], task["gap_content"])
     cache_dir = get_cache_dir(name, gap_key, skill_path)
-    cached = get_cached_iterations(cache_dir)
 
-    # If we have this iteration cached, use it
-    if len(cached) >= task["iteration"]:
-        result = cached[task["iteration"] - 1]
-        result["gap_idx"] = task["gap_idx"]
-        result["gap_source"] = task["gap_source"]
-        result["cached"] = True
-        if on_status:
-            await on_status(task, "cached", result)
-        return result
+    if not skip_cache:
+        cached = get_cached_iterations(cache_dir)
+
+        # If we have this iteration cached, use it
+        if len(cached) >= task["iteration"]:
+            result = cached[task["iteration"] - 1]
+            result["gap_idx"] = task["gap_idx"]
+            result["gap_source"] = task["gap_source"]
+            result["cached"] = True
+            if on_status:
+                await on_status(task, "cached", result)
+            return result
 
     # Otherwise, run it
     if on_status:
@@ -196,7 +199,7 @@ async def run_single_eval(
                     return result
 
             # Run the eval with isolated HOME
-            response = await run_prompt(
+            query_result = await run_prompt(
                 task["prompt"], skill_path, allowed_tools, home_dir=home_dir
             )
 
@@ -206,15 +209,17 @@ async def run_single_eval(
 
             judgment = await judge_response(
                 prompt=task["prompt"],
-                response=response,
+                response=query_result.text,
                 expected=task["expected"],
+                tool_calls=query_result.tool_calls,
             )
 
             result = {
                 "gap_idx": task["gap_idx"],
                 "gap_source": task["gap_source"],
                 "iteration": task["iteration"],
-                "response": response,
+                "response": query_result.text,
+                "tool_calls": query_result.tool_calls,
                 "judgment": judgment,
                 "pass": judgment["pass"],
                 "cached": False,
@@ -226,7 +231,8 @@ async def run_single_eval(
                 task["iteration"],
                 {
                     "iteration": task["iteration"],
-                    "response": response,
+                    "response": query_result.text,
+                    "tool_calls": query_result.tool_calls,
                     "judgment": judgment,
                     "pass": judgment["pass"],
                 },
@@ -262,6 +268,7 @@ async def evaluate(
     allowed_tools: list[str] | None = None,
     parallel: int = 3,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
+    skip_cache: bool = False,
 ) -> dict:
     """Evaluate gaps in parallel, with caching.
 
@@ -273,6 +280,7 @@ async def evaluate(
         allowed_tools: List of tools to allow
         parallel: Number of parallel workers
         on_status: Optional callback for status updates (task, state, result)
+        skip_cache: If True, skip reading from cache (still writes to cache)
 
     Returns:
         dict with results, pass_rate, and summary statistics
@@ -311,7 +319,9 @@ async def evaluate(
 
     async def run_with_semaphore(task):
         async with semaphore:
-            return await run_single_eval(task, name, skill_path, allowed_tools, on_status)
+            return await run_single_eval(
+                task, name, skill_path, allowed_tools, on_status, skip_cache
+            )
 
     # Run all tasks
     results = await asyncio.gather(*[run_with_semaphore(t) for t in tasks])

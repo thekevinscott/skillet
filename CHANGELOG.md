@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Tool call capture in eval results - judge now sees which tools Claude used
+- `--skip-cache` flag for eval command to ignore cached results
+
 ### Fixed
 - Capture and display stderr output from Claude CLI during evals
 - Symlink ~/.claude to isolated HOME so evals can access credentials
@@ -15,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLAUDE.md: Always run worktree setup steps, never give user commands to run
 
 ### Changed
+- Renamed "Gaps" to "Evals" in CLI output
 - Renamed eval files with descriptive suffixes (e.g., `001.yaml` → `001-ask-expectation.yaml`)
 - **Nightly releases are now patch-only.** Minor releases are triggered manually via the "Minor Release" workflow. This prevents version inflation from mislabeled commits.
 - Renamed `version-bump.yml` to `patch-release.yml` for clarity
