@@ -84,17 +84,24 @@ async def tune(
     target: Annotated[float, Parameter(name=["--target", "-t"])] = 100.0,
     samples: Annotated[int, Parameter(name=["--samples", "-s"])] = 1,
     parallel: Annotated[int, Parameter(name=["--parallel", "-p"])] = 3,
+    output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
 ):
     """Iteratively tune a skill until evals pass.
 
-    Runs evals, analyzes failures, improves SKILL.md, and repeats
+    Runs evals, analyzes failures, improves the skill, and repeats
     until the target pass rate is reached or max rounds hit.
+
+    The original skill file is NOT modified. All iterations are tracked
+    and the best version is saved in the output JSON.
+
+    Results are saved to ~/.skillet/tunes/{eval_name}/{timestamp}.json by default.
 
     Examples:
         skillet tune browser-fallback ~/.claude/skills/browser-fallback
         skillet tune browser-fallback ~/.claude/skills/browser-fallback -t 80
         skillet tune browser-fallback ~/.claude/skills/browser-fallback -r 10
         skillet tune browser-fallback ~/.claude/skills/browser-fallback -s 3
+        skillet tune browser-fallback skill/ -o custom_output.json
     """
     from skillet.cli.commands.tune import tune_command
 
@@ -105,6 +112,7 @@ async def tune(
         target_pass_rate=target,
         samples=samples,
         parallel=parallel,
+        output_path=output,
     )
 
 

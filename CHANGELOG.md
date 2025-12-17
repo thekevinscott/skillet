@@ -10,10 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Tool call capture in eval results - judge now sees which tools Claude used
 - `--skip-cache` flag for eval command to ignore cached results
+- `TuneResult` dataclass with full iteration history (inspired by DSPy)
+- `--output` flag for tune command to save results JSON
+
+### Changed
+- Tune no longer modifies original skill file - uses tmpfile during tuning
+- Tune returns `TuneResult` with all rounds, evals, and best skill content
 
 ### Fixed
 - Tune now accepts direct .md file paths (not just directories with SKILL.md)
 - Tune display now shows all evals from the start of each round (was only showing first few)
+- Tune evals now run correctly (was crashing due to env=None passed to SDK)
 - Capture and display stderr output from Claude CLI during evals
 - Symlink ~/.claude to isolated HOME so evals can access credentials
 
