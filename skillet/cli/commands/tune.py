@@ -115,8 +115,8 @@ async def tune_command(
             console.print(f"Failures: [red]{len(failures)}[/red]")
         console.print()
 
-    async def on_improving(tip: str):
-        console.print(f"Improving skill [dim](tip: {tip[:40]}...)[/dim]")
+    async def on_improving(_tip: str):
+        console.print("Improving skill...")
 
     async def on_improved(_new_content: str):
         console.print("[green]Skill improved[/green]")
