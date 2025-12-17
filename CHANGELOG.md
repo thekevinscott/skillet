@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Tune now accepts direct .md file paths (not just directories with SKILL.md)
 - Tune display now shows all evals from the start of each round (was only showing first few)
+- Tune evals now run correctly (was crashing due to env=None passed to SDK)
 - Capture and display stderr output from Claude CLI during evals
 - Symlink ~/.claude to isolated HOME so evals can access credentials
 

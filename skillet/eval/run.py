@@ -114,20 +114,21 @@ async def run_prompt(
     else:
         tools = list(allowed_tools) if allowed_tools else []
 
-    # Build environment with custom HOME if provided
-    env = None
+    # Build query options
+    query_kwargs: dict = {
+        "max_turns": 10,
+        "allowed_tools": tools or None,
+        "cwd": cwd,
+        "setting_sources": ["project"] if cwd else None,
+    }
+
+    # Add custom HOME if provided
     if home_dir:
         env = os.environ.copy()
         env["HOME"] = home_dir
+        query_kwargs["env"] = env
 
-    result = await query_multiturn(
-        prompts,
-        max_turns=10,
-        allowed_tools=tools or None,
-        cwd=cwd,
-        setting_sources=["project"] if cwd else None,
-        env=env,
-    )
+    result = await query_multiturn(prompts, **query_kwargs)
 
     if not result.text:
         result.text = "(no text response - Claude may have only used tools)"
