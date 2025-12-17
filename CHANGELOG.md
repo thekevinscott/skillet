@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Tune no longer modifies original skill file - uses tmpfile during tuning
 - Tune returns `TuneResult` with all rounds, evals, and best skill content
+- Tune output now compares against baseline (round 1) instead of 100% target
+- Tune auto-saves results to `~/.skillet/tunes/{eval_name}/{timestamp}.json` by default
+
+### Removed
+- Duplicate output in tune command (finalize was printing after live display)
 
 ### Fixed
 - Tune now accepts direct .md file paths (not just directories with SKILL.md)
