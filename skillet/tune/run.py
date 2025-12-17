@@ -2,6 +2,8 @@
 
 import asyncio
 import random
+import shutil
+import tempfile
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
@@ -10,6 +12,7 @@ from skillet.eval.run import run_prompt
 from skillet.gaps import load_gaps
 
 from .improve import TUNE_TIPS, get_skill_file, improve_skill
+from .result import EvalResult, RoundResult, TuneConfig, TuneResult
 
 
 async def run_tune_eval(
@@ -86,6 +89,20 @@ async def run_tune_eval(
     return pass_rate, list(results)
 
 
+def _results_to_eval_results(results: list[dict]) -> list[EvalResult]:
+    """Convert raw eval results to EvalResult objects."""
+    return [
+        EvalResult(
+            source=r["gap_source"],
+            passed=r["pass"],
+            reasoning=r["judgment"].get("reasoning", ""),
+            response=r.get("response"),
+            tool_calls=r.get("tool_calls"),
+        )
+        for r in results
+    ]
+
+
 async def tune(
     name: str,
     skill_path: Path,
@@ -98,12 +115,15 @@ async def tune(
     on_round_complete: Callable[[int, float, list[dict]], Awaitable[None]] | None = None,
     on_improving: Callable[[str], Awaitable[None]] | None = None,
     on_improved: Callable[[str], Awaitable[None]] | None = None,
-) -> dict:
+) -> TuneResult:
     """Iteratively tune a skill until evals pass.
+
+    The original skill file is NOT modified. Tuning happens in a temporary
+    directory, and all iterations are tracked in the returned TuneResult.
 
     Args:
         name: Name of gap set
-        skill_path: Path to skill directory
+        skill_path: Path to skill file or directory
         max_rounds: Maximum tuning rounds
         target_pass_rate: Target pass rate percentage
         samples: Number of eval samples per gap
@@ -115,51 +135,93 @@ async def tune(
         on_improved: Callback when improvement done (new_content)
 
     Returns:
-        dict with success status, final pass_rate, rounds completed
+        TuneResult with all iterations and the best skill content
     """
     gaps = load_gaps(name)
 
-    final_pass_rate = 0.0
-    for round_num in range(1, max_rounds + 1):
-        if on_round_start:
-            await on_round_start(round_num, max_rounds)
+    # Read original skill content
+    original_skill_file = get_skill_file(skill_path)
+    original_skill_content = original_skill_file.read_text()
 
-        # Run evals
-        pass_rate, results = await run_tune_eval(
-            gaps, skill_path, samples, parallel, on_eval_status
-        )
-        final_pass_rate = pass_rate
+    # Create TuneResult to track everything
+    tune_result = TuneResult.create(
+        eval_set=name,
+        skill_path=skill_path,
+        original_skill=original_skill_content,
+        config=TuneConfig(
+            max_rounds=max_rounds,
+            target_pass_rate=target_pass_rate,
+            samples=samples,
+            parallel=parallel,
+        ),
+    )
 
-        if on_round_complete:
-            await on_round_complete(round_num, pass_rate, results)
+    # Create temporary directory that mirrors the skill's location
+    # This is needed because Claude loads skills from .claude/commands/
+    temp_dir = tempfile.mkdtemp(prefix="skillet-tune-")
+    try:
+        # Copy the skill file to temp location, preserving directory structure
+        # e.g., .claude/commands/skillet/add.md -> /tmp/xxx/.claude/commands/skillet/add.md
+        if ".claude" in skill_path.parts:
+            claude_idx = skill_path.parts.index(".claude")
+            relative_path = Path(*skill_path.parts[claude_idx:])
+            temp_skill_path = Path(temp_dir) / relative_path
+        else:
+            # Simple case: just use the filename
+            temp_skill_path = Path(temp_dir) / original_skill_file.name
 
-        if pass_rate >= target_pass_rate:
-            return {
-                "success": True,
-                "pass_rate": pass_rate,
-                "rounds": round_num,
-                "target": target_pass_rate,
-            }
+        temp_skill_path.parent.mkdir(parents=True, exist_ok=True)
+        temp_skill_path.write_text(original_skill_content)
 
-        # Get failures and improve
-        failures = [r for r in results if not r["pass"]]
-        tip = random.choice(TUNE_TIPS)
+        current_skill_content = original_skill_content
+        last_tip: str | None = None  # Track tip from previous round
 
-        if on_improving:
-            await on_improving(tip)
+        for round_num in range(1, max_rounds + 1):
+            if on_round_start:
+                await on_round_start(round_num, max_rounds)
 
-        new_content = await improve_skill(skill_path, failures, tip)
+            # Run evals using temp skill path
+            pass_rate, results = await run_tune_eval(
+                gaps, temp_skill_path, samples, parallel, on_eval_status
+            )
 
-        # Write new version
-        skill_file = get_skill_file(skill_path)
-        skill_file.write_text(new_content + "\n")
+            # Create round result (tip_used is from previous iteration)
+            round_result = RoundResult(
+                round=round_num,
+                pass_rate=pass_rate,
+                skill_content=current_skill_content,
+                tip_used=last_tip,
+                evals=_results_to_eval_results(results),
+            )
+            tune_result.add_round(round_result)
 
-        if on_improved:
-            await on_improved(new_content)
+            if on_round_complete:
+                await on_round_complete(round_num, pass_rate, results)
 
-    return {
-        "success": False,
-        "pass_rate": final_pass_rate,
-        "rounds": max_rounds,
-        "target": target_pass_rate,
-    }
+            if pass_rate >= target_pass_rate:
+                tune_result.finalize(success=True)
+                return tune_result
+
+            # Get failures and improve
+            failures = [r for r in results if not r["pass"]]
+            last_tip = random.choice(TUNE_TIPS)
+
+            if on_improving:
+                await on_improving(last_tip)
+
+            # Improve skill (reads from temp path)
+            new_content = await improve_skill(temp_skill_path, failures, last_tip)
+            current_skill_content = new_content
+
+            # Write improved version to temp file
+            temp_skill_path.write_text(new_content + "\n")
+
+            if on_improved:
+                await on_improved(new_content)
+
+        tune_result.finalize(success=False)
+        return tune_result
+
+    finally:
+        # Clean up temp directory
+        shutil.rmtree(temp_dir, ignore_errors=True)
