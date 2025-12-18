@@ -39,6 +39,7 @@ def get_skill_file(skill_path: Path) -> Path:
 async def improve_skill(
     skill_path: Path,
     failures: list[dict],
+    passes: list[dict] | None = None,
     tip: str | None = None,
 ) -> str:
     """Use Claude to improve the skill file based on failures.
@@ -46,6 +47,7 @@ async def improve_skill(
     Args:
         skill_path: Path to skill directory or direct .md file
         failures: List of failed evaluation results
+        passes: List of passing evaluation results (to preserve behavior)
         tip: Optional style tip for improvement
 
     Returns:
@@ -57,12 +59,26 @@ async def improve_skill(
     # Summarize failures
     failure_summary = [summarize_failure_for_tuning(f) for f in failures]
 
+    # Summarize passes (just prompt/expected, no need for full response)
+    passes_section = ""
+    if passes:
+        pass_summary = [
+            {"prompt": p["prompt"], "expected": p["expected"]} for p in passes
+        ]
+        passes_section = f"""
+## Passing Tests (DO NOT BREAK THESE)
+
+The current SKILL.md correctly handles these - your changes MUST NOT break them:
+
+{yaml.dump(pass_summary, default_flow_style=False)}
+"""
+
     prompt = f"""Improve this SKILL.md so Claude exhibits the expected behavior.
 
 ## Current SKILL.md
 
 {current_skill}
-
+{passes_section}
 ## Failures
 
 These prompts did NOT produce the expected behavior:
@@ -71,16 +87,20 @@ These prompts did NOT produce the expected behavior:
 
 ## Your Task
 
-Revise the SKILL.md to fix these failures. Common issues:
+Revise the SKILL.md to fix the failures while PRESERVING behavior for passing tests.
+
+CRITICAL: Do not break what's working! The passing tests above represent behavior that
+must continue to work after your changes.
+
+Common issues to fix:
 - Description not specific enough about WHEN to trigger
 - Instructions not explicit enough (Claude defaults to asking permission)
 - Missing "do NOT ask" or "IMMEDIATELY" language for automatic behaviors
 
 IMPORTANT CONSTRAINTS:
 - Keep the SKILL.md under {MAX_SKILL_LINES} lines total
-- Be concise - shorter is better
-- Replace verbose instructions with terse, direct ones
-- Do NOT keep adding more text - rewrite to be minimal
+- Be concise but complete - don't remove instructions that make passing tests work
+- Add specific handling for failing cases without breaking passing ones
 {f"- Style tip: {tip}" if tip else ""}
 
 Return ONLY the improved SKILL.md content (no explanation, no code fences)."""

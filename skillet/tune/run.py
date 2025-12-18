@@ -202,15 +202,18 @@ async def tune(
                 tune_result.finalize(success=True)
                 return tune_result
 
-            # Get failures and improve
+            # Get failures and passes for improvement
             failures = [r for r in results if not r["pass"]]
+            passes = [r for r in results if r["pass"]]
             last_tip = random.choice(TUNE_TIPS)
 
             if on_improving:
                 await on_improving(last_tip)
 
-            # Improve skill (reads from temp path)
-            new_content = await improve_skill(temp_skill_path, failures, last_tip)
+            # Improve skill with both failures AND passes (to avoid regression)
+            new_content = await improve_skill(
+                temp_skill_path, failures, passes=passes, tip=last_tip
+            )
             current_skill_content = new_content
 
             # Write improved version to temp file
