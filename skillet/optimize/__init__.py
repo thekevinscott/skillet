@@ -1,4 +1,4 @@
-"""DSPy integration for skillet prompt optimization."""
+"""Prompt optimization using DSPy."""
 
 from .metric import create_skillet_metric
 
