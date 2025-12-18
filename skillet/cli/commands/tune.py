@@ -100,7 +100,6 @@ async def tune_command(
         nonlocal display
         if display:
             await display.stop()
-            display.finalize()
 
         console.print()
         if pass_rate >= target_pass_rate:
@@ -116,8 +115,8 @@ async def tune_command(
             console.print(f"Failures: [red]{len(failures)}[/red]")
         console.print()
 
-    async def on_improving(tip: str):
-        console.print(f"Improving skill [dim](tip: {tip[:40]}...)[/dim]")
+    async def on_improving(_tip: str):
+        console.print("Improving skill...")
 
     async def on_improved(_new_content: str):
         console.print("[green]Skill improved[/green]")
@@ -136,20 +135,28 @@ async def tune_command(
         on_improved=on_improved,
     )
 
+    # Compare against baseline (round 1)
     console.print()
-    if result.result.success:
-        console.print("[bold green]✓ Target reached! Skill tuned successfully.[/bold green]")
+    baseline = result.rounds[0].pass_rate if result.rounds else 0
+    best = result.result.final_pass_rate
+    delta = best - baseline
+
+    if delta > 0:
+        console.print(
+            f"[bold green]✓ Improved over baseline: "
+            f"{baseline:.0f}% → {best:.0f}% (+{delta:.0f}%)[/bold green]"
+        )
+    elif delta == 0:
+        console.print(
+            f"[bold yellow]→ No improvement: {baseline:.0f}% (best was round 1)[/bold yellow]"
+        )
     else:
         console.print(
-            f"[bold red]✗ Did not reach {result.config.target_pass_rate:.0f}% "
-            f"after {result.result.rounds_completed} rounds.[/bold red]"
+            f"[bold yellow]→ Best was baseline: {baseline:.0f}% "
+            f"(round {result.result.best_round})[/bold yellow]"
         )
-        console.print(f"  Current pass rate: {result.result.final_pass_rate:.0f}%")
 
-    # Show best skill info
-    console.print()
-    console.print(f"[bold]Best round:[/bold] {result.result.best_round}")
-    console.print(f"[bold]Best pass rate:[/bold] {result.result.final_pass_rate:.0f}%")
+    console.print(f"[dim]Completed {result.result.rounds_completed} rounds[/dim]")
 
     # Save results (always saves, either to provided path or default)
     result.save(output_path)
