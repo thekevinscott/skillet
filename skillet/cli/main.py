@@ -76,42 +76,37 @@ def compare(
 
 
 @app.command
-async def tune(
+def tune(
     name: str,
     skill: Path,
     *,
-    rounds: Annotated[int, Parameter(name=["--rounds", "-r"])] = 5,
-    target: Annotated[float, Parameter(name=["--target", "-t"])] = 100.0,
-    samples: Annotated[int, Parameter(name=["--samples", "-s"])] = 1,
-    parallel: Annotated[int, Parameter(name=["--parallel", "-p"])] = 3,
+    trials: Annotated[int, Parameter(name=["--trials", "-t"])] = 5,
+    optimizer: Annotated[str, Parameter(name=["--optimizer", "-O"])] = "bootstrap",
     output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
 ):
-    """Iteratively tune a skill until evals pass.
+    """Tune a skill using DSPy optimization.
 
-    Runs evals, analyzes failures, improves the skill, and repeats
-    until the target pass rate is reached or max rounds hit.
+    Uses DSPy's optimization framework to improve skill instructions.
+    The original skill file is NOT modified.
 
-    The original skill file is NOT modified. All iterations are tracked
-    and the best version is saved in the output JSON.
+    For small datasets (~10 evals), use BootstrapFewShot (default).
+    For larger datasets (200+), use MIPROv2.
 
     Results are saved to ~/.skillet/tunes/{eval_name}/{timestamp}.json by default.
 
     Examples:
-        skillet tune browser-fallback ~/.claude/skills/browser-fallback
-        skillet tune browser-fallback ~/.claude/skills/browser-fallback -t 80
-        skillet tune browser-fallback ~/.claude/skills/browser-fallback -r 10
-        skillet tune browser-fallback ~/.claude/skills/browser-fallback -s 3
-        skillet tune browser-fallback skill/ -o custom_output.json
+        skillet tune add-command .claude/commands/skillet/add.md
+        skillet tune add-command skill/ --optimizer mipro
+        skillet tune add-command skill/ -t 10
+        skillet tune add-command skill/ -o results.json
     """
     from skillet.cli.commands.tune import tune_command
 
-    await tune_command(
+    tune_command(
         name,
         skill,
-        max_rounds=rounds,
-        target_pass_rate=target,
-        samples=samples,
-        parallel=parallel,
+        num_trials=trials,
+        optimizer=optimizer,
         output_path=output,
     )
 

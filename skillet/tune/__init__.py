@@ -1,14 +1,10 @@
-"""Iterative skill tuning."""
+"""Skill tuning using DSPy optimization."""
 
-from .improve import improve_skill
-from .result import EvalResult, RoundResult, TuneConfig, TuneResult
+from .result import TuneConfig, TuneResult
 from .run import tune
 
 __all__ = [
-    "EvalResult",
-    "RoundResult",
     "TuneConfig",
     "TuneResult",
-    "improve_skill",
     "tune",
 ]
