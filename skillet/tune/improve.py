@@ -36,9 +36,36 @@ def get_skill_file(skill_path: Path) -> Path:
     return skill_path / "SKILL.md"
 
 
+def _get_tune_improve_skill() -> str:
+    """Load the tune-improve skill content.
+
+    Looks for the skill in:
+    1. Built .claude/commands/skillet/tune-improve.md (relative to this file)
+    2. Template .claude-template/commands/skillet/tune-improve.md
+
+    Returns:
+        The skill content, or empty string if not found
+    """
+    # Find skillet package root
+    package_root = Path(__file__).parent.parent.parent
+
+    # Try built commands first
+    built_path = package_root / ".claude" / "commands" / "skillet" / "tune-improve.md"
+    if built_path.exists():
+        return built_path.read_text()
+
+    # Fall back to template
+    template_path = package_root / ".claude-template" / "commands" / "skillet" / "tune-improve.md"
+    if template_path.exists():
+        return template_path.read_text()
+
+    return ""
+
+
 async def improve_skill(
     skill_path: Path,
     failures: list[dict],
+    passes: list[dict] | None = None,
     tip: str | None = None,
 ) -> str:
     """Use Claude to improve the skill file based on failures.
@@ -46,6 +73,7 @@ async def improve_skill(
     Args:
         skill_path: Path to skill directory or direct .md file
         failures: List of failed evaluation results
+        passes: List of passing evaluation results (to preserve behavior)
         tip: Optional style tip for improvement
 
     Returns:
@@ -54,15 +82,53 @@ async def improve_skill(
     skill_file = get_skill_file(skill_path)
     current_skill = skill_file.read_text()
 
+    # Load the tune-improve skill instructions
+    tune_skill = _get_tune_improve_skill()
+
     # Summarize failures
     failure_summary = [summarize_failure_for_tuning(f) for f in failures]
 
-    prompt = f"""Improve this SKILL.md so Claude exhibits the expected behavior.
+    # Summarize passes (just prompt/expected, no need for full response)
+    passes_section = ""
+    if passes:
+        pass_summary = [{"prompt": p["prompt"], "expected": p["expected"]} for p in passes]
+        passes_section = f"""
+## Passing Tests (DO NOT BREAK THESE)
+
+The current SKILL.md correctly handles these - your changes MUST NOT break them:
+
+{yaml.dump(pass_summary, default_flow_style=False)}
+"""
+
+    # Build prompt with skill instructions
+    if tune_skill:
+        prompt = f"""{tune_skill}
+
+---
 
 ## Current SKILL.md
 
 {current_skill}
+{passes_section}
+## Failures
 
+These prompts did NOT produce the expected behavior:
+
+{yaml.dump(failure_summary, default_flow_style=False)}
+
+## Constraints
+
+- Maximum lines: {MAX_SKILL_LINES}
+{f"- Style tip: {tip}" if tip else ""}
+"""
+    else:
+        # Fallback if skill file not found
+        prompt = f"""Improve this SKILL.md so Claude exhibits the expected behavior.
+
+## Current SKILL.md
+
+{current_skill}
+{passes_section}
 ## Failures
 
 These prompts did NOT produce the expected behavior:
@@ -71,16 +137,20 @@ These prompts did NOT produce the expected behavior:
 
 ## Your Task
 
-Revise the SKILL.md to fix these failures. Common issues:
+Revise the SKILL.md to fix the failures while PRESERVING behavior for passing tests.
+
+CRITICAL: Do not break what's working! The passing tests above represent behavior that
+must continue to work after your changes.
+
+Common issues to fix:
 - Description not specific enough about WHEN to trigger
 - Instructions not explicit enough (Claude defaults to asking permission)
 - Missing "do NOT ask" or "IMMEDIATELY" language for automatic behaviors
 
 IMPORTANT CONSTRAINTS:
 - Keep the SKILL.md under {MAX_SKILL_LINES} lines total
-- Be concise - shorter is better
-- Replace verbose instructions with terse, direct ones
-- Do NOT keep adding more text - rewrite to be minimal
+- Be concise but complete - don't remove instructions that make passing tests work
+- Add specific handling for failing cases without breaking passing ones
 {f"- Style tip: {tip}" if tip else ""}
 
 Return ONLY the improved SKILL.md content (no explanation, no code fences)."""
