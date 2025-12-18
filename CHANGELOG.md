@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DSPy integration: `skillet.optimize` module with metric adapter for prompt optimization
 - `SkillModule` class for wrapping skills as DSPy modules
 - `load_evals` function replaces `load_gaps` (breaking change for direct imports)
+- `evals_to_trainset()` function to convert skillet evals to DSPy Examples
 
 ### Changed
 - Tune no longer modifies original skill file - uses tmpfile during tuning
