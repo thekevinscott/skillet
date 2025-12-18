@@ -10,25 +10,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Tool call capture in eval results - judge now sees which tools Claude used
 - `--skip-cache` flag for eval command to ignore cached results
+- `TuneResult` dataclass with full iteration history (inspired by DSPy)
 - `--output` flag for tune command to save results JSON
-- DSPy integration: `skillet.optimize` module with metric adapter, eval loader, and optimizer wrapper
-- `skillet.optimize.SkillModule` for wrapping skills as DSPy modules
-- `skillet.optimize.optimize_skill()` function for skill optimization
+- DSPy integration: `skillet.optimize` module with metric adapter for prompt optimization
 
 ### Changed
-- **BREAKING**: Tune command now uses DSPy optimization instead of iterative rounds
-  - Removed `--rounds`, `--target`, `--samples`, `--parallel` flags
-  - Added `--trials` (number of optimization trials) and `--optimizer` (bootstrap/mipro) flags
-  - Results structure changed: no longer tracks rounds, now tracks original/optimized scores
-- Tune no longer modifies original skill file - returns optimized content in TuneResult
+- Tune no longer modifies original skill file - uses tmpfile during tuning
+- Tune returns `TuneResult` with all rounds, evals, and best skill content
+- Tune output now compares against baseline (round 1) instead of 100% target
 - Tune auto-saves results to `~/.skillet/tunes/{eval_name}/{timestamp}.json` by default
 
 ### Removed
-- Old tune implementation with manual improvement loop
-- `improve_skill` function (replaced by DSPy optimization)
-- `EvalResult`, `RoundResult` dataclasses (replaced by simpler `TuneResult`)
+- Duplicate output in tune command (finalize was printing after live display)
 
 ### Fixed
+- Tune now accepts direct .md file paths (not just directories with SKILL.md)
+- Tune display now shows all evals from the start of each round (was only showing first few)
+- Tune evals now run correctly (was crashing due to env=None passed to SDK)
 - Capture and display stderr output from Claude CLI during evals
 - Symlink ~/.claude to isolated HOME so evals can access credentials
 

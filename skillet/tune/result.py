@@ -6,17 +6,41 @@ import sys
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from skillet import __version__
+
+
+@dataclass
+class EvalResult:
+    """Result of a single eval."""
+
+    source: str
+    passed: bool
+    reasoning: str
+    response: str | None = None
+    tool_calls: list[dict] | None = None
+
+
+@dataclass
+class RoundResult:
+    """Result of a single tuning round."""
+
+    round: int
+    pass_rate: float
+    skill_content: str
+    tip_used: str | None
+    evals: list[EvalResult]
 
 
 @dataclass
 class TuneConfig:
     """Configuration for a tune run."""
 
-    num_trials: int
-    optimizer: Literal["bootstrap", "mipro"]
+    max_rounds: int
+    target_pass_rate: float
+    samples: int
+    parallel: int
 
 
 @dataclass
@@ -39,18 +63,9 @@ class TuneResultSummary:
     """Summary of tune results."""
 
     success: bool
-    original_score: float
-    optimized_score: float
-
-    @property
-    def improved(self) -> bool:
-        """Whether optimization improved the score."""
-        return self.optimized_score > self.original_score
-
-    @property
-    def delta(self) -> float:
-        """Score improvement (positive = better)."""
-        return self.optimized_score - self.original_score
+    final_pass_rate: float
+    rounds_completed: int
+    best_round: int
 
 
 @dataclass
@@ -61,7 +76,8 @@ class TuneResult:
     config: TuneConfig
     result: TuneResultSummary
     original_skill: str
-    optimized_skill: str
+    best_skill: str
+    rounds: list[RoundResult] = field(default_factory=list)
 
     @classmethod
     def create(
@@ -81,34 +97,34 @@ class TuneResult:
             config=config,
             result=TuneResultSummary(
                 success=False,
-                original_score=0.0,
-                optimized_score=0.0,
+                final_pass_rate=0.0,
+                rounds_completed=0,
+                best_round=0,
             ),
             original_skill=original_skill,
-            optimized_skill=original_skill,
+            best_skill=original_skill,
+            rounds=[],
         )
 
-    def finalize(
-        self,
-        success: bool,
-        original_score: float,
-        optimized_score: float,
-        optimized_skill: str,
-    ) -> None:
-        """Mark the tune run as complete with results."""
+    def add_round(self, round_result: RoundResult) -> None:
+        """Add a round result and update best if needed."""
+        self.rounds.append(round_result)
+        self.result.rounds_completed = len(self.rounds)
+
+        # Update best if this round has highest pass rate
+        if round_result.pass_rate >= self.result.final_pass_rate:
+            self.result.final_pass_rate = round_result.pass_rate
+            self.result.best_round = round_result.round
+            self.best_skill = round_result.skill_content
+
+    def finalize(self, success: bool) -> None:
+        """Mark the tune run as complete."""
         self.metadata.completed_at = datetime.now(UTC).isoformat()
         self.result.success = success
-        self.result.original_score = original_score
-        self.result.optimized_score = optimized_score
-        self.optimized_skill = optimized_skill
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
-        data = asdict(self)
-        # Add computed properties
-        data["result"]["improved"] = self.result.improved
-        data["result"]["delta"] = self.result.delta
-        return data
+        return asdict(self)
 
     def save(self, path: Path) -> None:
         """Save results to a JSON file."""
@@ -122,16 +138,21 @@ class TuneResult:
         with path.open() as f:
             data = json.load(f)
 
-        # Reconstruct nested dataclasses (ignore computed properties)
-        result_data = data["result"]
+        # Reconstruct nested dataclasses
         return cls(
             metadata=TuneMetadata(**data["metadata"]),
             config=TuneConfig(**data["config"]),
-            result=TuneResultSummary(
-                success=result_data["success"],
-                original_score=result_data["original_score"],
-                optimized_score=result_data["optimized_score"],
-            ),
+            result=TuneResultSummary(**data["result"]),
             original_skill=data["original_skill"],
-            optimized_skill=data["optimized_skill"],
+            best_skill=data["best_skill"],
+            rounds=[
+                RoundResult(
+                    round=r["round"],
+                    pass_rate=r["pass_rate"],
+                    skill_content=r["skill_content"],
+                    tip_used=r["tip_used"],
+                    evals=[EvalResult(**e) for e in r["evals"]],
+                )
+                for r in data["rounds"]
+            ],
         )
