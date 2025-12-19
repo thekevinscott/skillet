@@ -36,9 +36,19 @@ hooks:
     uv run pre-commit install
 
 # Check changelog was updated (for CI)
+# Skip if only docs/ files changed
 check-changelog base_ref='origin/main':
     #!/usr/bin/env bash
-    if git diff --name-only {{base_ref}}...HEAD | grep -q '^CHANGELOG.md$'; then
+    changed_files=$(git diff --name-only {{base_ref}}...HEAD)
+
+    # Check if all changed files are in docs/
+    non_docs_changes=$(echo "$changed_files" | grep -v '^docs/' || true)
+    if [ -z "$non_docs_changes" ]; then
+        echo "Only docs/ files changed - skipping changelog check"
+        exit 0
+    fi
+
+    if echo "$changed_files" | grep -q '^CHANGELOG.md$'; then
         echo "CHANGELOG.md was updated"
     else
         echo "Error: CHANGELOG.md was not updated"
