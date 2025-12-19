@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `get_cached_results_for_gap` to `get_cached_results_for_eval`
 
 ### Fixed
+- Resource leaks: use `TemporaryDirectory` context manager instead of manual cleanup
+- File operations now have proper error handling with `SkillError` exceptions
 - Judge now uses structured JSON output instead of text parsing for reliable pass/fail detection
 - Critical exceptions (KeyboardInterrupt, SystemExit) now propagate instead of being suppressed
 - Setup/teardown scripts now have a 30-second timeout to prevent hanging

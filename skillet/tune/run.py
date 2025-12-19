@@ -2,11 +2,11 @@
 
 import asyncio
 import random
-import shutil
 import tempfile
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
+from skillet.errors import SkillError
 from skillet.eval import judge_response, run_prompt
 from skillet.evals import load_evals
 
@@ -157,8 +157,7 @@ async def tune(
 
     # Create temporary directory that mirrors the skill's location
     # This is needed because Claude loads skills from .claude/commands/
-    temp_dir = tempfile.mkdtemp(prefix="skillet-tune-")
-    try:
+    with tempfile.TemporaryDirectory(prefix="skillet-tune-") as temp_dir:
         # Copy the skill file to temp location, preserving directory structure
         # e.g., .claude/commands/skillet/add.md -> /tmp/xxx/.claude/commands/skillet/add.md
         if ".claude" in skill_path.parts:
@@ -169,8 +168,11 @@ async def tune(
             # Simple case: just use the filename
             temp_skill_path = Path(temp_dir) / original_skill_file.name
 
-        temp_skill_path.parent.mkdir(parents=True, exist_ok=True)
-        temp_skill_path.write_text(original_skill_content)
+        try:
+            temp_skill_path.parent.mkdir(parents=True, exist_ok=True)
+            temp_skill_path.write_text(original_skill_content)
+        except OSError as e:
+            raise SkillError(f"Failed to write temp skill file: {e}") from e
 
         current_skill_content = original_skill_content
         last_tip: str | None = None  # Track tip from previous round
@@ -213,14 +215,13 @@ async def tune(
             current_skill_content = new_content
 
             # Write improved version to temp file
-            temp_skill_path.write_text(new_content + "\n")
+            try:
+                temp_skill_path.write_text(new_content + "\n")
+            except OSError as e:
+                raise SkillError(f"Failed to write improved skill: {e}") from e
 
             if on_improved:
                 await on_improved(new_content)
 
         tune_result.finalize(success=False)
         return tune_result
-
-    finally:
-        # Clean up temp directory
-        shutil.rmtree(temp_dir, ignore_errors=True)

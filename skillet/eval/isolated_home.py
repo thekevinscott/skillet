@@ -1,11 +1,13 @@
 """Context manager for isolated HOME directory."""
 
+import logging
 import os
-import shutil
 import tempfile
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -21,15 +23,16 @@ def isolated_home() -> Generator[str, None, None]:
     Yields:
         Path to the temporary HOME directory
     """
-    home_dir = tempfile.mkdtemp(prefix="skillet-eval-")
     real_home = os.environ.get("HOME", "")
-    try:
+
+    with tempfile.TemporaryDirectory(prefix="skillet-eval-") as home_dir:
         # Symlink ~/.claude for credentials
         real_claude_dir = Path(real_home) / ".claude"
         if real_claude_dir.exists():
             isolated_claude_dir = Path(home_dir) / ".claude"
-            isolated_claude_dir.symlink_to(real_claude_dir)
+            try:
+                isolated_claude_dir.symlink_to(real_claude_dir)
+            except OSError as e:
+                # Log warning but continue - eval might work without .claude
+                logger.warning(f"Could not symlink .claude directory: {e}")
         yield home_dir
-    finally:
-        if Path(home_dir).exists():
-            shutil.rmtree(home_dir, ignore_errors=True)
