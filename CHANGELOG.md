@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Mintlify docs.json navigation schema updated to object format
+
 ### Changed
 - Migrated documentation from VitePress to Mintlify platform
 
