@@ -1,6 +1,5 @@
 """Tests for eval/isolated_home module."""
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -22,34 +21,26 @@ def describe_isolated_home():
         # After context exits, directory should be gone
         assert not temp_path.exists()
 
-    def it_symlinks_claude_dir_if_exists():
+    def it_symlinks_claude_dir_if_exists(monkeypatch):
         with tempfile.TemporaryDirectory() as fake_home:
             # Create a fake .claude directory
             claude_dir = Path(fake_home) / ".claude"
             claude_dir.mkdir()
             (claude_dir / "config.json").write_text("{}")
 
-            original_home = os.environ.get("HOME", "")
-            try:
-                os.environ["HOME"] = fake_home
-                with isolated_home() as home_dir:
-                    isolated_claude = Path(home_dir) / ".claude"
-                    assert isolated_claude.exists()
-                    assert isolated_claude.is_symlink()
-                    assert isolated_claude.resolve() == claude_dir.resolve()
-            finally:
-                os.environ["HOME"] = original_home
+            monkeypatch.setenv("HOME", fake_home)
+            with isolated_home() as home_dir:
+                isolated_claude = Path(home_dir) / ".claude"
+                assert isolated_claude.exists()
+                assert isolated_claude.is_symlink()
+                assert isolated_claude.resolve() == claude_dir.resolve()
 
-    def it_does_not_create_symlink_when_claude_dir_missing():
+    def it_does_not_create_symlink_when_claude_dir_missing(monkeypatch):
         """Test that no symlink is created when ~/.claude doesn't exist."""
         with tempfile.TemporaryDirectory() as fake_home:
             # Do NOT create a .claude directory
-            original_home = os.environ.get("HOME", "")
-            try:
-                os.environ["HOME"] = fake_home
-                with isolated_home() as home_dir:
-                    isolated_claude = Path(home_dir) / ".claude"
-                    # Should not exist since there's no real .claude to link to
-                    assert not isolated_claude.exists()
-            finally:
-                os.environ["HOME"] = original_home
+            monkeypatch.setenv("HOME", fake_home)
+            with isolated_home() as home_dir:
+                isolated_claude = Path(home_dir) / ".claude"
+                # Should not exist since there's no real .claude to link to
+                assert not isolated_claude.exists()
