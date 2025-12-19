@@ -1,0 +1,17 @@
+[build]
+  base = "docs"
+  command = "npm run build"
+  publish = ".vitepress/dist"
+
+# Required for WebContainer to work
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Embedder-Policy = "require-corp"
+    Cross-Origin-Opener-Policy = "same-origin"
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

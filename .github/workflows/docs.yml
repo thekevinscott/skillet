@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'netlify.toml'
   pull_request:
     paths:
       - 'docs/**'
+      - 'netlify.toml'
 
 jobs:
-  validate:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,11 +20,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Validate docs.json
-        run: python3 -c "import json; json.load(open('docs.json'))"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Check required files exist
         run: |
-          test -f docs.json
-          test -f index.mdx
+          test -f .vitepress/config.ts
+          test -f index.md
           test -f favicon.svg
+
+      - name: Build VitePress
+        run: npm run build

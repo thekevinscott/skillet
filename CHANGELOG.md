@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump actions/checkout from v4 to v6 in CI workflows
 
 ### Added
+- `docs/components/reactive-docs/` - Reactive documentation system with [Show me] automation
+- `docs/components/ReactiveDocsLayout` - Split-pane layout with docs panel and terminal
+- `docs/components/DocsPanel` - Tutorial step display with progress indicator
+- `Terminal` component now exposes `executeCommand` via ref for programmatic control
 - `docs/components/UnifiedTerminal` - Unified LLM interface with seamless backend switching
 - `docs/components/llm/` - Unified LLM backend interface abstracting over Claude API and WebLLM
 - `docs/components/LocalLLMTerminal` - Browser-based LLM using WebLLM for zero-friction onboarding
