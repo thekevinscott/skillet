@@ -1,6 +1,7 @@
+import os
 from pathlib import Path
 
-SKILLET_DIR = Path.home() / ".skillet"
+SKILLET_DIR = Path(os.environ.get("SKILLET_DIR", str(Path.home() / ".skillet")))
 CACHE_DIR = SKILLET_DIR / "cache"
 
 # Default tools to allow when evaluating with a skill
