@@ -9,7 +9,7 @@ from pathlib import Path
 
 from skillet.eval.judge import judge_response
 from skillet.eval.run import run_prompt
-from skillet.gaps import load_gaps
+from skillet.gaps import load_evals
 
 from .improve import TUNE_TIPS, get_skill_file, improve_skill
 from .result import EvalResult, RoundResult, TuneConfig, TuneResult
@@ -137,7 +137,7 @@ async def tune(
     Returns:
         TuneResult with all iterations and the best skill content
     """
-    gaps = load_gaps(name)
+    evals = load_evals(name)
 
     # Read original skill content
     original_skill_file = get_skill_file(skill_path)
@@ -182,7 +182,7 @@ async def tune(
 
             # Run evals using temp skill path
             pass_rate, results = await run_tune_eval(
-                gaps, temp_skill_path, samples, parallel, on_eval_status
+                evals, temp_skill_path, samples, parallel, on_eval_status
             )
 
             # Create round result (tip_used is from previous iteration)

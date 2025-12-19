@@ -17,7 +17,7 @@ from skillet._internal.cache import (
 )
 from skillet._internal.sdk import QueryResult, query_multiturn
 from skillet.config import DEFAULT_SKILL_TOOLS
-from skillet.gaps import load_gaps
+from skillet.gaps import load_evals
 
 from .judge import judge_response
 
@@ -288,31 +288,31 @@ async def evaluate(
     """
     import random
 
-    gaps = load_gaps(name)
-    total_gaps = len(gaps)
+    evals_list = load_evals(name)
+    total_evals = len(evals_list)
 
-    # Sample gaps if requested
-    if max_gaps and max_gaps < len(gaps):
-        gaps = random.sample(gaps, max_gaps)
+    # Sample evals if requested
+    if max_gaps and max_gaps < len(evals_list):
+        evals_list = random.sample(evals_list, max_gaps)
 
     # Build task list
     tasks = []
-    for gap_idx, gap in enumerate(gaps):
+    for eval_idx, eval_data in enumerate(evals_list):
         for i in range(samples):
             task = {
-                "gap_idx": gap_idx,
-                "gap_source": gap["_source"],
-                "gap_content": gap["_content"],
+                "gap_idx": eval_idx,
+                "gap_source": eval_data["_source"],
+                "gap_content": eval_data["_content"],
                 "iteration": i + 1,
                 "total_iterations": samples,
-                "prompt": gap["prompt"],
-                "expected": gap["expected"],
+                "prompt": eval_data["prompt"],
+                "expected": eval_data["expected"],
             }
-            # Include setup/teardown if present in the gap
-            if gap.get("setup"):
-                task["setup"] = gap["setup"]
-            if gap.get("teardown"):
-                task["teardown"] = gap["teardown"]
+            # Include setup/teardown if present in the eval
+            if eval_data.get("setup"):
+                task["setup"] = eval_data["setup"]
+            if eval_data.get("teardown"):
+                task["teardown"] = eval_data["teardown"]
             tasks.append(task)
 
     # Run with semaphore for parallelism control
@@ -342,6 +342,6 @@ async def evaluate(
         "total_pass": total_pass,
         "cached_count": cached_count,
         "fresh_count": fresh_count,
-        "total_gaps": total_gaps,
-        "sampled_gaps": len(gaps),
+        "total_gaps": total_evals,
+        "sampled_gaps": len(evals_list),
     }

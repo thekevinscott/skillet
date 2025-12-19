@@ -12,7 +12,7 @@ from skillet.errors import (
     SkilletError,
 )
 from skillet.eval import evaluate
-from skillet.gaps import load_gaps
+from skillet.gaps import load_evals
 from skillet.skill import create_skill
 from skillet.tune import tune
 
@@ -25,6 +25,6 @@ __all__ = [
     "compare",
     "create_skill",
     "evaluate",
-    "load_gaps",
+    "load_evals",
     "tune",
 ]
