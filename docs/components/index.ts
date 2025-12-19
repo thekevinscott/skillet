@@ -1,4 +1,5 @@
 export { Terminal } from './Terminal';
+export type { TerminalRef } from './Terminal';
 export { ClaudeTerminal } from './ClaudeTerminal';
 export { LocalLLMTerminal } from './LocalLLMTerminal';
 export { UnifiedTerminal } from './UnifiedTerminal';
@@ -20,3 +21,8 @@ export type {
   Message as UnifiedMessage,
   StreamEvent as UnifiedStreamEvent,
 } from './llm';
+
+// Reactive docs components
+export { ReactiveDocsLayout, DocsPanel } from './reactive-docs';
+export type { Tutorial, TutorialStep, TutorialState } from './reactive-docs';
+export { helloWorldTutorial } from './reactive-docs/tutorials';

@@ -1,8 +1,20 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebContainer } from '@webcontainer/api';
 import '@xterm/xterm/css/xterm.css';
+
+/** Methods exposed by Terminal ref */
+export interface TerminalRef {
+  /** Execute a command with typing animation */
+  executeCommand: (command: string, delay?: number) => Promise<void>;
+  /** Type text character by character */
+  typeText: (text: string, delay?: number) => Promise<void>;
+  /** Write text directly to terminal (no animation) */
+  write: (text: string) => void;
+  /** Check if terminal is ready */
+  isReady: () => boolean;
+}
 
 interface TerminalProps {
   /** Initial commands to run on boot */
@@ -15,6 +27,8 @@ interface TerminalProps {
   onReady?: () => void;
   /** Custom command handler - return true if handled, false to pass to shell */
   commandHandler?: (command: string, writeOutput: (text: string) => void) => boolean;
+  /** Called when terminal output is received */
+  onOutput?: (data: string) => void;
 }
 
 type TerminalStatus = 'booting' | 'ready' | 'error';
@@ -29,14 +43,22 @@ type TerminalStatus = 'booting' | 'ready' | 'error';
  *   initialCommands={['cat hello.txt']}
  * />
  * ```
+ *
+ * With ref for programmatic control:
+ * ```tsx
+ * const terminalRef = useRef<TerminalRef>(null);
+ * <Terminal ref={terminalRef} />
+ * // Later: terminalRef.current?.executeCommand('ls -la');
+ * ```
  */
-export function Terminal({
+export const Terminal = forwardRef<TerminalRef, TerminalProps>(function Terminal({
   initialCommands = [],
   files = {},
   height = '400px',
   onReady,
   commandHandler,
-}: TerminalProps) {
+  onOutput,
+}, ref) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const containerRef = useRef<WebContainer | null>(null);
@@ -64,7 +86,23 @@ export function Terminal({
     await typeText('\n', 0);
   }, [typeText]);
 
-  // Expose methods for parent components
+  // Write directly to terminal (no animation)
+  const write = useCallback((text: string) => {
+    xtermRef.current?.write(text);
+  }, []);
+
+  // Check if ready
+  const isReady = useCallback(() => status === 'ready', [status]);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    executeCommand,
+    typeText,
+    write,
+    isReady,
+  }), [executeCommand, typeText, write, isReady]);
+
+  // Notify parent when ready
   useEffect(() => {
     if (status === 'ready' && onReady) {
       onReady();
@@ -128,6 +166,10 @@ export function Terminal({
           new WritableStream({
             write(data) {
               xterm.write(data);
+              // Notify parent of output
+              if (onOutput) {
+                onOutput(data);
+              }
             },
           })
         );
@@ -249,7 +291,7 @@ export function Terminal({
       />
     </div>
   );
-}
+});
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
