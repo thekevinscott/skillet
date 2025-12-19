@@ -2,6 +2,7 @@
 
 ## Workflow
 - Work in git worktrees under `.worktrees/` folder, tie PRs to GitHub issues
+- **NEVER commit directly to main** - always create a PR
 - Before pushing: `just lint && just test-unit`
 - After pushing: monitor CI checks
 
