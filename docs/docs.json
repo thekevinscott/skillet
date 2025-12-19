@@ -9,15 +9,10 @@
   },
   "favicon": "/favicon.svg",
   "navigation": {
-    "tabs": [
+    "groups": [
       {
-        "tab": "Documentation",
-        "groups": [
-          {
-            "group": "Get Started",
-            "pages": ["index", "getting-started"]
-          }
-        ]
+        "group": "Documentation",
+        "pages": ["index", "getting-started"]
       }
     ]
   },
