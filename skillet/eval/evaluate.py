@@ -10,6 +10,7 @@ from skillet._internal.cache import (
     get_cached_iterations,
     save_iteration,
 )
+from skillet._internal.lock import cache_lock
 from skillet.evals import load_evals
 
 from .isolated_home import isolated_home
@@ -36,17 +37,19 @@ async def run_single_eval(
     cache_dir = get_cache_dir(name, eval_key, skill_path)
 
     if not skip_cache:
-        cached = get_cached_iterations(cache_dir)
+        # Use lock to prevent race condition with parallel workers
+        with cache_lock(cache_dir):
+            cached = get_cached_iterations(cache_dir)
 
-        # If we have this iteration cached, use it
-        if len(cached) >= task["iteration"]:
-            result = cached[task["iteration"] - 1]
-            result["eval_idx"] = task["eval_idx"]
-            result["eval_source"] = task["eval_source"]
-            result["cached"] = True
-            if on_status:
-                await on_status(task, "cached", result)
-            return result
+            # If we have this iteration cached, use it
+            if len(cached) >= task["iteration"]:
+                result = cached[task["iteration"] - 1]
+                result["eval_idx"] = task["eval_idx"]
+                result["eval_source"] = task["eval_source"]
+                result["cached"] = True
+                if on_status:
+                    await on_status(task, "cached", result)
+                return result
 
     # Otherwise, run it
     if on_status:
@@ -108,18 +111,23 @@ async def run_single_eval(
                 "cached": False,
             }
 
-            # Save to cache
-            save_iteration(
-                cache_dir,
-                task["iteration"],
-                {
-                    "iteration": task["iteration"],
-                    "response": query_result.text,
-                    "tool_calls": query_result.tool_calls,
-                    "judgment": judgment,
-                    "pass": judgment["pass"],
-                },
-            )
+            # Save to cache with lock to prevent race conditions
+            # Double-check: another worker may have saved while we were running
+            with cache_lock(cache_dir):
+                cached = get_cached_iterations(cache_dir)
+                if len(cached) < task["iteration"]:
+                    # Not yet cached, save our result
+                    save_iteration(
+                        cache_dir,
+                        task["iteration"],
+                        {
+                            "iteration": task["iteration"],
+                            "response": query_result.text,
+                            "tool_calls": query_result.tool_calls,
+                            "judgment": judgment,
+                            "pass": judgment["pass"],
+                        },
+                    )
 
             if on_status:
                 await on_status(task, "done", result)
