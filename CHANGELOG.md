@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Migrated documentation from VitePress to Mintlify platform
+
 ### Added
 - Unit tests for cache, gaps/load, tune/improve, compare/run, eval/judge, cli/display modules
 - Tool call capture in eval results - judge now sees which tools Claude used

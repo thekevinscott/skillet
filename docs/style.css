@@ -1,0 +1,11 @@
+#content-area {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+#content-area h5 {
+  font-weight: 500;
+}
+
+#content-area h6 {
+  font-weight: 400;
+}
