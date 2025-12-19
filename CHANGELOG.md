@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Migrated documentation from VitePress to Mintlify platform
+- Bump actions/checkout from v4 to v6 in CI workflows
 
 ### Added
 - `docs/components/Terminal` - React component with xterm.js and WebContainer for interactive docs
