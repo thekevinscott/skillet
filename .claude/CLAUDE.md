@@ -5,6 +5,7 @@
 - **NEVER commit directly to main** - always create a PR
 - Before pushing: `just lint && just test-unit`
 - After pushing: monitor CI checks
+- **After a PR is merged**: pull main in the root repository to keep worktrees in sync
 
 ### Git Worktrees
 All development work should happen in git worktrees, not on the main branch directly.
