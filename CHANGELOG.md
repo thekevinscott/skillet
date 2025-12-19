@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump actions/checkout from v4 to v6 in CI workflows
 
 ### Added
+- `docs/components/UnifiedTerminal` - Unified LLM interface with seamless backend switching
+- `docs/components/llm/` - Unified LLM backend interface abstracting over Claude API and WebLLM
 - `docs/components/LocalLLMTerminal` - Browser-based LLM using WebLLM for zero-friction onboarding
 - `docs/components/webllm.ts` - WebLLM client wrapper with same interface as Claude client
 - `docs/components/ClaudeTerminal` - Terminal with Claude AI integration for interactive docs
