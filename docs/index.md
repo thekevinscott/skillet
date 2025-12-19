@@ -44,14 +44,54 @@ skillet tune
 
 ## Get started
 
-::: info What is Skillet?
-Learn about skills, how they work, and why they matter.
+<div class="card-grid">
+  <a href="/getting-started" class="card">
+    <h3>Getting Started</h3>
+    <p>Learn about skills, how they work, and why they matter.</p>
+  </a>
+  <a href="/interactive-tutorial" class="card">
+    <h3>Interactive Tutorial</h3>
+    <p>Try Skillet in your browser with our interactive tutorial.</p>
+  </a>
+  <a href="https://github.com/thekevinscott/skillet" class="card">
+    <h3>View on GitHub</h3>
+    <p>Browse the source code, report issues, and contribute.</p>
+  </a>
+</div>
 
-[Getting Started →](/getting-started)
-:::
+<style>
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
 
-::: info Interactive Tutorial
-Try Skillet in your browser with our interactive tutorial.
+.card {
+  display: block;
+  padding: 20px;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  text-decoration: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
 
-[Interactive Tutorial →](/interactive-tutorial)
-:::
+.card:hover {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 2px 12px rgba(139, 115, 85, 0.08);
+}
+
+.card h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+  line-height: 1.5;
+}
+</style>

@@ -161,7 +161,7 @@ h1, h2, h3, h4,
   text-decoration: underline;
 }
 
-/* Navigation - clean and minimal */
+/* Navigation - clean and minimal like agentskills.io */
 .VPNavBar {
   border-bottom: 1px solid var(--vp-c-border);
   backdrop-filter: blur(12px);
@@ -178,6 +178,49 @@ h1, h2, h3, h4,
   font-weight: 500;
 }
 
+/* Search - styled like agentskills.io */
+.VPNavBarSearch {
+  padding-left: 16px;
+}
+
+.VPNavBarSearch .DocSearch-Button {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 6px;
+}
+
+.VPNavBarSearch .DocSearch-Button:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+/* "On this page" outline - ensure visibility */
+.VPDocAsideOutline {
+  display: block !important;
+}
+
+.VPDocAside {
+  display: block !important;
+}
+
+.VPDocAsideOutline .outline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.VPDocAsideOutline .outline-link {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  transition: color 0.15s ease;
+}
+
+.VPDocAsideOutline .outline-link:hover,
+.VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1);
+}
+
 /* Sidebar - flat navigation like agentskills.io */
 .VPSidebar {
   border-right: 1px solid var(--vp-c-border);
@@ -190,6 +233,22 @@ h1, h2, h3, h4,
 
 .VPSidebarItem.is-active > .item > .link > .text {
   color: var(--vp-c-brand-1);
+}
+
+/* Active sidebar item - left border indicator like agentskills.io */
+.VPSidebarItem.is-active > .item > .link {
+  position: relative;
+}
+
+.VPSidebarItem.is-active > .item > .link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background-color: var(--vp-c-brand-1);
+  border-radius: 1px;
 }
 
 /* Feature cards - clean borders */
