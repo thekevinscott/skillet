@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SkillModule` class for wrapping skills as DSPy modules
 - `load_evals` function replaces `load_gaps` (breaking change for direct imports)
 - `evals_to_trainset()` function to convert skillet evals to DSPy Examples
+- `optimize_skill()` function for DSPy-based skill optimization (BootstrapFewShot, MIPROv2)
 
 ### Changed
 - Tune no longer modifies original skill file - uses tmpfile during tuning
