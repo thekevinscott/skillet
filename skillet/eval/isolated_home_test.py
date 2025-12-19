@@ -39,3 +39,17 @@ def describe_isolated_home():
                     assert isolated_claude.resolve() == claude_dir.resolve()
             finally:
                 os.environ["HOME"] = original_home
+
+    def it_does_not_create_symlink_when_claude_dir_missing():
+        """Test that no symlink is created when ~/.claude doesn't exist."""
+        with tempfile.TemporaryDirectory() as fake_home:
+            # Do NOT create a .claude directory
+            original_home = os.environ.get("HOME", "")
+            try:
+                os.environ["HOME"] = fake_home
+                with isolated_home() as home_dir:
+                    isolated_claude = Path(home_dir) / ".claude"
+                    # Should not exist since there's no real .claude to link to
+                    assert not isolated_claude.exists()
+            finally:
+                os.environ["HOME"] = original_home

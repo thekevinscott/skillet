@@ -92,3 +92,31 @@ def describe_run_prompt():
             result = await run_prompt("test")
 
             assert "(no text response" in result.text
+
+    @pytest.mark.asyncio
+    async def it_does_not_duplicate_skill_tool():
+        """Test that Skill is not added if already in allowed_tools."""
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = QueryResult(text="response", tool_calls=[])
+
+            skill_path = Path("/project/.claude/skills/test")
+            # Skill is already in allowed_tools
+            await run_prompt("test", skill_path=skill_path, allowed_tools=["Skill", "Read"])
+
+            call_args = mock_query.call_args
+            # Should only have one Skill, not duplicated
+            assert call_args[1]["allowed_tools"].count("Skill") == 1
+            assert call_args[1]["allowed_tools"] == ["Skill", "Read"]
+
+    @pytest.mark.asyncio
+    async def it_uses_empty_tools_without_skill():
+        """Test that empty tools list is used when no skill and no allowed_tools."""
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = QueryResult(text="response", tool_calls=[])
+
+            # No skill_path and no allowed_tools
+            await run_prompt("test")
+
+            call_args = mock_query.call_args
+            # Should be None (no restrictions) since allowed_tools is empty
+            assert call_args[1]["allowed_tools"] is None

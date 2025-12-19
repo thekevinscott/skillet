@@ -158,6 +158,30 @@ def describe_run_tune_eval():
             assert results[0]["pass"] is False
             assert "network error" in results[0]["response"]
 
+    @pytest.mark.asyncio
+    async def it_calls_status_callback_on_exception():
+        """Test that on_status is called even when an exception occurs."""
+        status_calls = []
+
+        async def on_status(task, state, result):
+            status_calls.append((task["gap_source"], state, result))
+
+        with (
+            patch("skillet.tune.run.run_prompt", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_run.side_effect = RuntimeError("network error")
+
+            gaps = [{"_source": "test.md", "_content": "c", "prompt": "p", "expected": "e"}]
+
+            await run_tune_eval(gaps, Path("/skill.md"), samples=1, on_status=on_status)
+
+            # Should have both running and done calls
+            assert ("test.md", "running", None) in status_calls
+            # done call should have the error result
+            done_calls = [c for c in status_calls if c[1] == "done"]
+            assert len(done_calls) == 1
+            assert done_calls[0][2]["pass"] is False
+
 
 def describe_tune():
     """Tests for tune function."""
@@ -287,3 +311,37 @@ def describe_tune():
             assert len(callbacks["round_complete"]) == 2
             assert len(callbacks["improving"]) == 1
             assert len(callbacks["improved"]) == 1
+
+    @pytest.mark.asyncio
+    async def it_preserves_claude_path_structure_in_temp():
+        """Test that .claude path structure is preserved in temp directory."""
+        with (
+            tempfile.TemporaryDirectory() as tmpdir,
+            patch("skillet.tune.run.load_evals") as mock_load,
+            patch("skillet.tune.run.run_tune_eval", new_callable=AsyncMock) as mock_eval,
+        ):
+            # Create skill at .claude/commands/skill/SKILL.md
+            skill_dir = Path(tmpdir) / ".claude" / "commands" / "skill"
+            skill_dir.mkdir(parents=True)
+            skill_path = skill_dir / "SKILL.md"
+            skill_path.write_text("# Original Skill")
+
+            mock_load.return_value = [
+                {"_source": "a.md", "_content": "c", "prompt": "p", "expected": "e"}
+            ]
+            mock_eval.return_value = (
+                100.0,
+                [{"pass": True, "gap_source": "a.md", "judgment": {"reasoning": "OK"}}],
+            )
+
+            result = await tune("test-evals", skill_path, max_rounds=1)
+
+            assert result.result.success is True
+            # The temp skill path should have been used (verify via mock call)
+            mock_eval.assert_called_once()
+            call_args = mock_eval.call_args
+            temp_skill_path = call_args[0][1]
+            # Should preserve .claude/commands/skill structure
+            assert ".claude" in str(temp_skill_path)
+            assert "commands" in str(temp_skill_path)
+            assert "skill" in str(temp_skill_path)

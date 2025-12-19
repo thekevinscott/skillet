@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -128,3 +129,17 @@ def describe_load_evals():
 
             with pytest.raises(EvalValidationError, match="missing required fields"):
                 load_evals(tmpdir)
+
+    def it_raises_when_evals_subpath_is_file():
+        """Test error when ~/.skillet/evals/<name> exists but is a file, not a directory."""
+        with (
+            tempfile.TemporaryDirectory() as tmpdir,
+            patch("skillet.gaps.load.SKILLET_DIR", Path(tmpdir)),
+        ):
+            evals_dir = Path(tmpdir) / "evals"
+            evals_dir.mkdir()
+            # Create a file where we expect a directory
+            (evals_dir / "my-evals").write_text("not a directory")
+
+            with pytest.raises(EmptyFolderError, match="Not a directory"):
+                load_evals("my-evals")
