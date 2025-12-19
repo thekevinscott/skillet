@@ -1,6 +1,14 @@
 """Tests for eval/judge module."""
 
-from skillet.eval.judge import format_prompt_for_judge, format_tool_calls_for_judge
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+from skillet.eval.judge import (
+    format_prompt_for_judge,
+    format_tool_calls_for_judge,
+    judge_response,
+)
 
 
 def describe_format_prompt_for_judge():
@@ -55,3 +63,101 @@ def describe_format_tool_calls_for_judge():
         tool_calls = [{"name": "some_tool"}]
         result = format_tool_calls_for_judge(tool_calls)
         assert "some_tool" in result
+
+
+def describe_judge_response():
+    """Tests for judge_response function."""
+
+    @pytest.mark.asyncio
+    async def it_returns_pass_true_when_response_is_yes():
+        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = "PASS: yes\nREASONING: Response meets expectations"
+
+            result = await judge_response(
+                prompt="Say hello",
+                response="Hello there!",
+                expected="A greeting",
+            )
+
+            assert result["pass"] is True
+            assert "meets expectations" in result["reasoning"]
+            assert "PASS: yes" in result["raw"]
+
+    @pytest.mark.asyncio
+    async def it_returns_pass_false_when_response_is_no():
+        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = "PASS: no\nREASONING: Did not greet the user"
+
+            result = await judge_response(
+                prompt="Say hello",
+                response="Goodbye",
+                expected="A greeting",
+            )
+
+            assert result["pass"] is False
+            assert "greet" in result["reasoning"]
+
+    @pytest.mark.asyncio
+    async def it_includes_tool_calls_in_prompt():
+        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = "PASS: yes\nREASONING: Correct tools used"
+
+            tool_calls = [{"name": "read_file", "input": {"path": "/test.txt"}}]
+
+            await judge_response(
+                prompt="Read the file",
+                response="File contents",
+                expected="Read /test.txt",
+                tool_calls=tool_calls,
+            )
+
+            call_args = mock_query.call_args
+            prompt = call_args[0][0]
+            assert "read_file" in prompt
+            assert "/test.txt" in prompt
+
+    @pytest.mark.asyncio
+    async def it_handles_multi_turn_prompts():
+        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = "PASS: yes\nREASONING: Good"
+
+            await judge_response(
+                prompt=["First question", "Follow up"],
+                response="Final answer",
+                expected="Answer both",
+            )
+
+            call_args = mock_query.call_args
+            prompt = call_args[0][0]
+            assert "Turn 1" in prompt
+            assert "Turn 2" in prompt
+
+    @pytest.mark.asyncio
+    async def it_handles_empty_reasoning():
+        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = "PASS: yes"
+
+            result = await judge_response(
+                prompt="test",
+                response="response",
+                expected="expected",
+            )
+
+            assert result["pass"] is True
+            assert result["reasoning"] == ""
+
+    @pytest.mark.asyncio
+    async def it_handles_none_tool_calls():
+        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = "PASS: yes\nREASONING: OK"
+
+            await judge_response(
+                prompt="test",
+                response="response",
+                expected="expected",
+                tool_calls=None,
+            )
+
+            call_args = mock_query.call_args
+            prompt = call_args[0][0]
+            assert "(no tools used)" in prompt
