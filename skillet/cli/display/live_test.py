@@ -107,3 +107,62 @@ def describe_LiveDisplay():
 
         await display.stop()
         # Should complete without error
+
+    @pytest.mark.asyncio
+    async def it_stops_when_not_started():
+        tasks = [{"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"}]
+        display = LiveDisplay(tasks)
+
+        # Should not raise when stopping without starting
+        await display.stop()
+        assert display.live is None
+
+    @pytest.mark.asyncio
+    async def it_updates_live_display_when_running():
+        tasks = [{"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"}]
+        display = LiveDisplay(tasks)
+
+        await display.start()
+        await display.update(tasks[0], "running")
+        await display.update(tasks[0], "done", {"pass": True})
+        await display.stop()
+
+    def it_finalize_prints_results(capsys):
+        tasks = [
+            {"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"},
+            {"gap_idx": 0, "iteration": 1, "gap_source": "test.yaml"},
+        ]
+        display = LiveDisplay(tasks)
+
+        display.status["0:0"] = {"state": "done", "result": {"pass": True}}
+        display.status["0:1"] = {"state": "done", "result": {"pass": False}}
+
+        display.finalize()
+        captured = capsys.readouterr()
+        assert "test.yaml" in captured.out
+        assert "50%" in captured.out
+
+    def it_finalize_shows_cached_results(capsys):
+        tasks = [
+            {"gap_idx": 0, "iteration": 0, "gap_source": "cached.yaml"},
+        ]
+        display = LiveDisplay(tasks)
+
+        display.status["0:0"] = {"state": "cached", "result": {"pass": True}}
+
+        display.finalize()
+        captured = capsys.readouterr()
+        assert "cached.yaml" in captured.out
+        assert "100%" in captured.out
+
+    def it_finalize_handles_pending_tasks(capsys):
+        tasks = [
+            {"gap_idx": 0, "iteration": 0, "gap_source": "pending.yaml"},
+        ]
+        display = LiveDisplay(tasks)
+        # Status stays as pending (default)
+
+        display.finalize()
+        captured = capsys.readouterr()
+        assert "pending.yaml" in captured.out
+        assert "0%" in captured.out
