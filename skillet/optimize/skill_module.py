@@ -27,9 +27,9 @@ class SkillModule(dspy.Module):
         self.skill_content = skill_content
 
         # Create a predictor with skill content as instructions
-        self.predictor = dspy.Predict(
-            dspy.Signature("prompt -> response", instructions=skill_content)
-        )
+        self.predictor = dspy.Predict("prompt -> response")
+        # Inject skill content as the signature instructions
+        self.predictor.signature = self.predictor.signature.with_instructions(skill_content)
 
     def forward(self, prompt: str) -> dspy.Prediction:
         """Run the skill predictor.

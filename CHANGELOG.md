@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TuneResult` dataclass with full iteration history (inspired by DSPy)
 - `--output` flag for tune command to save results JSON
 - DSPy integration: `skillet.optimize` module with metric adapter for prompt optimization
+- `SkillModule` class for wrapping skills as DSPy modules
 
 ### Changed
 - Tune no longer modifies original skill file - uses tmpfile during tuning
