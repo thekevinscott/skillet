@@ -20,3 +20,6 @@ deprecated
 
 # Generated from .claude-template/
 .claude/commands/
+
+# Docs
+docs/node_modules/
