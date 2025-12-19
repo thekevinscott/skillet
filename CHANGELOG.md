@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mintlify docs.json navigation schema updated to object format
 
 ### Changed
+- Docs accent color changed to warm taupe (#8B7355) for brand identity
+- Docs headings use Plus Jakarta Sans font for visual distinction
 - Refactored `cli/commands/` to folder structure with helper functions in separate files
 - Refactored `eval/` module to split `run.py` into `evaluate.py`, `isolated_home.py`, `run_script.py`, `run_prompt.py`
 - Refactored `compare/` module to split `run.py` into `compare.py`, `calculate_pass_rate.py`, `get_cached_results_for_gap.py`
