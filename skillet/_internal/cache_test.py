@@ -35,23 +35,17 @@ def describe_hash_file():
     """Tests for hash_file function."""
 
     def it_hashes_file_contents():
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("test content")
-            f.flush()
-            path = Path(f.name)
-
-        result = hash_file(path)
-        assert len(result) == 12
-        path.unlink()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "test.txt"
+            path.write_text("test content")
+            result = hash_file(path)
+            assert len(result) == 12
 
     def it_is_deterministic():
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("test content")
-            f.flush()
-            path = Path(f.name)
-
-        assert hash_file(path) == hash_file(path)
-        path.unlink()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "test.txt"
+            path.write_text("test content")
+            assert hash_file(path) == hash_file(path)
 
 
 def describe_hash_directory():
@@ -78,14 +72,11 @@ def describe_hash_directory():
             assert hash1 != hash2
 
     def it_falls_back_to_hash_file_for_non_directory():
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("# Skill content")
-            f.flush()
-            path = Path(f.name)
-
-        result = hash_directory(path)
-        assert len(result) == 12
-        path.unlink()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "skill.md"
+            path.write_text("# Skill content")
+            result = hash_directory(path)
+            assert len(result) == 12
 
     def it_includes_multiple_files():
         with tempfile.TemporaryDirectory() as tmpdir:

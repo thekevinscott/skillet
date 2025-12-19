@@ -42,36 +42,26 @@ def describe_load_evals():
     """Tests for load_evals function."""
 
     def it_loads_single_yaml_file():
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
-            f.write(
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "test.yaml"
+            path.write_text(
                 "timestamp: 2024-01-01\n"
                 "prompt: test prompt\n"
                 "expected: expected response\n"
                 "name: test-eval\n"
             )
-            f.flush()
-            path = Path(f.name)
-
-        try:
             result = load_evals(str(path))
             assert len(result) == 1
             assert result[0]["prompt"] == "test prompt"
             assert result[0]["_source"] == path.name
             assert "_content" in result[0]
-        finally:
-            path.unlink()
 
     def it_raises_for_non_yaml_file():
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write("not yaml")
-            f.flush()
-            path = Path(f.name)
-
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "test.txt"
+            path.write_text("not yaml")
             with pytest.raises(EvalValidationError, match=r"Expected \.yaml file"):
                 load_evals(str(path))
-        finally:
-            path.unlink()
 
     def it_loads_directory_of_evals():
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -22,16 +22,11 @@ def describe_get_skill_file():
     """Tests for get_skill_file function."""
 
     def it_returns_file_path_directly_when_given_file():
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
-            f.write("# Skill content")
-            f.flush()
-            path = Path(f.name)
-
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "skill.md"
+            path.write_text("# Skill content")
             result = get_skill_file(path)
             assert result == path
-        finally:
-            path.unlink()
 
     def it_returns_skill_md_when_given_directory():
         with tempfile.TemporaryDirectory() as tmpdir:
