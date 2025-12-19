@@ -1,4 +1,4 @@
-"""Draft a SKILL.md from gaps."""
+"""Draft a SKILL.md from evals."""
 
 from skillet._internal.sdk import query_assistant_text
 from skillet._internal.text import strip_markdown
@@ -6,23 +6,23 @@ from skillet._internal.text import strip_markdown
 
 async def draft_skill(
     name: str,
-    gaps: list[dict],
+    evals: list[dict],
     extra_prompt: str | None = None,
 ) -> str:
-    """Use Claude to draft a SKILL.md based on captured gaps.
+    """Use Claude to draft a SKILL.md based on captured evals.
 
     Args:
         name: Skill name
-        gaps: List of gap dicts with prompt/expected fields
+        evals: List of eval dicts with prompt/expected fields
         extra_prompt: Additional instructions for generation
 
     Returns:
         Generated SKILL.md content
     """
-    gaps_summary = "\n\n".join(
+    evals_summary = "\n\n".join(
         [
-            f"## Gap {i + 1}\nPrompt: {g['prompt']}\nExpected: {g['expected']}"
-            for i, g in enumerate(gaps)
+            f"## Eval {i + 1}\nPrompt: {g['prompt']}\nExpected: {g['expected']}"
+            for i, g in enumerate(evals)
         ]
     )
 
@@ -30,11 +30,11 @@ async def draft_skill(
     if extra_prompt:
         extra_section = f"\n# Additional Instructions\n\n{extra_prompt}\n"
 
-    prompt = f"""Draft a minimal SKILL.md to address these gaps.
+    prompt = f"""Draft a minimal SKILL.md to address these evals.
 
-# Gaps for "{name}"
+# Evals for "{name}"
 
-{gaps_summary}
+{evals_summary}
 {extra_section}
 # Requirements
 

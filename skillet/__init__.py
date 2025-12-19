@@ -12,7 +12,7 @@ from skillet.errors import (
     SkilletError,
 )
 from skillet.eval import evaluate
-from skillet.gaps import load_evals
+from skillet.evals import load_evals
 from skillet.skill import create_skill
 from skillet.tune import tune
 

@@ -20,7 +20,7 @@ def describe_create_skill():
             patch("skillet.skill.create.load_evals", return_value=[]),
         ):
             output_dir = Path(tmpdir)
-            with pytest.raises(SkillError, match="No gap files found"):
+            with pytest.raises(SkillError, match="No eval files found"):
                 await create_skill("nonexistent", output_dir)
 
     @pytest.mark.asyncio

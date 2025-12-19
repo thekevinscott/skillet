@@ -21,7 +21,7 @@ def describe_results_to_eval_results():
     def it_converts_single_result():
         results = [
             {
-                "gap_source": "test.yaml",
+                "eval_source": "test.yaml",
                 "pass": True,
                 "judgment": {"reasoning": "looks good"},
                 "response": "the response",
@@ -41,14 +41,14 @@ def describe_results_to_eval_results():
     def it_converts_multiple_results():
         results = [
             {
-                "gap_source": "a.yaml",
+                "eval_source": "a.yaml",
                 "pass": True,
                 "judgment": {"reasoning": "passed"},
                 "response": "resp1",
                 "tool_calls": [],
             },
             {
-                "gap_source": "b.yaml",
+                "eval_source": "b.yaml",
                 "pass": False,
                 "judgment": {"reasoning": "failed"},
                 "response": "resp2",
@@ -66,7 +66,7 @@ def describe_results_to_eval_results():
     def it_handles_missing_optional_fields():
         results = [
             {
-                "gap_source": "test.yaml",
+                "eval_source": "test.yaml",
                 "pass": False,
                 "judgment": {},  # missing reasoning
             }
@@ -94,12 +94,12 @@ def describe_run_tune_eval():
                 {"pass": False, "reasoning": "bad"},
             ]
 
-            gaps = [
+            evals = [
                 {"_source": "a.md", "_content": "c1", "prompt": "p1", "expected": "e1"},
                 {"_source": "b.md", "_content": "c2", "prompt": "p2", "expected": "e2"},
             ]
 
-            pass_rate, results = await run_tune_eval(gaps, Path("/skill.md"), samples=1)
+            pass_rate, results = await run_tune_eval(evals, Path("/skill.md"), samples=1)
 
             assert pass_rate == 50.0
             assert len(results) == 2
@@ -115,9 +115,9 @@ def describe_run_tune_eval():
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            gaps = [{"_source": "a.md", "_content": "c", "prompt": "p", "expected": "e"}]
+            evals = [{"_source": "a.md", "_content": "c", "prompt": "p", "expected": "e"}]
 
-            pass_rate, results = await run_tune_eval(gaps, Path("/skill.md"), samples=3)
+            pass_rate, results = await run_tune_eval(evals, Path("/skill.md"), samples=3)
 
             assert len(results) == 3
             assert pass_rate == 100.0
@@ -127,7 +127,7 @@ def describe_run_tune_eval():
         status_calls = []
 
         async def on_status(task, state, _result):
-            status_calls.append((task["gap_source"], state))
+            status_calls.append((task["eval_source"], state))
 
         with (
             patch("skillet.tune.run.run_prompt", new_callable=AsyncMock) as mock_run,
@@ -136,9 +136,9 @@ def describe_run_tune_eval():
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            gaps = [{"_source": "test.md", "_content": "c", "prompt": "p", "expected": "e"}]
+            evals = [{"_source": "test.md", "_content": "c", "prompt": "p", "expected": "e"}]
 
-            await run_tune_eval(gaps, Path("/skill.md"), samples=1, on_status=on_status)
+            await run_tune_eval(evals, Path("/skill.md"), samples=1, on_status=on_status)
 
             assert ("test.md", "running") in status_calls
             assert ("test.md", "done") in status_calls
@@ -150,9 +150,9 @@ def describe_run_tune_eval():
         ):
             mock_run.side_effect = RuntimeError("network error")
 
-            gaps = [{"_source": "test.md", "_content": "c", "prompt": "p", "expected": "e"}]
+            evals = [{"_source": "test.md", "_content": "c", "prompt": "p", "expected": "e"}]
 
-            pass_rate, results = await run_tune_eval(gaps, Path("/skill.md"), samples=1)
+            pass_rate, results = await run_tune_eval(evals, Path("/skill.md"), samples=1)
 
             assert pass_rate == 0.0
             assert results[0]["pass"] is False
@@ -164,16 +164,16 @@ def describe_run_tune_eval():
         status_calls = []
 
         async def on_status(task, state, result):
-            status_calls.append((task["gap_source"], state, result))
+            status_calls.append((task["eval_source"], state, result))
 
         with (
             patch("skillet.tune.run.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = RuntimeError("network error")
 
-            gaps = [{"_source": "test.md", "_content": "c", "prompt": "p", "expected": "e"}]
+            evals = [{"_source": "test.md", "_content": "c", "prompt": "p", "expected": "e"}]
 
-            await run_tune_eval(gaps, Path("/skill.md"), samples=1, on_status=on_status)
+            await run_tune_eval(evals, Path("/skill.md"), samples=1, on_status=on_status)
 
             # Should have both running and done calls
             assert ("test.md", "running", None) in status_calls
@@ -202,7 +202,7 @@ def describe_tune():
             # First round passes
             mock_eval.return_value = (
                 100.0,
-                [{"pass": True, "gap_source": "a.md", "judgment": {"reasoning": "OK"}}],
+                [{"pass": True, "eval_source": "a.md", "judgment": {"reasoning": "OK"}}],
             )
 
             result = await tune("test-evals", skill_path, max_rounds=3)
@@ -227,8 +227,8 @@ def describe_tune():
             ]
             # First round fails, second passes
             mock_eval.side_effect = [
-                (50.0, [{"pass": False, "gap_source": "a.md", "judgment": {"reasoning": "bad"}}]),
-                (100.0, [{"pass": True, "gap_source": "a.md", "judgment": {"reasoning": "OK"}}]),
+                (50.0, [{"pass": False, "eval_source": "a.md", "judgment": {"reasoning": "bad"}}]),
+                (100.0, [{"pass": True, "eval_source": "a.md", "judgment": {"reasoning": "OK"}}]),
             ]
             mock_improve.return_value = "# Improved Skill"
 
@@ -254,7 +254,7 @@ def describe_tune():
             # Always fails
             mock_eval.return_value = (
                 50.0,
-                [{"pass": False, "gap_source": "a.md", "judgment": {"reasoning": "bad"}}],
+                [{"pass": False, "eval_source": "a.md", "judgment": {"reasoning": "bad"}}],
             )
             mock_improve.return_value = "# Still Bad Skill"
 
@@ -292,8 +292,8 @@ def describe_tune():
                 {"_source": "a.md", "_content": "c", "prompt": "p", "expected": "e"}
             ]
             mock_eval.side_effect = [
-                (50.0, [{"pass": False, "gap_source": "a.md", "judgment": {"reasoning": "bad"}}]),
-                (100.0, [{"pass": True, "gap_source": "a.md", "judgment": {"reasoning": "OK"}}]),
+                (50.0, [{"pass": False, "eval_source": "a.md", "judgment": {"reasoning": "bad"}}]),
+                (100.0, [{"pass": True, "eval_source": "a.md", "judgment": {"reasoning": "OK"}}]),
             ]
             mock_improve.return_value = "# Improved"
 
@@ -331,7 +331,7 @@ def describe_tune():
             ]
             mock_eval.return_value = (
                 100.0,
-                [{"pass": True, "gap_source": "a.md", "judgment": {"reasoning": "OK"}}],
+                [{"pass": True, "eval_source": "a.md", "judgment": {"reasoning": "OK"}}],
             )
 
             result = await tune("test-evals", skill_path, max_rounds=1)

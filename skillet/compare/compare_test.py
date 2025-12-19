@@ -39,7 +39,7 @@ def describe_compare():
             ]
             with (
                 patch("skillet.compare.compare.load_evals", return_value=evals),
-                patch("skillet.compare.compare.get_cached_results_for_gap", return_value=[]),
+                patch("skillet.compare.compare.get_cached_results_for_eval", return_value=[]),
             ):
                 result = compare("myevals", skill_path)
 
@@ -70,22 +70,22 @@ def describe_compare():
                 },
             ]
 
-            def mock_cached(_name, gap, skill_path):
+            def mock_cached(_name, eval_item, skill_path):
                 # Baseline: 001 has 1 pass/1 fail, 002 has 2 pass
                 # Skill: 001 has 2 pass, 002 has 1 pass/1 fail
                 if skill_path is None:  # baseline
-                    if gap["_source"] == "001.yaml":
+                    if eval_item["_source"] == "001.yaml":
                         return [{"pass": True}, {"pass": False}]
                     return [{"pass": True}, {"pass": True}]
                 else:  # skill
-                    if gap["_source"] == "001.yaml":
+                    if eval_item["_source"] == "001.yaml":
                         return [{"pass": True}, {"pass": True}]
                     return [{"pass": True}, {"pass": False}]
 
             with (
                 patch("skillet.compare.compare.load_evals", return_value=evals),
                 patch(
-                    "skillet.compare.compare.get_cached_results_for_gap",
+                    "skillet.compare.compare.get_cached_results_for_eval",
                     side_effect=mock_cached,
                 ),
             ):
@@ -114,7 +114,7 @@ def describe_compare():
                 }
             ]
 
-            def mock_cached(_name, _gap, skill_path):
+            def mock_cached(_name, _eval_item, skill_path):
                 if skill_path is None:  # baseline has results
                     return [{"pass": True}]
                 return []  # skill has no results
@@ -122,7 +122,7 @@ def describe_compare():
             with (
                 patch("skillet.compare.compare.load_evals", return_value=evals),
                 patch(
-                    "skillet.compare.compare.get_cached_results_for_gap",
+                    "skillet.compare.compare.get_cached_results_for_eval",
                     side_effect=mock_cached,
                 ),
             ):
