@@ -16,7 +16,7 @@ jobs:
       run:
         working-directory: docs
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate docs.json
         run: python3 -c "import json; json.load(open('docs.json'))"
