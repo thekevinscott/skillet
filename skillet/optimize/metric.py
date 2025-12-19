@@ -7,7 +7,7 @@ from typing import Any
 from skillet.eval.judge import judge_response
 
 
-def create_skillet_metric() -> Callable[[Any, Any, Any], float]:
+def create_skillet_metric() -> Callable[..., float]:
     """Create a DSPy-compatible metric from skillet's judge.
 
     Returns a metric function that:
