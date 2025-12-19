@@ -132,6 +132,12 @@ async def run_single_eval(
             if on_status:
                 await on_status(task, "done", result)
             return result
+        except (KeyboardInterrupt, SystemExit):
+            # Let critical exceptions propagate - don't suppress user interrupts
+            # or explicit exit requests
+            if task.get("teardown"):
+                run_script(task["teardown"], home_dir, script_cwd)
+            raise
         except Exception as e:
             # Run teardown on error too (best effort)
             if task.get("teardown"):
@@ -142,7 +148,10 @@ async def run_single_eval(
                 "eval_source": task["eval_source"],
                 "iteration": task["iteration"],
                 "response": str(e),
-                "judgment": {"pass": False, "reasoning": f"Error: {e}"},
+                "judgment": {
+                    "pass": False,
+                    "reasoning": f"Error ({type(e).__name__}): {e}",
+                },
                 "pass": False,
                 "cached": False,
             }
