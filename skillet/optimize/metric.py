@@ -1,10 +1,23 @@
 """DSPy metric adapter for skillet's LLM-as-judge."""
 
 import asyncio
+import concurrent.futures
 from collections.abc import Callable
 from typing import Any
 
 from skillet.eval.judge import judge_response
+
+
+def _run_async_in_thread(coro):
+    """Run an async coroutine in a new thread with its own event loop.
+
+    This allows calling async code from sync contexts, even when
+    already inside an async event loop (which would cause asyncio.run()
+    to raise RuntimeError).
+    """
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(asyncio.run, coro)
+        return future.result()
 
 
 def create_skillet_metric() -> Callable[..., float]:
@@ -37,15 +50,21 @@ def create_skillet_metric() -> Callable[..., float]:
         response = getattr(pred, "response", str(pred))
         tool_calls = getattr(pred, "tool_calls", [])
 
-        # Bridge async to sync (DSPy is sync-first)
-        judgment = asyncio.run(
-            judge_response(
-                prompt=prompt,
-                response=response,
-                expected=expected,
-                tool_calls=tool_calls,
-            )
+        coro = judge_response(
+            prompt=prompt,
+            response=response,
+            expected=expected,
+            tool_calls=tool_calls,
         )
+
+        # Bridge async to sync - use thread pool to avoid "event loop already running"
+        try:
+            asyncio.get_running_loop()
+            # Already in async context - run in separate thread
+            judgment = _run_async_in_thread(coro)
+        except RuntimeError:
+            # No running loop - safe to use asyncio.run()
+            judgment = asyncio.run(coro)
 
         return 1.0 if judgment["pass"] else 0.0
 

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `get_cached_results_for_gap` to `get_cached_results_for_eval`
 
 ### Fixed
+- `asyncio.run()` in DSPy metric no longer fails in async contexts
 - Race condition in parallel cache access using file locking
 - Docs site body text now uses Inter font instead of JetBrains Mono
 - Docs navigation uses flat pages (removed group labels, matches agentskills.io)
