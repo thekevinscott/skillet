@@ -24,7 +24,7 @@ def describe_validate_eval():
 
     def it_raises_for_non_dict():
         with pytest.raises(EvalValidationError, match="not a valid YAML dictionary"):
-            validate_eval("not a dict", "test.yaml")
+            validate_eval("not a dict", "test.yaml")  # type: ignore[arg-type]
 
     def it_raises_for_missing_fields():
         eval_data = {"prompt": "test"}  # missing timestamp, expected, name

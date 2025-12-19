@@ -73,7 +73,9 @@ def describe_LiveDisplay():
 
         await display.update(tasks[0], "done", {"pass": True})
         assert display.status["0:0"]["state"] == "done"
-        assert display.status["0:0"]["result"]["pass"] is True
+        result = display.status["0:0"]["result"]
+        assert result is not None
+        assert result["pass"] is True
 
     def it_builds_table_with_different_states():
         tasks = [
