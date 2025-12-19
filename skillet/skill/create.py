@@ -1,9 +1,9 @@
-"""Create a new skill from gaps."""
+"""Create a new skill from evals."""
 
 from pathlib import Path
 
 from skillet.errors import SkillError
-from skillet.gaps import load_evals
+from skillet.evals import load_evals
 
 from .draft import draft_skill
 
@@ -14,10 +14,10 @@ async def create_skill(
     extra_prompt: str | None = None,
     overwrite: bool = False,
 ) -> dict:
-    """Create a new skill from captured gaps.
+    """Create a new skill from captured evals.
 
     Args:
-        name: Skill name (gaps loaded from ~/.skillet/gaps/<name>/)
+        name: Skill name (evals loaded from ~/.skillet/evals/<name>/)
         output_dir: Where to create the skill directory
         extra_prompt: Additional instructions for generating the SKILL.md
         overwrite: Whether to overwrite existing skill
@@ -26,12 +26,12 @@ async def create_skill(
         dict with skill_dir, skill_content, and eval_count
 
     Raises:
-        SkillError: If no gaps found or skill exists and overwrite=False
+        SkillError: If no evals found or skill exists and overwrite=False
     """
     evals = load_evals(name)
 
     if not evals:
-        raise SkillError(f"No gap files found for '{name}'")
+        raise SkillError(f"No eval files found for '{name}'")
 
     skill_dir = output_dir / name
 

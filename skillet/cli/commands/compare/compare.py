@@ -32,12 +32,12 @@ def compare_command(name: str, skill_path: Path):
 
     # Build comparison table
     table = Table(title=f"Comparison: {name}")
-    table.add_column("Gap", style="cyan")
+    table.add_column("Eval", style="cyan")
     table.add_column("Baseline", justify="right")
     table.add_column("Skill", justify="right")
     table.add_column("Δ", justify="right")
 
-    # Per-gap results
+    # Per-eval results
     for r in result["results"]:
         baseline_str = f"{r['baseline']:.0f}%" if r["baseline"] is not None else "-"
         skill_str = f"{r['skill']:.0f}%" if r["skill"] is not None else "-"

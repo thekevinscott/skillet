@@ -95,8 +95,8 @@ test-unit-watch *args:
 
 # Watch integration tests only
 test-integration-watch *args:
-    uv run ptw --now skillet tests/integration/ {{args}}
+    uv run ptw --now tests/integration tests/integration/ {{args}}
 
 # Watch e2e tests only
 test-e2e-watch *args:
-    uv run ptw --now skillet tests/e2e/ {{args}}
+    uv run ptw --now tests/e2e tests/e2e/ {{args}}

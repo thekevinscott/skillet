@@ -7,7 +7,7 @@ from rich.tree import Tree
 
 from skillet.cli import console
 from skillet.errors import SkillError
-from skillet.gaps import load_evals
+from skillet.evals import load_evals
 from skillet.skill import create_skill
 
 

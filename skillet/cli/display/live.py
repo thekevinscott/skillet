@@ -27,29 +27,29 @@ class LiveDisplay:
         self.live: Live | None = None
 
     def _key(self, task: dict) -> str:
-        return f"{task['gap_idx']}:{task['iteration']}"
+        return f"{task['eval_idx']}:{task['iteration']}"
 
     def _build_table(self) -> Table:
         """Build the status table."""
         table = Table(show_header=False, box=None, padding=(0, 1))
-        table.add_column("Gap", style="cyan")
+        table.add_column("Eval", style="cyan")
         table.add_column("Status")
 
-        # Group by gap
-        gaps = {}
+        # Group by eval
+        evals = {}
         for task in self.tasks:
-            gap_idx = task["gap_idx"]
-            if gap_idx not in gaps:
-                gaps[gap_idx] = {"source": task["gap_source"], "iterations": []}
+            eval_idx = task["eval_idx"]
+            if eval_idx not in evals:
+                evals[eval_idx] = {"source": task["eval_source"], "iterations": []}
 
             key = self._key(task)
             status = self.status[key]
-            gaps[gap_idx]["iterations"].append(status)
+            evals[eval_idx]["iterations"].append(status)
 
         # Build rows
-        for gap_idx in sorted(gaps.keys()):
-            gap = gaps[gap_idx]
-            iterations = gap["iterations"]
+        for eval_idx in sorted(evals.keys()):
+            eval_item = evals[eval_idx]
+            iterations = eval_item["iterations"]
 
             symbols = []
             for it in iterations:
@@ -65,7 +65,7 @@ class LiveDisplay:
                     else:
                         symbols.append(FAIL)
 
-            table.add_row(gap["source"], " ".join(symbols))
+            table.add_row(eval_item["source"], " ".join(symbols))
 
         return table
 
@@ -89,21 +89,21 @@ class LiveDisplay:
 
     def finalize(self):
         """Print final state with pass rates."""
-        # Group by gap
-        gaps = {}
+        # Group by eval
+        evals = {}
         for task in self.tasks:
-            gap_idx = task["gap_idx"]
-            if gap_idx not in gaps:
-                gaps[gap_idx] = {"source": task["gap_source"], "iterations": []}
+            eval_idx = task["eval_idx"]
+            if eval_idx not in evals:
+                evals[eval_idx] = {"source": task["eval_source"], "iterations": []}
 
             key = self._key(task)
             status = self.status[key]
-            gaps[gap_idx]["iterations"].append(status)
+            evals[eval_idx]["iterations"].append(status)
 
         # Print final results
-        for gap_idx in sorted(gaps.keys()):
-            gap = gaps[gap_idx]
-            iterations = gap["iterations"]
+        for eval_idx in sorted(evals.keys()):
+            eval_item = evals[eval_idx]
+            iterations = eval_item["iterations"]
 
             symbols = []
             pass_count = 0
@@ -120,6 +120,6 @@ class LiveDisplay:
             pct = pass_count / len(iterations) * 100 if iterations else 0
             pct_color = "green" if pct >= 80 else "yellow" if pct >= 50 else "red"
             console.print(
-                f"  [cyan]{gap['source']}[/cyan]: {' '.join(symbols)} "
+                f"  [cyan]{eval_item['source']}[/cyan]: {' '.join(symbols)} "
                 f"[{pct_color}]({pct:.0f}%)[/{pct_color}]"
             )

@@ -2,7 +2,7 @@
 
 import dspy
 
-from skillet.gaps import load_evals
+from skillet.evals import load_evals
 
 
 def evals_to_trainset(name: str) -> list[dspy.Example]:

@@ -26,8 +26,8 @@ def describe_LiveDisplay():
 
     def it_initializes_with_tasks():
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"},
-            {"gap_idx": 0, "iteration": 1, "gap_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 1, "eval_source": "test.yaml"},
         ]
         display = LiveDisplay(tasks)
         assert len(display.tasks) == 2
@@ -35,8 +35,8 @@ def describe_LiveDisplay():
 
     def it_creates_pending_status_for_all_tasks():
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "a.yaml"},
-            {"gap_idx": 1, "iteration": 0, "gap_source": "b.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "a.yaml"},
+            {"eval_idx": 1, "iteration": 0, "eval_source": "b.yaml"},
         ]
         display = LiveDisplay(tasks)
         for _key, status in display.status.items():
@@ -45,19 +45,19 @@ def describe_LiveDisplay():
 
     def it_generates_unique_keys_for_tasks():
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"},
-            {"gap_idx": 0, "iteration": 1, "gap_source": "test.yaml"},
-            {"gap_idx": 1, "iteration": 0, "gap_source": "other.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 1, "eval_source": "test.yaml"},
+            {"eval_idx": 1, "iteration": 0, "eval_source": "other.yaml"},
         ]
         display = LiveDisplay(tasks)
         keys = list(display.status.keys())
         assert len(keys) == 3
         assert len(set(keys)) == 3  # All unique
 
-    def it_builds_table_with_gap_rows():
+    def it_builds_table_with_eval_rows():
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "first.yaml"},
-            {"gap_idx": 1, "iteration": 0, "gap_source": "second.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "first.yaml"},
+            {"eval_idx": 1, "iteration": 0, "eval_source": "second.yaml"},
         ]
         display = LiveDisplay(tasks)
         table = display._build_table()
@@ -65,7 +65,7 @@ def describe_LiveDisplay():
 
     @pytest.mark.asyncio
     async def it_updates_task_status():
-        tasks = [{"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"}]
+        tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
         display = LiveDisplay(tasks)
 
         await display.update(tasks[0], "running")
@@ -79,11 +79,11 @@ def describe_LiveDisplay():
 
     def it_builds_table_with_different_states():
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"},
-            {"gap_idx": 0, "iteration": 1, "gap_source": "test.yaml"},
-            {"gap_idx": 0, "iteration": 2, "gap_source": "test.yaml"},
-            {"gap_idx": 0, "iteration": 3, "gap_source": "test.yaml"},
-            {"gap_idx": 0, "iteration": 4, "gap_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 1, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 2, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 3, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 4, "eval_source": "test.yaml"},
         ]
         display = LiveDisplay(tasks)
 
@@ -95,11 +95,11 @@ def describe_LiveDisplay():
         display.status["0:4"] = {"state": "done", "result": {"pass": False}}
 
         table = display._build_table()
-        assert table.row_count == 1  # One gap with multiple iterations
+        assert table.row_count == 1  # One eval with multiple iterations
 
     @pytest.mark.asyncio
     async def it_starts_and_stops_display():
-        tasks = [{"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"}]
+        tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
         display = LiveDisplay(tasks)
 
         await display.start()
@@ -110,7 +110,7 @@ def describe_LiveDisplay():
 
     @pytest.mark.asyncio
     async def it_stops_when_not_started():
-        tasks = [{"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"}]
+        tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
         display = LiveDisplay(tasks)
 
         # Should not raise when stopping without starting
@@ -119,7 +119,7 @@ def describe_LiveDisplay():
 
     @pytest.mark.asyncio
     async def it_updates_live_display_when_running():
-        tasks = [{"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"}]
+        tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
         display = LiveDisplay(tasks)
 
         await display.start()
@@ -129,8 +129,8 @@ def describe_LiveDisplay():
 
     def it_finalize_prints_results(capsys):
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "test.yaml"},
-            {"gap_idx": 0, "iteration": 1, "gap_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 1, "eval_source": "test.yaml"},
         ]
         display = LiveDisplay(tasks)
 
@@ -144,7 +144,7 @@ def describe_LiveDisplay():
 
     def it_finalize_shows_cached_results(capsys):
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "cached.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "cached.yaml"},
         ]
         display = LiveDisplay(tasks)
 
@@ -157,7 +157,7 @@ def describe_LiveDisplay():
 
     def it_finalize_handles_pending_tasks(capsys):
         tasks = [
-            {"gap_idx": 0, "iteration": 0, "gap_source": "pending.yaml"},
+            {"eval_idx": 0, "iteration": 0, "eval_source": "pending.yaml"},
         ]
         display = LiveDisplay(tasks)
         # Status stays as pending (default)

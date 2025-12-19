@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING:** CLI flag `--gaps/-g` renamed to `--max-evals/-m` for consistency
+- Renamed `skillet/gaps/` module to `skillet/evals/` for terminology consistency
+- Renamed `get_cached_results_for_gap` to `get_cached_results_for_eval`
+
 ### Fixed
 - Docs site body text now uses Inter font instead of JetBrains Mono
 - Docs navigation uses flat pages (removed group labels, matches agentskills.io)
@@ -18,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs headings use Plus Jakarta Sans font for visual distinction
 - Refactored `cli/commands/` to folder structure with helper functions in separate files
 - Refactored `eval/` module to split `run.py` into `evaluate.py`, `isolated_home.py`, `run_script.py`, `run_prompt.py`
-- Refactored `compare/` module to split `run.py` into `compare.py`, `calculate_pass_rate.py`, `get_cached_results_for_gap.py`
+- Refactored `compare/` module to split `run.py` into `compare.py`, `calculate_pass_rate.py`, `get_cached_results_for_eval.py`
 - Migrated documentation from VitePress to Mintlify platform
 - Bump actions/checkout from v4 to v6 in CI workflows
 

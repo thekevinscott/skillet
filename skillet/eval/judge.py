@@ -42,7 +42,7 @@ async def judge_response(
     Args:
         prompt: The original user prompt, or list of prompts for multi-turn
         response: Claude's final response to evaluate
-        expected: What the user expected (from the gap file)
+        expected: What the user expected (from the eval file)
         tool_calls: Optional list of tool calls made during the response
 
     Returns:

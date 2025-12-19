@@ -13,13 +13,13 @@ async def eval_command(
     name: str,
     skill_path: Path | None = None,
     samples: int = 3,
-    max_gaps: int | None = None,
+    max_evals: int | None = None,
     allowed_tools: list[str] | None = None,
     parallel: int = 3,
     skip_cache: bool = False,
 ):
     """Run eval command with display."""
-    from skillet.gaps import load_evals
+    from skillet.evals import load_evals
 
     # Print header
     console.print()
@@ -31,10 +31,10 @@ async def eval_command(
 
     # Load evals first to build the task list for display
     evals = load_evals(name)
-    if max_gaps and max_gaps < len(evals):
+    if max_evals and max_evals < len(evals):
         import random
 
-        evals = random.sample(evals, max_gaps)
+        evals = random.sample(evals, max_evals)
 
     # Build task list for display initialization
     tasks = []
@@ -42,8 +42,8 @@ async def eval_command(
         for i in range(samples):
             tasks.append(
                 {
-                    "gap_idx": eval_idx,
-                    "gap_source": eval_data["_source"],
+                    "eval_idx": eval_idx,
+                    "eval_source": eval_data["_source"],
                     "iteration": i + 1,
                 }
             )
@@ -61,7 +61,7 @@ async def eval_command(
             name,
             skill_path=skill_path,
             samples=samples,
-            max_gaps=max_gaps,
+            max_evals=max_evals,
             allowed_tools=allowed_tools,
             parallel=parallel,
             on_status=on_status,
@@ -71,13 +71,13 @@ async def eval_command(
         await display.stop()
 
     # Print results info
-    if max_gaps and eval_result["sampled_gaps"] < eval_result["total_gaps"]:
+    if max_evals and eval_result["sampled_evals"] < eval_result["total_evals"]:
         console.print(
-            f"Evals: {eval_result['sampled_gaps']} "
-            f"[dim](sampled from {eval_result['total_gaps']})[/dim]"
+            f"Evals: {eval_result['sampled_evals']} "
+            f"[dim](sampled from {eval_result['total_evals']})[/dim]"
         )
     else:
-        console.print(f"Evals: {eval_result['sampled_gaps']}")
+        console.print(f"Evals: {eval_result['sampled_evals']}")
     console.print(f"Samples: {samples} per eval")
     console.print(f"Parallel: {parallel}")
     console.print(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")

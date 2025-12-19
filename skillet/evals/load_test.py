@@ -1,4 +1,4 @@
-"""Tests for gaps/load module."""
+"""Tests for evals/load module."""
 
 import tempfile
 from pathlib import Path
@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from skillet.errors import EmptyFolderError, EvalValidationError
-from skillet.gaps.load import load_evals, validate_eval
+from skillet.evals.load import load_evals, validate_eval
 
 
 def describe_validate_eval():
@@ -134,7 +134,7 @@ def describe_load_evals():
         """Test error when ~/.skillet/evals/<name> exists but is a file, not a directory."""
         with (
             tempfile.TemporaryDirectory() as tmpdir,
-            patch("skillet.gaps.load.SKILLET_DIR", Path(tmpdir)),
+            patch("skillet.evals.load.SKILLET_DIR", Path(tmpdir)),
         ):
             evals_dir = Path(tmpdir) / "evals"
             evals_dir.mkdir()

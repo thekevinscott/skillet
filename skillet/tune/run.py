@@ -8,14 +8,14 @@ from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from skillet.eval import judge_response, run_prompt
-from skillet.gaps import load_evals
+from skillet.evals import load_evals
 
 from .improve import TUNE_TIPS, get_skill_file, improve_skill
 from .result import EvalResult, RoundResult, TuneConfig, TuneResult
 
 
 async def run_tune_eval(
-    gaps: list[dict],
+    evals: list[dict],
     skill_path: Path,
     samples: int = 1,
     parallel: int = 3,
@@ -23,16 +23,16 @@ async def run_tune_eval(
 ) -> tuple[float, list[dict]]:
     """Run evals for tuning (no caching) and return pass rate + results."""
     tasks = []
-    for gap_idx, gap in enumerate(gaps):
+    for eval_idx, eval_item in enumerate(evals):
         for i in range(samples):
             tasks.append(
                 {
-                    "gap_idx": gap_idx,
-                    "gap_source": gap["_source"],
-                    "gap_content": gap["_content"],
+                    "eval_idx": eval_idx,
+                    "eval_source": eval_item["_source"],
+                    "eval_content": eval_item["_content"],
                     "iteration": i + 1,
-                    "prompt": gap["prompt"],
-                    "expected": gap["expected"],
+                    "prompt": eval_item["prompt"],
+                    "expected": eval_item["expected"],
                 }
             )
 
@@ -51,8 +51,8 @@ async def run_tune_eval(
                     tool_calls=query_result.tool_calls,
                 )
                 result = {
-                    "gap_idx": task["gap_idx"],
-                    "gap_source": task["gap_source"],
+                    "eval_idx": task["eval_idx"],
+                    "eval_source": task["eval_source"],
                     "iteration": task["iteration"],
                     "prompt": task["prompt"],
                     "expected": task["expected"],
@@ -66,8 +66,8 @@ async def run_tune_eval(
                 return result
             except Exception as e:
                 result = {
-                    "gap_idx": task["gap_idx"],
-                    "gap_source": task["gap_source"],
+                    "eval_idx": task["eval_idx"],
+                    "eval_source": task["eval_source"],
                     "iteration": task["iteration"],
                     "prompt": task["prompt"],
                     "expected": task["expected"],
@@ -92,7 +92,7 @@ def _results_to_eval_results(results: list[dict]) -> list[EvalResult]:
     """Convert raw eval results to EvalResult objects."""
     return [
         EvalResult(
-            source=r["gap_source"],
+            source=r["eval_source"],
             passed=r["pass"],
             reasoning=r["judgment"].get("reasoning", ""),
             response=r.get("response"),
@@ -121,11 +121,11 @@ async def tune(
     directory, and all iterations are tracked in the returned TuneResult.
 
     Args:
-        name: Name of gap set
+        name: Name of eval set
         skill_path: Path to skill file or directory
         max_rounds: Maximum tuning rounds
         target_pass_rate: Target pass rate percentage
-        samples: Number of eval samples per gap
+        samples: Number of samples per eval
         parallel: Number of parallel workers
         on_round_start: Callback when round starts (round_num, max_rounds)
         on_eval_status: Callback for eval status updates
