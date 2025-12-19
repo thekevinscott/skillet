@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mintlify docs.json navigation schema updated to object format
 
 ### Changed
+- Refactored `cli/commands/` to folder structure with helper functions in separate files
+- Refactored `eval/` module to split `run.py` into `evaluate.py`, `isolated_home.py`, `run_script.py`, `run_prompt.py`
+- Refactored `compare/` module to split `run.py` into `compare.py`, `calculate_pass_rate.py`, `get_cached_results_for_gap.py`
 - Migrated documentation from VitePress to Mintlify platform
 - Bump actions/checkout from v4 to v6 in CI workflows
 

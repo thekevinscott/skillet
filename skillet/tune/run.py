@@ -7,8 +7,7 @@ import tempfile
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from skillet.eval.judge import judge_response
-from skillet.eval.run import run_prompt
+from skillet.eval import judge_response, run_prompt
 from skillet.gaps import load_evals
 
 from .improve import TUNE_TIPS, get_skill_file, improve_skill
