@@ -41,10 +41,10 @@ def skillet_env(tmp_path: Path, monkeypatch):
 
     # Patch SKILLET_DIR in all modules that import it
     import skillet.config
-    import skillet.evals.load
+    import skillet.gaps.load
 
     monkeypatch.setattr(skillet.config, "SKILLET_DIR", skillet_dir)
-    monkeypatch.setattr(skillet.evals.load, "SKILLET_DIR", skillet_dir)
+    monkeypatch.setattr(skillet.gaps.load, "SKILLET_DIR", skillet_dir)
 
     return tmp_path
 
