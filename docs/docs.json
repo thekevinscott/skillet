@@ -3,9 +3,9 @@
   "theme": "mint",
   "name": "Skillet",
   "colors": {
-    "primary": "#7f7f7f",
-    "light": "#bfbfbf",
-    "dark": "#404040"
+    "primary": "#8B7355",
+    "light": "#C4B5A5",
+    "dark": "#5C4D3D"
   },
   "favicon": "/favicon.svg",
   "navbar": {
