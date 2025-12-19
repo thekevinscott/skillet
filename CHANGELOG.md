@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Docs site body text now uses Inter font instead of JetBrains Mono
-- Docs navigation simplified (removed tabs, using single group)
+- Docs navigation uses flat pages (removed group labels, matches agentskills.io)
+- Docs footer removed (matches agentskills.io)
 - Mintlify docs.json navigation schema updated to object format
 
 ### Changed
