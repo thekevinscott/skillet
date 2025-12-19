@@ -8,19 +8,12 @@
     "dark": "#404040"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "tabs": [
-      {
-        "tab": "Documentation",
-        "groups": [
-          {
-            "group": "Get Started",
-            "pages": ["index", "getting-started"]
-          }
-        ]
-      }
-    ]
-  },
+  "navigation": [
+    {
+      "group": "",
+      "pages": ["index", "getting-started"]
+    }
+  ],
   "navbar": {
     "primary": {
       "type": "github",

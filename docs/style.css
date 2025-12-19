@@ -1,7 +1,4 @@
-#content-area {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
-}
-
+/* Keep heading font weights consistent with agentskills.io */
 #content-area h5 {
   font-weight: 500;
 }
