@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Migrated documentation from VitePress to Mintlify platform
+
 ### Added
 - Tool call capture in eval results - judge now sees which tools Claude used
 - `--skip-cache` flag for eval command to ignore cached results
