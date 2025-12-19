@@ -1,10 +1,14 @@
 """LLM-as-judge for evaluating responses against expected behavior."""
 
 import json
+from pathlib import Path
 
 from pydantic import BaseModel, Field
 
 from skillet._internal.sdk import query_assistant_text
+from skillet.prompts import load_prompt
+
+JUDGE_PROMPT = Path(__file__).parent / "judge.txt"
 
 
 class Judgment(BaseModel):
@@ -66,28 +70,13 @@ async def judge_response(
     formatted_prompt = format_prompt_for_judge(prompt)
     formatted_tools = format_tool_calls_for_judge(tool_calls or [])
 
-    judge_prompt = f"""You are evaluating whether an AI response meets the user's expectations.
-
-## Original Prompt
-{formatted_prompt}
-
-## AI Response
-{response}
-
-## Tools Used
-{formatted_tools}
-
-## Expected Behavior
-{expected}
-
-## Your Task
-Determine if the AI response meets the expected behavior. Be strict but fair.
-Consider both the text response AND the tools used when evaluating.
-
-Return a JSON object with:
-- "pass": true if the response meets expectations, false otherwise
-- "reasoning": one sentence explanation of your judgment
-"""
+    judge_prompt = load_prompt(
+        JUDGE_PROMPT,
+        prompt=formatted_prompt,
+        response=response,
+        tools=formatted_tools,
+        expected=expected,
+    )
 
     result = await query_assistant_text(
         judge_prompt,

@@ -1,0 +1,13 @@
+Analyze these AI responses that failed to meet expectations.
+Summarize the PATTERNS in what the AI did instead.
+
+## Failed Responses
+
+${responses_yaml}
+
+## Your Task
+
+Write 2-4 bullet points summarizing what the AI typically did instead of expected.
+Be specific and concise. Format as: - Pattern description (X% of responses)
+
+Focus on the FORMAT or BEHAVIOR patterns, not the content quality.

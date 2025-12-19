@@ -1,7 +1,12 @@
 """Draft a SKILL.md from evals."""
 
+from pathlib import Path
+
 from skillet._internal.sdk import query_assistant_text
 from skillet._internal.text import strip_markdown
+from skillet.prompts import load_prompt
+
+DRAFT_PROMPT = Path(__file__).parent / "draft.txt"
 
 
 async def draft_skill(
@@ -30,20 +35,12 @@ async def draft_skill(
     if extra_prompt:
         extra_section = f"\n# Additional Instructions\n\n{extra_prompt}\n"
 
-    prompt = f"""Draft a minimal SKILL.md to address these evals.
-
-# Evals for "{name}"
-
-{evals_summary}
-{extra_section}
-# Requirements
-
-- YAML frontmatter with `name` and `description` (description: what + when to trigger)
-- Minimal instructions - just enough to pass the expected behavior
-- No lengthy explanations or comprehensive documentation
-- One or two short examples maximum
-
-Return ONLY the SKILL.md content."""
+    prompt = load_prompt(
+        DRAFT_PROMPT,
+        name=name,
+        evals_summary=evals_summary,
+        extra_section=extra_section,
+    )
 
     result = await query_assistant_text(prompt, max_turns=1, allowed_tools=[])
     return strip_markdown(result)

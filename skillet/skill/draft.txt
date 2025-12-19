@@ -1,0 +1,14 @@
+Draft a minimal SKILL.md to address these evals.
+
+# Evals for "${name}"
+
+${evals_summary}
+${extra_section}
+# Requirements
+
+- YAML frontmatter with `name` and `description` (description: what + when to trigger)
+- Minimal instructions - just enough to pass the expected behavior
+- No lengthy explanations or comprehensive documentation
+- One or two short examples maximum
+
+Return ONLY the SKILL.md content.
