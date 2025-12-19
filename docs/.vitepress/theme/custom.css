@@ -193,13 +193,19 @@ h1, h2, h3, h4,
   border-color: var(--vp-c-brand-1);
 }
 
-/* "On this page" outline - ensure visibility */
-.VPDocAsideOutline {
-  display: block !important;
-}
+/* "On this page" outline - ensure visibility at wider viewports */
+@media (min-width: 1280px) {
+  .VPDoc:not(.has-sidebar) .VPDocAside {
+    display: block;
+  }
 
-.VPDocAside {
-  display: block !important;
+  .VPDoc .aside {
+    display: block !important;
+  }
+
+  .VPDoc.has-aside .content-container {
+    max-width: 752px;
+  }
 }
 
 .VPDocAsideOutline .outline-title {
@@ -219,6 +225,57 @@ h1, h2, h3, h4,
 .VPDocAsideOutline .outline-link:hover,
 .VPDocAsideOutline .outline-link.active {
   color: var(--vp-c-brand-1);
+}
+
+/* Card grid for Get Started section */
+.vp-doc .card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .vp-doc .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .vp-doc .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.vp-doc .card {
+  display: block;
+  padding: 20px;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  text-decoration: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: var(--vp-c-bg);
+}
+
+.vp-doc .card:hover {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 2px 12px rgba(139, 115, 85, 0.08);
+}
+
+.vp-doc .card h3 {
+  margin: 0 0 8px 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  font-size: 15px !important;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc .card p {
+  margin: 0 !important;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+  line-height: 1.5;
 }
 
 /* Sidebar - flat navigation like agentskills.io */
