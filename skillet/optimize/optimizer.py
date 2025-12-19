@@ -1,9 +1,9 @@
 """Skill optimization using DSPy."""
 
 from pathlib import Path
-from typing import Any
 
 import dspy
+from dspy.teleprompt.teleprompt import Teleprompter
 
 from .loaders import evals_to_trainset
 from .metric import create_skillet_metric
@@ -13,14 +13,14 @@ from .skill_module import SkillModule
 def optimize_skill(
     skill_path: Path | str,
     eval_name: str,
-    optimizer: Any | None = None,
+    optimizer: Teleprompter | None = None,
 ) -> str:
     """Optimize a skill using DSPy.
 
     Args:
         skill_path: Path to skill directory (with SKILL.md) or direct .md file
         eval_name: Name/path of evals to optimize against
-        optimizer: DSPy optimizer instance (default: BootstrapFewShot with skillet metric)
+        optimizer: DSPy Teleprompter instance (default: BootstrapFewShot with skillet metric)
 
     Returns:
         Optimized skill content (SKILL.md text)
