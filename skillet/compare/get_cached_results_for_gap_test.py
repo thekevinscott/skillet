@@ -17,9 +17,7 @@ def describe_get_cached_results_for_gap():
 
     def it_uses_baseline_path_when_no_skill():
         gap = {"_source": "test.yaml", "_content": "prompt: test"}
-        with patch(
-            "skillet.compare.get_cached_results_for_gap.CACHE_DIR", Path("/tmp/fake-cache")
-        ):
+        with patch("skillet.compare.get_cached_results_for_gap.CACHE_DIR", Path("/tmp/fake-cache")):
             result = get_cached_results_for_gap("myevals", gap, None)
             assert result == []
 

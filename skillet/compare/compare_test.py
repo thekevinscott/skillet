@@ -39,9 +39,7 @@ def describe_compare():
             ]
             with (
                 patch("skillet.compare.compare.load_evals", return_value=evals),
-                patch(
-                    "skillet.compare.compare.get_cached_results_for_gap", return_value=[]
-                ),
+                patch("skillet.compare.compare.get_cached_results_for_gap", return_value=[]),
             ):
                 result = compare("myevals", skill_path)
 

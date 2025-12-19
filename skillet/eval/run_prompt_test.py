@@ -15,9 +15,7 @@ def describe_run_prompt():
 
     @pytest.mark.asyncio
     async def it_normalizes_string_prompt_to_list():
-        with patch(
-            "skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock
-        ) as mock_query:
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
 
             await run_prompt("single prompt")
@@ -29,9 +27,7 @@ def describe_run_prompt():
 
     @pytest.mark.asyncio
     async def it_passes_list_prompts_unchanged():
-        with patch(
-            "skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock
-        ) as mock_query:
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
 
             await run_prompt(["first", "second"])
@@ -41,9 +37,7 @@ def describe_run_prompt():
 
     @pytest.mark.asyncio
     async def it_sets_cwd_from_skill_path():
-        with patch(
-            "skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock
-        ) as mock_query:
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
 
             skill_path = Path("/project/.claude/skills/test")
@@ -54,9 +48,7 @@ def describe_run_prompt():
 
     @pytest.mark.asyncio
     async def it_adds_skill_tool_when_skill_path_provided():
-        with patch(
-            "skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock
-        ) as mock_query:
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
 
             skill_path = Path("/project/.claude/skills/test")
@@ -68,9 +60,7 @@ def describe_run_prompt():
 
     @pytest.mark.asyncio
     async def it_uses_default_tools_when_none_provided():
-        with patch(
-            "skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock
-        ) as mock_query:
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
 
             skill_path = Path("/project/.claude/skills/test")
@@ -83,9 +73,7 @@ def describe_run_prompt():
     @pytest.mark.asyncio
     async def it_sets_custom_home_dir():
         with (
-            patch(
-                "skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock
-            ) as mock_query,
+            patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query,
             tempfile.TemporaryDirectory() as home_dir,
         ):
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
@@ -98,9 +86,7 @@ def describe_run_prompt():
 
     @pytest.mark.asyncio
     async def it_handles_empty_response():
-        with patch(
-            "skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock
-        ) as mock_query:
+        with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="", tool_calls=[])
 
             result = await run_prompt("test")
