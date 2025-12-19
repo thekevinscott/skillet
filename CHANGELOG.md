@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Critical exceptions (KeyboardInterrupt, SystemExit) now propagate instead of being suppressed
+- Setup/teardown scripts now have a 30-second timeout to prevent hanging
 - `asyncio.run()` in DSPy metric no longer fails in async contexts
 - Race condition in parallel cache access using file locking
 - Docs site body text now uses Inter font instead of JetBrains Mono
