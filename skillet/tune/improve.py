@@ -7,6 +7,9 @@ import yaml
 from skillet._internal.sdk import query_assistant_text
 from skillet._internal.text import strip_markdown, summarize_failure_for_tuning
 from skillet.config import MAX_SKILL_LINES
+from skillet.prompts import load_prompt
+
+IMPROVE_PROMPT = Path(__file__).parent / "improve.txt"
 
 # Tips to explore instruction space (inspired by DSPy MIPROv2)
 TUNE_TIPS = [
@@ -56,34 +59,16 @@ async def improve_skill(
 
     # Summarize failures
     failure_summary = [summarize_failure_for_tuning(f) for f in failures]
+    failures_yaml = yaml.dump(failure_summary, default_flow_style=False)
+    tip_section = f"- Style tip: {tip}\n" if tip else ""
 
-    prompt = f"""Improve this SKILL.md so Claude exhibits the expected behavior.
-
-## Current SKILL.md
-
-{current_skill}
-
-## Failures
-
-These prompts did NOT produce the expected behavior:
-
-{yaml.dump(failure_summary, default_flow_style=False)}
-
-## Your Task
-
-Revise the SKILL.md to fix these failures. Common issues:
-- Description not specific enough about WHEN to trigger
-- Instructions not explicit enough (Claude defaults to asking permission)
-- Missing "do NOT ask" or "IMMEDIATELY" language for automatic behaviors
-
-IMPORTANT CONSTRAINTS:
-- Keep the SKILL.md under {MAX_SKILL_LINES} lines total
-- Be concise - shorter is better
-- Replace verbose instructions with terse, direct ones
-- Do NOT keep adding more text - rewrite to be minimal
-{f"- Style tip: {tip}" if tip else ""}
-
-Return ONLY the improved SKILL.md content (no explanation, no code fences)."""
+    prompt = load_prompt(
+        IMPROVE_PROMPT,
+        current_skill=current_skill,
+        failures_yaml=failures_yaml,
+        max_lines=str(MAX_SKILL_LINES),
+        tip_section=tip_section,
+    )
 
     result = await query_assistant_text(prompt, max_turns=1, allowed_tools=[])
     result = strip_markdown(result)

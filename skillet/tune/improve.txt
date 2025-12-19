@@ -1,0 +1,26 @@
+Improve this SKILL.md so Claude exhibits the expected behavior.
+
+## Current SKILL.md
+
+${current_skill}
+
+## Failures
+
+These prompts did NOT produce the expected behavior:
+
+${failures_yaml}
+
+## Your Task
+
+Revise the SKILL.md to fix these failures. Common issues:
+- Description not specific enough about WHEN to trigger
+- Instructions not explicit enough (Claude defaults to asking permission)
+- Missing "do NOT ask" or "IMMEDIATELY" language for automatic behaviors
+
+IMPORTANT CONSTRAINTS:
+- Keep the SKILL.md under ${max_lines} lines total
+- Be concise - shorter is better
+- Replace verbose instructions with terse, direct ones
+- Do NOT keep adding more text - rewrite to be minimal
+${tip_section}
+Return ONLY the improved SKILL.md content (no explanation, no code fences).

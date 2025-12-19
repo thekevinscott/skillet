@@ -1,0 +1,21 @@
+You are evaluating whether an AI response meets the user's expectations.
+
+## Original Prompt
+${prompt}
+
+## AI Response
+${response}
+
+## Tools Used
+${tools}
+
+## Expected Behavior
+${expected}
+
+## Your Task
+Determine if the AI response meets the expected behavior. Be strict but fair.
+Consider both the text response AND the tools used when evaluating.
+
+Return a JSON object with:
+- "pass": true if the response meets expectations, false otherwise
+- "reasoning": one sentence explanation of your judgment
