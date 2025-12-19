@@ -1,5 +1,7 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
+import { state } from 'lit/decorators.js'
+
+export const TAG_NAME = 'skillet-api-key-input'
 
 const API_KEY_STORAGE_KEY = 'anthropic_api_key'
 
@@ -7,7 +9,6 @@ const API_KEY_STORAGE_KEY = 'anthropic_api_key'
  * API key input component with localStorage persistence.
  * Allows users to enter and save their Anthropic API key.
  */
-@customElement('skillet-api-key-input')
 export class SkilletApiKeyInput extends LitElement {
   static styles = css`
     :host {
@@ -219,11 +220,5 @@ export class SkilletApiKeyInput extends LitElement {
         </div>
       </div>
     `
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'skillet-api-key-input': SkilletApiKeyInput
   }
 }

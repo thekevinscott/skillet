@@ -1,11 +1,12 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
-import type { TutorialState, TutorialStep } from '../services/tutorial-types'
+import { property } from 'lit/decorators.js'
+import type { TutorialState, TutorialStep } from '../../services/tutorial-types.js'
+
+export const TAG_NAME = 'skillet-docs-panel'
 
 /**
  * Documentation panel that displays tutorial steps and [Show me] buttons.
  */
-@customElement('skillet-docs-panel')
 export class SkilletDocsPanel extends LitElement {
   static styles = css`
     :host {
@@ -331,11 +332,5 @@ export class SkilletDocsPanel extends LitElement {
         </span>
       </div>
     `
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'skillet-docs-panel': SkilletDocsPanel
   }
 }

@@ -1,8 +1,10 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property, state, query } from 'lit/decorators.js'
+import { property, state, query } from 'lit/decorators.js'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebContainer } from '@webcontainer/api'
+
+export const TAG_NAME = 'skillet-terminal'
 
 type TerminalStatus = 'booting' | 'ready' | 'error'
 
@@ -14,7 +16,6 @@ type TerminalStatus = 'booting' | 'ready' | 'error'
  * <skillet-terminal height="400px"></skillet-terminal>
  * ```
  */
-@customElement('skillet-terminal')
 export class SkilletTerminal extends LitElement {
   static styles = css`
     :host {
@@ -263,11 +264,5 @@ export class SkilletTerminal extends LitElement {
         ></div>
       </div>
     `
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'skillet-terminal': SkilletTerminal
   }
 }

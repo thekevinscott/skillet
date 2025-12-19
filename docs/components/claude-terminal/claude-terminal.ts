@@ -1,16 +1,17 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property, state, query } from 'lit/decorators.js'
-import './terminal'
-import './api-key-input'
-import type { SkilletTerminal } from './terminal'
-import { ClaudeBackend } from '../services/llm/claude-backend'
-import type { Message } from '../services/llm/backend'
+import { property, state, query } from 'lit/decorators.js'
+import '../terminal/index.js'
+import '../api-key-input/index.js'
+import type { SkilletTerminal } from '../terminal/terminal.js'
+import { ClaudeBackend } from '../../services/llm/claude-backend.js'
+import type { Message } from '../../services/llm/backend.js'
+
+export const TAG_NAME = 'skillet-claude-terminal'
 
 /**
  * Terminal with Claude API integration.
  * Combines terminal, API key input, and Claude streaming.
  */
-@customElement('skillet-claude-terminal')
 export class SkilletClaudeTerminal extends LitElement {
   static styles = css`
     :host {
@@ -190,11 +191,5 @@ export class SkilletClaudeTerminal extends LitElement {
         ></skillet-terminal>
       </div>
     `
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'skillet-claude-terminal': SkilletClaudeTerminal
   }
 }

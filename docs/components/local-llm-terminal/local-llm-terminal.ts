@@ -1,15 +1,16 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property, state, query } from 'lit/decorators.js'
-import './terminal'
-import type { SkilletTerminal } from './terminal'
-import { LocalLLMBackend, AVAILABLE_MODELS, type ModelId } from '../services/llm/local-backend'
-import type { Message, LLMBackendStatus } from '../services/llm/backend'
+import { property, state, query } from 'lit/decorators.js'
+import '../terminal/index.js'
+import type { SkilletTerminal } from '../terminal/terminal.js'
+import { LocalLLMBackend, AVAILABLE_MODELS, type ModelId } from '../../services/llm/local-backend.js'
+import type { Message, LLMBackendStatus } from '../../services/llm/backend.js'
+
+export const TAG_NAME = 'skillet-local-llm-terminal'
 
 /**
  * Terminal with local WebLLM inference.
  * Runs models entirely in the browser using WebGPU.
  */
-@customElement('skillet-local-llm-terminal')
 export class SkilletLocalLLMTerminal extends LitElement {
   static styles = css`
     :host {
@@ -349,11 +350,5 @@ export class SkilletLocalLLMTerminal extends LitElement {
         ></skillet-terminal>
       </div>
     `
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'skillet-local-llm-terminal': SkilletLocalLLMTerminal
   }
 }

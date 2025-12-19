@@ -1,11 +1,13 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property, state, query } from 'lit/decorators.js'
-import './terminal'
-import './api-key-input'
-import type { SkilletTerminal } from './terminal'
-import { BackendRegistry, type LLMBackend, type LLMBackendStatus, type Message } from '../services/llm/backend'
-import { ClaudeBackend } from '../services/llm/claude-backend'
-import { LocalLLMBackend, AVAILABLE_MODELS, type ModelId } from '../services/llm/local-backend'
+import { property, state, query } from 'lit/decorators.js'
+import '../terminal/index.js'
+import '../api-key-input/index.js'
+import type { SkilletTerminal } from '../terminal/terminal.js'
+import { BackendRegistry, type LLMBackendStatus, type Message } from '../../services/llm/backend.js'
+import { ClaudeBackend } from '../../services/llm/claude-backend.js'
+import { LocalLLMBackend, AVAILABLE_MODELS, type ModelId } from '../../services/llm/local-backend.js'
+
+export const TAG_NAME = 'skillet-unified-terminal'
 
 type BackendId = 'claude' | 'local'
 
@@ -13,7 +15,6 @@ type BackendId = 'claude' | 'local'
  * Unified terminal with multiple LLM backend support.
  * Allows switching between Claude API and local WebLLM.
  */
-@customElement('skillet-unified-terminal')
 export class SkilletUnifiedTerminal extends LitElement {
   static styles = css`
     :host {
@@ -454,11 +455,5 @@ export class SkilletUnifiedTerminal extends LitElement {
         ></skillet-terminal>
       </div>
     `
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'skillet-unified-terminal': SkilletUnifiedTerminal
   }
 }

@@ -1,16 +1,17 @@
 import { LitElement, html, css } from 'lit'
-import { customElement, property, state, query } from 'lit/decorators.js'
-import type { Tutorial, TutorialState, TutorialAction } from '../services/tutorial-types'
-import { tutorialReducer, createInitialState } from '../services/tutorial-types'
-import './terminal'
-import './docs-panel'
-import type { SkilletTerminal } from './terminal'
+import { property, state, query } from 'lit/decorators.js'
+import type { Tutorial, TutorialState, TutorialAction } from '../../services/tutorial-types.js'
+import { tutorialReducer, createInitialState } from '../../services/tutorial-types.js'
+import '../terminal/index.js'
+import '../docs-panel/index.js'
+import type { SkilletTerminal } from '../terminal/terminal.js'
+
+export const TAG_NAME = 'skillet-reactive-docs'
 
 /**
  * Reactive documentation layout with split-pane view.
  * Docs panel on the left, terminal on the right.
  */
-@customElement('skillet-reactive-docs')
 export class SkilletReactiveDocs extends LitElement {
   static styles = css`
     :host {
@@ -237,11 +238,5 @@ export class SkilletReactiveDocs extends LitElement {
         </div>
       </div>
     `
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'skillet-reactive-docs': SkilletReactiveDocs
   }
 }
