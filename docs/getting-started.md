@@ -1,14 +1,13 @@
----
-title: Getting Started
-description: Install Skillet and start building evaluation-driven skills
----
+# Getting Started
+
+Install Skillet and start building evaluation-driven skills.
 
 ## Installation
 
 Install Skillet using pip:
 
 ```bash
-pip install skillet
+pip install pyskillet
 ```
 
 ## Basic Usage

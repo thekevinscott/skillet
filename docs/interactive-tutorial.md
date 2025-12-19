@@ -1,21 +1,8 @@
----
-title: Interactive Tutorial
-description: Learn Skillet hands-on with a live terminal
----
+# Interactive Tutorial
 
 Experience Skillet in action with this hands-on tutorial. The terminal below is a real sandboxed environment - click **Show me** to watch commands execute, or type your own.
 
-<iframe
-  src="https://skillet-playground.vercel.app"
-  width="100%"
-  height="600px"
-  style={{ border: '1px solid #e5e7eb', borderRadius: '12px' }}
-  allow="cross-origin-isolated"
-/>
-
-<Note>
-  The interactive terminal requires WebContainer support. If it doesn't load, try Chrome or Edge.
-</Note>
+<skillet-reactive-docs></skillet-reactive-docs>
 
 ## How it works
 
@@ -25,3 +12,7 @@ Experience Skillet in action with this hands-on tutorial. The terminal below is 
 4. **Take over anytime** - just start typing in the terminal
 
 The tutorial will automatically advance when it detects the expected output, or you can click **Skip** to move ahead.
+
+::: tip WebContainer Support
+The interactive terminal requires a modern browser with WebContainer support (Chrome, Edge, or Firefox). If the terminal doesn't load, try refreshing or using a different browser.
+:::
