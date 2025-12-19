@@ -1,4 +1,5 @@
-#content-area {
+/* Only apply monospace to code elements, not body text */
+#content-area code {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
