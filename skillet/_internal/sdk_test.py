@@ -1,6 +1,6 @@
 """Tests for sdk module."""
 
-from skillet._internal.sdk import QueryResult
+from skillet._internal.sdk import QueryResult, _stderr_callback
 
 
 def describe_QueryResult():
@@ -25,3 +25,26 @@ def describe_QueryResult():
         result.tool_calls.append({"name": "test"})
         result2 = QueryResult(text="test2")
         assert result2.tool_calls == []
+
+    def it_can_have_multiple_tool_calls():
+        tool_calls = [
+            {"name": "read_file", "input": {"path": "/a"}},
+            {"name": "write_file", "input": {"path": "/b", "content": "test"}},
+            {"name": "bash", "input": {"command": "ls"}},
+        ]
+        result = QueryResult(text="done", tool_calls=tool_calls)
+        assert len(result.tool_calls) == 3
+
+
+def describe_stderr_callback():
+    """Tests for _stderr_callback function."""
+
+    def it_prints_to_stderr(capsys):
+        _stderr_callback("test message")
+        captured = capsys.readouterr()
+        assert "test message" in captured.err
+
+    def it_handles_empty_string(capsys):
+        _stderr_callback("")
+        captured = capsys.readouterr()
+        assert captured.err == "\n"
