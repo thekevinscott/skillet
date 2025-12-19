@@ -1,7 +1,7 @@
 """Skill optimization using DSPy."""
 
 from pathlib import Path
-from typing import Literal
+from typing import Any
 
 import dspy
 
@@ -13,28 +13,38 @@ from .skill_module import SkillModule
 def optimize_skill(
     skill_path: Path | str,
     eval_name: str,
-    optimizer: Literal["bootstrap", "mipro"] = "bootstrap",
-    trials: int = 5,
+    optimizer: Any | None = None,
 ) -> str:
     """Optimize a skill using DSPy.
 
     Args:
         skill_path: Path to skill directory (with SKILL.md) or direct .md file
         eval_name: Name/path of evals to optimize against
-        optimizer: Which DSPy optimizer to use ("bootstrap" or "mipro")
-        trials: Number of optimization trials
+        optimizer: DSPy optimizer instance (default: BootstrapFewShot with skillet metric)
 
     Returns:
         Optimized skill content (SKILL.md text)
 
     Example:
+        # Using default optimizer
         optimized = optimize_skill(
             skill_path="path/to/skill",
             eval_name="add-command",
-            optimizer="bootstrap",
-            trials=5,
         )
-        print(optimized)
+
+        # Using custom optimizer
+        from skillet.optimize import create_skillet_metric
+        import dspy
+
+        optimizer = dspy.MIPROv2(
+            metric=create_skillet_metric(),
+            num_candidates=10,
+        )
+        optimized = optimize_skill(
+            skill_path="path/to/skill",
+            eval_name="add-command",
+            optimizer=optimizer,
+        )
     """
     # Load skill as DSPy module
     skill = SkillModule.from_file(skill_path)
@@ -42,26 +52,13 @@ def optimize_skill(
     # Load evals as training data
     trainset = evals_to_trainset(eval_name)
 
-    # Create metric
-    metric = create_skillet_metric()
-
-    # Select optimizer
-    if optimizer == "bootstrap":
-        dspy_optimizer = dspy.BootstrapFewShot(
-            metric=metric,
-            max_bootstrapped_demos=trials,
-        )
-    elif optimizer == "mipro":
-        dspy_optimizer = dspy.MIPROv2(
-            metric=metric,
-            num_candidates=trials,
-            init_temperature=1.0,
-        )
-    else:
-        raise ValueError(f"Unknown optimizer: {optimizer}")
+    # Use default optimizer if none provided
+    if optimizer is None:
+        metric = create_skillet_metric()
+        optimizer = dspy.BootstrapFewShot(metric=metric)
 
     # Run optimization
-    optimized_skill = dspy_optimizer.compile(skill, trainset=trainset)
+    optimized_skill = optimizer.compile(skill, trainset=trainset)
 
     # Extract optimized instructions
     return optimized_skill.get_optimized_skill()
