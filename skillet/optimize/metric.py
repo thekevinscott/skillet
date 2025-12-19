@@ -1,9 +1,9 @@
 """DSPy metric adapter for skillet's LLM-as-judge."""
 
-import asyncio
 from collections.abc import Callable
 from typing import Any
 
+from skillet._internal.async_utils import run_sync
 from skillet.eval.judge import judge_response
 
 
@@ -37,8 +37,8 @@ def create_skillet_metric() -> Callable[..., float]:
         response = getattr(pred, "response", str(pred))
         tool_calls = getattr(pred, "tool_calls", [])
 
-        # Bridge async to sync (DSPy is sync-first)
-        judgment = asyncio.run(
+        # Bridge async to sync - run_sync handles both sync and async contexts
+        judgment = run_sync(
             judge_response(
                 prompt=prompt,
                 response=response,
