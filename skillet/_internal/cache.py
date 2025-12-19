@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from skillet._internal.lock import cache_lock  # noqa: F401
 from skillet.config import SKILLET_DIR
 
 CACHE_DIR = SKILLET_DIR / "cache"
