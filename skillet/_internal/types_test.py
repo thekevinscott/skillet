@@ -1,26 +1,34 @@
 """Tests for type utilities."""
 
+import pytest
+
 from skillet._internal.types import matches_type
 
 
 def describe_matches_type():
     """Tests for matches_type function."""
 
-    def it_matches_single_type():
-        assert matches_type("hello", str) is True
-        assert matches_type(123, int) is True
-        assert matches_type([], list) is True
+    @pytest.mark.parametrize(
+        "obj,accepted_type,expected",
+        [
+            ("hello", str, True),
+            (123, int, True),
+            ([], list, True),
+            ("hello", int, False),
+            (123, str, False),
+            (True, int, True),  # bool is subclass of int
+        ],
+    )
+    def it_matches_single_type(obj, accepted_type, expected):
+        assert matches_type(obj, accepted_type) is expected
 
-    def it_rejects_wrong_type():
-        assert matches_type("hello", int) is False
-        assert matches_type(123, str) is False
-
-    def it_matches_list_of_types():
-        assert matches_type("hello", [str, int]) is True
-        assert matches_type(123, [str, int]) is True
-
-    def it_rejects_when_none_match():
-        assert matches_type([], [str, int]) is False
-
-    def it_handles_subclasses():
-        assert matches_type(True, int) is True  # bool is subclass of int
+    @pytest.mark.parametrize(
+        "obj,accepted_types,expected",
+        [
+            ("hello", [str, int], True),
+            (123, [str, int], True),
+            ([], [str, int], False),
+        ],
+    )
+    def it_matches_list_of_types(obj, accepted_types, expected):
+        assert matches_type(obj, accepted_types) is expected

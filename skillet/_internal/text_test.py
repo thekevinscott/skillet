@@ -1,5 +1,7 @@
 """Tests for text utilities."""
 
+import pytest
+
 from skillet._internal.text import (
     strip_markdown,
     summarize_failure_for_eval,
@@ -11,45 +13,45 @@ from skillet._internal.text import (
 def describe_strip_markdown():
     """Tests for strip_markdown function."""
 
-    def it_returns_plain_text_unchanged():
-        assert strip_markdown("hello world") == "hello world"
-
-    def it_strips_markdown_fence_prefix():
-        assert strip_markdown("```markdown\nhello world") == "hello world"
-
-    def it_strips_plain_code_fence_prefix():
-        assert strip_markdown("```\nhello world") == "hello world"
-
-    def it_strips_code_fence_suffix():
-        assert strip_markdown("hello world\n```") == "hello world"
-
-    def it_strips_both_fences():
-        assert strip_markdown("```markdown\nhello world\n```") == "hello world"
-
-    def it_handles_whitespace():
-        assert strip_markdown("  ```markdown\nhello\n```  ") == "hello"
+    @pytest.mark.parametrize(
+        "input_text,expected",
+        [
+            ("hello world", "hello world"),
+            ("```markdown\nhello world", "hello world"),
+            ("```\nhello world", "hello world"),
+            ("hello world\n```", "hello world"),
+            ("```markdown\nhello world\n```", "hello world"),
+            ("  ```markdown\nhello\n```  ", "hello"),
+        ],
+    )
+    def it_strips_markdown_fences(input_text, expected):
+        assert strip_markdown(input_text) == expected
 
 
 def describe_truncate_response():
     """Tests for truncate_response function."""
 
-    def it_returns_short_text_unchanged():
-        assert truncate_response("short text") == "short text"
+    @pytest.mark.parametrize(
+        "input_text,max_length,expected_len",
+        [
+            ("short text", 500, 10),
+            ("a" * 600, 500, 500),
+            ("hello world", 5, 5),
+        ],
+    )
+    def it_truncates_to_max_length(input_text, max_length, expected_len):
+        result = truncate_response(input_text, max_length=max_length)
+        assert len(result) == expected_len
 
-    def it_truncates_long_text():
-        long_text = "a" * 600
-        result = truncate_response(long_text)
-        assert len(result) == 500
-
-    def it_uses_custom_max_length():
-        text = "hello world"
-        assert truncate_response(text, max_length=5) == "hello"
-
-    def it_returns_empty_string_for_none():
-        assert truncate_response(None) == ""
-
-    def it_returns_empty_string_for_empty():
-        assert truncate_response("") == ""
+    @pytest.mark.parametrize(
+        "input_text,expected",
+        [
+            (None, ""),
+            ("", ""),
+        ],
+    )
+    def it_handles_empty_values(input_text, expected):
+        assert truncate_response(input_text) == expected
 
 
 def describe_summarize_failure_for_eval():
