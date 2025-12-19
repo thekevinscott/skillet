@@ -1,10 +1,11 @@
-import { LitElement, html, css } from 'lit'
+import { LitElement, html, unsafeCSS } from 'lit'
 import { property, state, query } from 'lit/decorators.js'
 import '../terminal/index.js'
 import '../api-key-input/index.js'
 import type { SkilletTerminal } from '../terminal/terminal.js'
 import { ClaudeBackend } from '../../services/llm/claude-backend.js'
 import type { Message } from '../../services/llm/backend.js'
+import styles from './claude-terminal.css?raw'
 
 export const TAG_NAME = 'skillet-claude-terminal'
 
@@ -13,71 +14,7 @@ export const TAG_NAME = 'skillet-claude-terminal'
  * Combines terminal, API key input, and Claude streaming.
  */
 export class SkilletClaudeTerminal extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-    }
-
-    .container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 16px;
-      background: #fafafa;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-    }
-
-    .title {
-      font-size: 16px;
-      font-weight: 600;
-      color: #111827;
-    }
-
-    .status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .status-dot.active {
-      background: #10b981;
-    }
-
-    .status-dot.inactive {
-      background: #d1d5db;
-    }
-
-    .status-text {
-      font-size: 13px;
-      color: #6b7280;
-    }
-
-    .api-key-section {
-      display: ${this.hasApiKey ? 'none' : 'block'};
-    }
-
-    .prompt-hint {
-      padding: 12px 16px;
-      background: #eff6ff;
-      border-radius: 8px;
-      font-size: 14px;
-      color: #1e40af;
-      margin-bottom: 8px;
-    }
-  `
+  static styles = unsafeCSS(styles)
 
   @property({ type: String }) height = '400px'
   @property({ type: String }) systemPrompt = 'You are a helpful assistant.'

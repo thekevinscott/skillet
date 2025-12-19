@@ -1,8 +1,9 @@
-import { LitElement, html, css } from 'lit'
+import { LitElement, html, unsafeCSS } from 'lit'
 import { property, state, query } from 'lit/decorators.js'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebContainer } from '@webcontainer/api'
+import styles from './terminal.css?raw'
 
 export const TAG_NAME = 'skillet-terminal'
 
@@ -17,41 +18,7 @@ type TerminalStatus = 'booting' | 'ready' | 'error'
  * ```
  */
 export class SkilletTerminal extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-    }
-
-    .terminal-wrapper {
-      position: relative;
-    }
-
-    .terminal-status {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      padding: 4px 8px;
-      background: #3b82f6;
-      color: white;
-      border-radius: 4px;
-      font-size: 12px;
-      z-index: 10;
-    }
-
-    .terminal-error {
-      padding: 12px;
-      background: #fee2e2;
-      color: #dc2626;
-      border-radius: 4px;
-      margin-bottom: 8px;
-    }
-
-    .terminal-container {
-      border-radius: 8px;
-      overflow: hidden;
-      background: #1a1a1a;
-    }
-  `
+  static styles = unsafeCSS(styles)
 
   @property({ type: String }) height = '400px'
   @property({ type: Object }) files: Record<string, string> = {}

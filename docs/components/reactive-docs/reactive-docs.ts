@@ -1,10 +1,11 @@
-import { LitElement, html, css } from 'lit'
+import { LitElement, html, unsafeCSS } from 'lit'
 import { property, state, query } from 'lit/decorators.js'
 import type { Tutorial, TutorialState, TutorialAction } from '../../services/tutorial-types.js'
 import { tutorialReducer, createInitialState } from '../../services/tutorial-types.js'
 import '../terminal/index.js'
 import '../docs-panel/index.js'
 import type { SkilletTerminal } from '../terminal/terminal.js'
+import styles from './reactive-docs.css?raw'
 
 export const TAG_NAME = 'skillet-reactive-docs'
 
@@ -13,61 +14,7 @@ export const TAG_NAME = 'skillet-reactive-docs'
  * Docs panel on the left, terminal on the right.
  */
 export class SkilletReactiveDocs extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-    }
-
-    .container {
-      display: flex;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-    }
-
-    .docs-pane {
-      width: 40%;
-      min-width: 300px;
-      max-width: 500px;
-      border-right: 1px solid #e5e7eb;
-    }
-
-    .terminal-pane {
-      flex: 1;
-      position: relative;
-      min-width: 400px;
-    }
-
-    .terminal-loading {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #1a1a1a;
-      color: #d4d4d4;
-      gap: 12px;
-      z-index: 10;
-    }
-
-    .spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid #333;
-      border-top-color: #8B7355;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  `
+  static styles = unsafeCSS(styles)
 
   @property({ type: String }) height = '600px'
 
