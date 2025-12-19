@@ -1,5 +1,5 @@
-"""Gap loading and management."""
+"""Eval loading and management."""
 
-from .load import load_gaps
+from .load import load_evals
 
-__all__ = ["load_gaps"]
+__all__ = ["load_evals"]

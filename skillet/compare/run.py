@@ -9,7 +9,7 @@ from skillet._internal.cache import (
     hash_directory,
 )
 from skillet.errors import EmptyFolderError
-from skillet.gaps import load_gaps
+from skillet.gaps import load_evals
 
 
 def get_cached_results_for_gap(name: str, gap: dict, skill_path: Path | None) -> list[dict]:
@@ -40,9 +40,9 @@ def compare(name: str, skill_path: Path) -> dict:
     Returns:
         dict with per-gap results, overall stats, and warnings
     """
-    gaps = load_gaps(name)
+    evals = load_evals(name)
 
-    if not gaps:
+    if not evals:
         raise EmptyFolderError(f"No evals found for '{name}'")
 
     # Collect results for each gap
@@ -54,7 +54,7 @@ def compare(name: str, skill_path: Path) -> dict:
     missing_baseline = []
     missing_skill = []
 
-    for gap in gaps:
+    for gap in evals:
         baseline_iters = get_cached_results_for_gap(name, gap, None)
         skill_iters = get_cached_results_for_gap(name, gap, skill_path)
 

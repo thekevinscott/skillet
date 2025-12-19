@@ -44,7 +44,7 @@ async def eval_command(
     skip_cache: bool = False,
 ):
     """Run eval command with display."""
-    from skillet.gaps import load_gaps
+    from skillet.gaps import load_evals
 
     # Print header
     console.print()
@@ -54,21 +54,21 @@ async def eval_command(
     else:
         console.print("[bold]Eval Results (baseline, no skill)[/bold]")
 
-    # Load gaps first to build the task list for display
-    gaps = load_gaps(name)
-    if max_gaps and max_gaps < len(gaps):
+    # Load evals first to build the task list for display
+    evals = load_evals(name)
+    if max_gaps and max_gaps < len(evals):
         import random
 
-        gaps = random.sample(gaps, max_gaps)
+        evals = random.sample(evals, max_gaps)
 
     # Build task list for display initialization
     tasks = []
-    for gap_idx, gap in enumerate(gaps):
+    for eval_idx, eval_data in enumerate(evals):
         for i in range(samples):
             tasks.append(
                 {
-                    "gap_idx": gap_idx,
-                    "gap_source": gap["_source"],
+                    "gap_idx": eval_idx,
+                    "gap_source": eval_data["_source"],
                     "iteration": i + 1,
                 }
             )

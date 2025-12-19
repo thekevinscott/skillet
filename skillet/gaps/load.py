@@ -30,7 +30,7 @@ def validate_eval(eval_data: dict, source: str) -> None:
         raise EvalValidationError(f"Eval {source} missing required fields: {missing_str}")
 
 
-def load_gaps(name: str) -> list[dict]:
+def load_evals(name: str) -> list[dict]:
     """Load eval files for an eval set.
 
     Args:

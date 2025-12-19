@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from skillet.errors import SkillError
-from skillet.gaps import load_gaps
+from skillet.gaps import load_evals
 
 from .draft import draft_skill
 
@@ -23,14 +23,14 @@ async def create_skill(
         overwrite: Whether to overwrite existing skill
 
     Returns:
-        dict with skill_dir, skill_content, and gap_count
+        dict with skill_dir, skill_content, and eval_count
 
     Raises:
         SkillError: If no gaps found or skill exists and overwrite=False
     """
-    gaps = load_gaps(name)
+    evals = load_evals(name)
 
-    if not gaps:
+    if not evals:
         raise SkillError(f"No gap files found for '{name}'")
 
     skill_dir = output_dir / name
@@ -44,7 +44,7 @@ async def create_skill(
         shutil.rmtree(skill_dir)
 
     # Generate SKILL.md content
-    skill_content = await draft_skill(name, gaps, extra_prompt)
+    skill_content = await draft_skill(name, evals, extra_prompt)
 
     # Create directory and write SKILL.md
     skill_dir.mkdir(parents=True, exist_ok=True)
@@ -53,5 +53,5 @@ async def create_skill(
     return {
         "skill_dir": skill_dir,
         "skill_content": skill_content,
-        "gap_count": len(gaps),
+        "eval_count": len(evals),
     }

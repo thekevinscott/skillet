@@ -7,7 +7,7 @@ from rich.panel import Panel
 
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
-from skillet.gaps import load_gaps
+from skillet.gaps import load_evals
 from skillet.tune import TuneResult, tune
 
 
@@ -48,7 +48,7 @@ async def tune_command(
     Returns:
         TuneResult with all iterations
     """
-    gaps = load_gaps(name)
+    evals = load_evals(name)
 
     # Default output path if not provided
     if output_path is None:
@@ -60,7 +60,7 @@ async def tune_command(
         Panel.fit(
             f"[bold]Tuning:[/bold] {name}\n"
             f"[bold]Skill:[/bold] [cyan]{skill_path}[/cyan]\n"
-            f"[bold]Evals:[/bold] {len(gaps)}\n"
+            f"[bold]Evals:[/bold] {len(evals)}\n"
             f"[bold]Target:[/bold] {target_pass_rate:.0f}% pass rate\n"
             f"[bold]Max rounds:[/bold] {max_rounds}",
             title="Skill Tuner",
@@ -78,12 +78,12 @@ async def tune_command(
 
         # Build full task list upfront for display
         tasks = []
-        for gap_idx, gap in enumerate(gaps):
+        for eval_idx, eval_data in enumerate(evals):
             for i in range(samples):
                 tasks.append(
                     {
-                        "gap_idx": gap_idx,
-                        "gap_source": gap["_source"],
+                        "gap_idx": eval_idx,
+                        "gap_source": eval_data["_source"],
                         "iteration": i + 1,
                     }
                 )
