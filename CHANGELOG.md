@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `docs/components/Terminal` - React component with xterm.js and WebContainer for interactive docs
 - Unit tests for cache, gaps/load, tune/improve, compare/run, eval/judge, cli/display, eval/run, cli/commands/tune, cli/commands/compare, sdk modules (coverage raised to 55%)
+- Comprehensive unit tests for eval/run, eval/judge, tune/run, tune/improve, skill/create, skill/draft, cli/main, cli/commands/compare (coverage raised to 77%)
 - Tool call capture in eval results - judge now sees which tools Claude used
 - `--skip-cache` flag for eval command to ignore cached results
 - `TuneResult` dataclass with full iteration history (inspired by DSPy)
