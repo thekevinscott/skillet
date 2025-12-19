@@ -2,7 +2,22 @@
 
 import json
 
+from pydantic import BaseModel, Field
+
 from skillet._internal.sdk import query_assistant_text
+
+
+class Judgment(BaseModel):
+    """Structured output for judge responses."""
+
+    passed: bool = Field(
+        description="Whether the response meets the expected behavior",
+        alias="pass",
+    )
+    reasoning: str = Field(
+        default="",
+        description="One sentence explanation of the judgment",
+    )
 
 
 def format_prompt_for_judge(prompt: str | list[str]) -> str:
@@ -69,23 +84,30 @@ async def judge_response(
 Determine if the AI response meets the expected behavior. Be strict but fair.
 Consider both the text response AND the tools used when evaluating.
 
-Respond in this exact format:
-PASS: yes or no
-REASONING: one sentence explanation
+Return a JSON object with:
+- "pass": true if the response meets expectations, false otherwise
+- "reasoning": one sentence explanation of your judgment
 """
 
-    result = await query_assistant_text(judge_prompt, max_turns=1, allowed_tools=[])
+    result = await query_assistant_text(
+        judge_prompt,
+        max_turns=1,
+        allowed_tools=[],
+        output_format={"type": "json", "schema": Judgment.model_json_schema()},
+    )
 
-    # Parse the response
-    lines = result.strip().split("\n")
-    pass_line = lines[0] if lines else ""
-    reasoning_line = lines[1] if len(lines) > 1 else ""
-
-    passed = "yes" in pass_line.lower()
-    reasoning = reasoning_line.replace("REASONING:", "").strip()
-
-    return {
-        "pass": passed,
-        "reasoning": reasoning,
-        "raw": result,
-    }
+    # Parse JSON response using Pydantic
+    try:
+        judgment = Judgment.model_validate_json(result)
+        return {
+            "pass": judgment.passed,
+            "reasoning": judgment.reasoning,
+            "raw": result,
+        }
+    except Exception as e:
+        # Fallback: if parsing fails, treat as failure
+        return {
+            "pass": False,
+            "reasoning": f"Failed to parse judge response: {e}",
+            "raw": result,
+        }
