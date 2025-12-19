@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrated documentation from VitePress to Mintlify platform
 
 ### Added
+- `docs/components/ClaudeTerminal` - Terminal with Claude AI integration for interactive docs
+- `docs/components/ApiKeyInput` - BYOK (Bring Your Own Key) component for Anthropic API key
+- `docs/components/claude.ts` - Lightweight Claude client for browser environments
 - `docs/components/Terminal` - React component with xterm.js and WebContainer for interactive docs
 - Unit tests for cache, gaps/load, tune/improve, compare/run, eval/judge, cli/display, eval/run, cli/commands/tune, cli/commands/compare, sdk modules (coverage raised to 55%)
 - Tool call capture in eval results - judge now sees which tools Claude used

@@ -13,6 +13,8 @@ interface TerminalProps {
   height?: string;
   /** Called when terminal is ready */
   onReady?: () => void;
+  /** Custom command handler - return true if handled, false to pass to shell */
+  commandHandler?: (command: string, writeOutput: (text: string) => void) => boolean;
 }
 
 type TerminalStatus = 'booting' | 'ready' | 'error';
@@ -33,12 +35,14 @@ export function Terminal({
   files = {},
   height = '400px',
   onReady,
+  commandHandler,
 }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const containerRef = useRef<WebContainer | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const inputStreamRef = useRef<WritableStreamDefaultWriter | null>(null);
+  const currentLineRef = useRef<string>('');
 
   const [status, setStatus] = useState<TerminalStatus>('booting');
   const [error, setError] = useState<string | null>(null);
@@ -132,8 +136,39 @@ export function Terminal({
         const inputWriter = shellProcess.input.getWriter();
         inputStreamRef.current = inputWriter;
 
+        // Handle input with optional command interception
         xterm.onData((data) => {
-          inputWriter.write(data);
+          // Handle Enter key
+          if (data === '\r') {
+            const command = currentLineRef.current;
+            currentLineRef.current = '';
+
+            // Check if custom handler wants this command
+            if (commandHandler && command.trim()) {
+              const writeOutput = (text: string) => xterm.write(text);
+              const handled = commandHandler(command, writeOutput);
+              if (handled) {
+                // Command was handled by custom handler
+                xterm.write('\r\n');
+                return;
+              }
+            }
+
+            // Pass to shell
+            inputWriter.write(data);
+          }
+          // Handle backspace
+          else if (data === '\x7f') {
+            if (currentLineRef.current.length > 0) {
+              currentLineRef.current = currentLineRef.current.slice(0, -1);
+              inputWriter.write(data);
+            }
+          }
+          // Regular character
+          else {
+            currentLineRef.current += data;
+            inputWriter.write(data);
+          }
         });
 
         // Handle resize
