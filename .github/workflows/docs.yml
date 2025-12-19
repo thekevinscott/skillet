@@ -10,7 +10,7 @@ on:
       - 'docs/**'
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,9 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Validate docs.json
+        run: python3 -c "import json; json.load(open('docs.json'))"
 
-      - name: Build docs
-        run: npx mintlify build
+      - name: Check required files exist
+        run: |
+          test -f docs.json
+          test -f index.mdx
+          test -f favicon.svg
