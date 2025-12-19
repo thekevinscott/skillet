@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `evals_to_trainset()` function to convert skillet evals to DSPy Examples
 - `optimize_skill()` function for DSPy-based skill optimization (BootstrapFewShot, MIPROv2)
 - Unit tests for `skillet.optimize` module (100% coverage)
+- `notes/` folder for project documentation and strategy discussions
 
 ### Changed
 - Tune no longer modifies original skill file - uses tmpfile during tuning
