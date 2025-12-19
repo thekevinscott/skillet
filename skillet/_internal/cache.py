@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from skillet._internal.lock import cache_lock  # noqa: F401
 from skillet.config import SKILLET_DIR
 
 CACHE_DIR = SKILLET_DIR / "cache"
@@ -33,11 +34,11 @@ def hash_directory(path: Path) -> str:
     return hash_content("\n".join(contents))
 
 
-def gap_cache_key(gap_source: str, gap_content: str) -> str:
-    """Return cache key for a gap: <filename>-<content-hash>."""
-    content_hash = hash_content(gap_content)
+def eval_cache_key(eval_source: str, eval_content: str) -> str:
+    """Return cache key for an eval: <filename>-<content-hash>."""
+    content_hash = hash_content(eval_content)
     # Remove .yaml extension for cleaner key
-    name = gap_source.replace(".yaml", "")
+    name = eval_source.replace(".yaml", "")
     return f"{name}-{content_hash}"
 
 
@@ -47,13 +48,13 @@ def normalize_cache_name(name: str) -> str:
     return name_path.resolve().name if name_path.exists() else name
 
 
-def get_cache_dir(name: str, gap_key: str, skill_path: Path | None = None) -> Path:
-    """Get cache directory for a specific gap + skill combo.
+def get_cache_dir(name: str, eval_key: str, skill_path: Path | None = None) -> Path:
+    """Get cache directory for a specific eval + skill combo.
 
-    Structure: ~/.skillet/cache/<name>/<gap-key>/baseline/
-           or: ~/.skillet/cache/<name>/<gap-key>/skills/<skill-hash>/
+    Structure: ~/.skillet/cache/<name>/<eval-key>/baseline/
+           or: ~/.skillet/cache/<name>/<eval-key>/skills/<skill-hash>/
     """
-    base = CACHE_DIR / normalize_cache_name(name) / gap_key
+    base = CACHE_DIR / normalize_cache_name(name) / eval_key
 
     if skill_path is None:
         return base / "baseline"
@@ -85,7 +86,7 @@ def save_iteration(cache_dir: Path, iteration: int, result: dict):
 
 
 def get_all_cached_results(name: str, skill_path: Path | None = None) -> dict[str, list[dict]]:
-    """Get all cached results for a name + skill, keyed by gap source.
+    """Get all cached results for a name + skill, keyed by eval source.
 
     Returns: {"001.yaml": [iter1, iter2, ...], "002.yaml": [...], ...}
     """
@@ -95,24 +96,24 @@ def get_all_cached_results(name: str, skill_path: Path | None = None) -> dict[st
 
     results = {}
 
-    # Find all gap directories
-    for gap_dir in cache_base.iterdir():
-        if not gap_dir.is_dir():
+    # Find all eval directories
+    for eval_dir in cache_base.iterdir():
+        if not eval_dir.is_dir():
             continue
 
-        # Extract gap source from key (e.g., "001-abc123" -> "001.yaml")
-        gap_key = gap_dir.name
-        gap_source = gap_key.rsplit("-", 1)[0] + ".yaml"
+        # Extract eval source from key (e.g., "001-abc123" -> "001.yaml")
+        eval_key = eval_dir.name
+        eval_source = eval_key.rsplit("-", 1)[0] + ".yaml"
 
         # Get the right subdirectory (baseline or skills/<hash>)
         if skill_path is None:
-            iter_dir = gap_dir / "baseline"
+            iter_dir = eval_dir / "baseline"
         else:
             skill_hash = hash_directory(skill_path)
-            iter_dir = gap_dir / "skills" / skill_hash
+            iter_dir = eval_dir / "skills" / skill_hash
 
         iterations = get_cached_iterations(iter_dir)
         if iterations:
-            results[gap_source] = iterations
+            results[eval_source] = iterations
 
     return results

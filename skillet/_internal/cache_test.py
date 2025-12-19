@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from skillet._internal.cache import (
-    gap_cache_key,
+    eval_cache_key,
     get_all_cached_results,
     get_cache_dir,
     get_cached_iterations,
@@ -94,12 +94,12 @@ def describe_hash_directory():
             assert hash1 != hash2
 
 
-def describe_gap_cache_key():
-    """Tests for gap_cache_key function."""
+def describe_eval_cache_key():
+    """Tests for eval_cache_key function."""
 
     def it_is_deterministic():
-        key1 = gap_cache_key("test.yaml", "prompt: hello\nexpected: world")
-        key2 = gap_cache_key("test.yaml", "prompt: hello\nexpected: world")
+        key1 = eval_cache_key("test.yaml", "prompt: hello\nexpected: world")
+        key2 = eval_cache_key("test.yaml", "prompt: hello\nexpected: world")
         assert key1 == key2
 
     @pytest.mark.parametrize(
@@ -111,8 +111,8 @@ def describe_gap_cache_key():
         ],
     )
     def it_differs_on_content(content1, content2):
-        key1 = gap_cache_key("test.yaml", content1)
-        key2 = gap_cache_key("test.yaml", content2)
+        key1 = eval_cache_key("test.yaml", content1)
+        key2 = eval_cache_key("test.yaml", content2)
         assert key1 != key2
 
     @pytest.mark.parametrize(
@@ -123,12 +123,12 @@ def describe_gap_cache_key():
         ],
     )
     def it_differs_on_source(source1, source2):
-        key1 = gap_cache_key(source1, "prompt: hello")
-        key2 = gap_cache_key(source2, "prompt: hello")
+        key1 = eval_cache_key(source1, "prompt: hello")
+        key2 = eval_cache_key(source2, "prompt: hello")
         assert key1 != key2
 
     def it_strips_yaml_extension():
-        key = gap_cache_key("myeval.yaml", "content")
+        key = eval_cache_key("myeval.yaml", "content")
         assert "myeval-" in key
         assert ".yaml" not in key
 
@@ -150,17 +150,17 @@ def describe_get_cache_dir():
     """Tests for get_cache_dir function."""
 
     def it_returns_baseline_when_no_skill():
-        result = get_cache_dir("myevals", "gap-abc123", skill_path=None)
+        result = get_cache_dir("myevals", "eval-abc123", skill_path=None)
         assert "baseline" in str(result)
         assert "myevals" in str(result)
-        assert "gap-abc123" in str(result)
+        assert "eval-abc123" in str(result)
 
     def it_returns_skill_hash_path_when_skill_provided():
         with tempfile.TemporaryDirectory() as tmpdir:
             skill_dir = Path(tmpdir)
             (skill_dir / "SKILL.md").write_text("# Test")
 
-            result = get_cache_dir("myevals", "gap-abc123", skill_path=skill_dir)
+            result = get_cache_dir("myevals", "eval-abc123", skill_path=skill_dir)
             assert "skills" in str(result)
             assert "myevals" in str(result)
 
@@ -239,10 +239,10 @@ def describe_get_all_cached_results():
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
             # Create cache structure: cache/myevals/001-abc123/baseline/iter-0.yaml
-            gap_dir = cache_base / "myevals" / "001-abc123" / "baseline"
-            gap_dir.mkdir(parents=True)
-            (gap_dir / "iter-0.yaml").write_text("passed: true")
-            (gap_dir / "iter-1.yaml").write_text("passed: false")
+            eval_dir = cache_base / "myevals" / "001-abc123" / "baseline"
+            eval_dir.mkdir(parents=True)
+            (eval_dir / "iter-0.yaml").write_text("passed: true")
+            (eval_dir / "iter-1.yaml").write_text("passed: false")
 
             result = get_all_cached_results("myevals", skill_path=None)
             assert "001.yaml" in result
@@ -263,24 +263,24 @@ def describe_get_all_cached_results():
             skill_hash = hash_directory(skill_dir)
 
             # Create cache structure for skill
-            gap_dir = cache_base / "myevals" / "002-def456" / "skills" / skill_hash
-            gap_dir.mkdir(parents=True)
-            (gap_dir / "iter-0.yaml").write_text("passed: true")
+            eval_dir = cache_base / "myevals" / "002-def456" / "skills" / skill_hash
+            eval_dir.mkdir(parents=True)
+            (eval_dir / "iter-0.yaml").write_text("passed: true")
 
             result = get_all_cached_results("myevals", skill_path=skill_dir)
             assert "002.yaml" in result
             assert len(result["002.yaml"]) == 1
 
-    def it_returns_multiple_gaps(monkeypatch):
+    def it_returns_multiple_evals(monkeypatch):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_base = Path(tmpdir)
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
-            # Create multiple gap directories
-            for gap_name in ["001-abc", "002-def", "003-ghi"]:
-                gap_dir = cache_base / "myevals" / gap_name / "baseline"
-                gap_dir.mkdir(parents=True)
-                (gap_dir / "iter-0.yaml").write_text("passed: true")
+            # Create multiple eval directories
+            for eval_name in ["001-abc", "002-def", "003-ghi"]:
+                eval_dir = cache_base / "myevals" / eval_name / "baseline"
+                eval_dir.mkdir(parents=True)
+                (eval_dir / "iter-0.yaml").write_text("passed: true")
 
             result = get_all_cached_results("myevals", skill_path=None)
             assert len(result) == 3
@@ -293,10 +293,10 @@ def describe_get_all_cached_results():
             cache_base = Path(tmpdir)
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
-            # Create a valid gap directory
-            gap_dir = cache_base / "myevals" / "001-abc" / "baseline"
-            gap_dir.mkdir(parents=True)
-            (gap_dir / "iter-0.yaml").write_text("passed: true")
+            # Create a valid eval directory
+            eval_dir = cache_base / "myevals" / "001-abc" / "baseline"
+            eval_dir.mkdir(parents=True)
+            (eval_dir / "iter-0.yaml").write_text("passed: true")
 
             # Create a file (not a directory) that should be ignored
             (cache_base / "myevals" / "somefile.txt").write_text("ignored")
@@ -305,19 +305,19 @@ def describe_get_all_cached_results():
             assert len(result) == 1
             assert "001.yaml" in result
 
-    def it_skips_gaps_with_no_iterations(monkeypatch):
+    def it_skips_evals_with_no_iterations(monkeypatch):
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_base = Path(tmpdir)
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
-            # Create gap dir with no iteration files
-            empty_gap = cache_base / "myevals" / "001-abc" / "baseline"
-            empty_gap.mkdir(parents=True)
+            # Create eval dir with no iteration files
+            empty_eval = cache_base / "myevals" / "001-abc" / "baseline"
+            empty_eval.mkdir(parents=True)
 
-            # Create gap dir with iterations
-            full_gap = cache_base / "myevals" / "002-def" / "baseline"
-            full_gap.mkdir(parents=True)
-            (full_gap / "iter-0.yaml").write_text("passed: true")
+            # Create eval dir with iterations
+            full_eval = cache_base / "myevals" / "002-def" / "baseline"
+            full_eval.mkdir(parents=True)
+            (full_eval / "iter-0.yaml").write_text("passed: true")
 
             result = get_all_cached_results("myevals", skill_path=None)
             assert len(result) == 1

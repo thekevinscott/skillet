@@ -1,6 +1,6 @@
 [build]
   base = "docs"
-  command = "npm install && npm run build"
+  command = "npm run build"
   publish = ".vitepress/dist"
 
 # Required for WebContainer to work

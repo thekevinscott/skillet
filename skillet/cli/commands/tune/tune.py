@@ -6,7 +6,7 @@ from rich.panel import Panel
 
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
-from skillet.gaps import load_evals
+from skillet.evals import load_evals
 from skillet.tune import TuneResult, tune
 
 from .output_path import get_default_output_path
@@ -69,8 +69,8 @@ async def tune_command(
             for i in range(samples):
                 tasks.append(
                     {
-                        "gap_idx": eval_idx,
-                        "gap_source": eval_data["_source"],
+                        "eval_idx": eval_idx,
+                        "eval_source": eval_data["_source"],
                         "iteration": i + 1,
                     }
                 )

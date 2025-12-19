@@ -17,19 +17,19 @@ async def eval(
     skill: Annotated[Path | None, Parameter(name="skill")] = None,
     *,
     samples: Annotated[int, Parameter(name=["--samples", "-s"])] = 3,
-    gaps: Annotated[int | None, Parameter(name=["--gaps", "-g"])] = None,
+    max_evals: Annotated[int | None, Parameter(name=["--max-evals", "-m"])] = None,
     tools: Annotated[str | None, Parameter(name=["--tools", "-t"])] = None,
     parallel: Annotated[int, Parameter(name=["--parallel", "-p"])] = 3,
     skip_cache: Annotated[bool, Parameter(name=["--skip-cache"])] = False,
 ):
-    """Evaluate Claude against captured gaps.
+    """Evaluate Claude against captured evals.
 
     NAME can be:
     - A name (looks in ~/.skillet/evals/<name>/)
     - A path to a directory (loads all .yaml files recursively)
     - A path to a single .yaml file
 
-    Results are cached by gap content hash and skill content hash.
+    Results are cached by eval content hash and skill content hash.
 
     Without SKILL: measures baseline performance (no skill active)
     With SKILL: measures performance with the skill loaded
@@ -38,8 +38,8 @@ async def eval(
         skillet eval browser-fallback                              # baseline
         skillet eval browser-fallback ~/.claude/skills/browser-fallback  # with skill
         skillet eval ./evals/my-skill/001.yaml skill/              # single file
-        skillet eval browser-fallback -s 5                         # 5 samples per gap
-        skillet eval my-skill -g 5 -s 1                            # 5 random gaps, 1 sample each
+        skillet eval browser-fallback -s 5                         # 5 samples per eval
+        skillet eval my-skill -m 5 -s 1                            # 5 random evals, 1 sample each
         skillet eval my-skill -p 5                                 # 5 parallel workers
         skillet eval my-skill --skip-cache                         # ignore cached results
     """
@@ -50,7 +50,7 @@ async def eval(
         name,
         skill_path=skill,
         samples=samples,
-        max_gaps=gaps,
+        max_evals=max_evals,
         allowed_tools=allowed_tools,
         parallel=parallel,
         skip_cache=skip_cache,
@@ -123,9 +123,9 @@ async def new(
     dir: Annotated[Path | None, Parameter(name=["--dir", "-d"])] = None,
     prompt: Annotated[str | None, Parameter(name=["--prompt", "-p"])] = None,
 ):
-    """Create a new skill from captured gaps.
+    """Create a new skill from captured evals.
 
-    Generates a SKILL.md based on gaps in ~/.skillet/gaps/<name>/.
+    Generates a SKILL.md based on evals in ~/.skillet/evals/<name>/.
     Output is always written to <dir>/.claude/skills/<name>/SKILL.md
 
     Examples:

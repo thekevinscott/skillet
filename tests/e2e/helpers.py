@@ -44,11 +44,11 @@ class Conversation:
             with chat.turn("Write a commit message for this diff"):
                 chat.expect_not("conventional commits format")
 
-            with chat.turn("/skillet:gap"):
+            with chat.turn("/skillet:eval"):
                 chat.expect("expect")  # Should ask what we expected
 
             with chat.turn("Use conventional commits"):
-                chat.expect("saved")  # Should confirm gap saved
+                chat.expect("saved")  # Should confirm eval saved
 
             print(chat)  # Print full conversation
     """

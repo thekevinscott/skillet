@@ -21,9 +21,9 @@ def describe_run_single_eval():
             ),
         ):
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -49,9 +49,9 @@ def describe_run_single_eval():
             ),
         ):
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -76,9 +76,9 @@ def describe_run_single_eval():
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -97,9 +97,9 @@ def describe_run_single_eval():
             patch("skillet.eval.evaluate.run_script", return_value=(1, "", "setup failed")),
         ):
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -132,9 +132,9 @@ def describe_run_single_eval():
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -164,9 +164,9 @@ def describe_run_single_eval():
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -193,9 +193,9 @@ def describe_run_single_eval():
             patch("skillet.eval.evaluate.run_script", return_value=(1, "", "setup error")),
         ):
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -228,9 +228,9 @@ def describe_run_single_eval():
             mock_run.side_effect = RuntimeError("prompt failed")
 
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -260,9 +260,9 @@ def describe_run_single_eval():
             mock_run.side_effect = RuntimeError("prompt failed")
 
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -300,9 +300,9 @@ def describe_run_single_eval():
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
             task = {
-                "gap_source": "test.md",
-                "gap_content": "content",
-                "gap_idx": 0,
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
@@ -357,7 +357,7 @@ def describe_evaluate():
             assert result["total_runs"] == 2
 
     @pytest.mark.asyncio
-    async def it_respects_max_gaps():
+    async def it_respects_max_evals():
         with (
             patch("skillet.eval.evaluate.load_evals") as mock_load,
             patch("skillet.eval.evaluate.run_single_eval", new_callable=AsyncMock) as mock_run,
@@ -371,11 +371,11 @@ def describe_evaluate():
             mock_sample.return_value = evals[:2]
             mock_run.return_value = {"pass": True, "cached": False}
 
-            result = await evaluate("test-evals", samples=1, max_gaps=2)
+            result = await evaluate("test-evals", samples=1, max_evals=2)
 
             mock_sample.assert_called_once()
-            assert result["sampled_gaps"] == 2
-            assert result["total_gaps"] == 10
+            assert result["sampled_evals"] == 2
+            assert result["total_evals"] == 10
 
     @pytest.mark.asyncio
     async def it_tracks_cached_vs_fresh_counts():
@@ -444,3 +444,109 @@ def describe_evaluate():
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("teardown") == "echo teardown"
+
+
+def describe_exception_handling():
+    """Tests for exception handling in run_single_eval."""
+
+    @pytest.mark.asyncio
+    async def it_propagates_keyboard_interrupt():
+        """KeyboardInterrupt should not be caught - let user cancel."""
+        with (
+            patch("skillet.eval.evaluate.get_cache_dir"),
+            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
+            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_run.side_effect = KeyboardInterrupt()
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+            }
+
+            with pytest.raises(KeyboardInterrupt):
+                await run_single_eval(task, "test-evals", None, None)
+
+    @pytest.mark.asyncio
+    async def it_propagates_system_exit():
+        """SystemExit should not be caught - let process exit."""
+        with (
+            patch("skillet.eval.evaluate.get_cache_dir"),
+            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
+            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_run.side_effect = SystemExit(1)
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+            }
+
+            with pytest.raises(SystemExit):
+                await run_single_eval(task, "test-evals", None, None)
+
+    @pytest.mark.asyncio
+    async def it_runs_teardown_on_keyboard_interrupt():
+        """Teardown should still run when KeyboardInterrupt is raised."""
+        teardown_called = []
+
+        def track_run_script(script, _home_dir, _cwd=None):
+            if "teardown" in script:
+                teardown_called.append(True)
+            return (0, "", "")
+
+        with (
+            patch("skillet.eval.evaluate.get_cache_dir"),
+            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
+            patch("skillet.eval.evaluate.run_script", side_effect=track_run_script),
+            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_run.side_effect = KeyboardInterrupt()
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+                "teardown": "echo teardown",
+            }
+
+            with pytest.raises(KeyboardInterrupt):
+                await run_single_eval(task, "test-evals", None, None)
+
+            assert len(teardown_called) == 1
+
+    @pytest.mark.asyncio
+    async def it_includes_exception_type_in_error_message():
+        """Error message should include exception type for debugging."""
+        with (
+            patch("skillet.eval.evaluate.get_cache_dir"),
+            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
+            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_run.side_effect = ValueError("invalid value")
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+            }
+
+            result = await run_single_eval(task, "test-evals", None, None)
+
+            assert result["pass"] is False
+            assert "ValueError" in result["judgment"]["reasoning"]
+            assert "invalid value" in result["judgment"]["reasoning"]

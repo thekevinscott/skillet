@@ -1,19 +1,19 @@
-"""Get cached results for a specific gap."""
+"""Get cached results for a specific eval."""
 
 from pathlib import Path
 
 from skillet._internal.cache import (
     CACHE_DIR,
-    gap_cache_key,
+    eval_cache_key,
     get_cached_iterations,
     hash_directory,
 )
 
 
-def get_cached_results_for_gap(name: str, gap: dict, skill_path: Path | None) -> list[dict]:
-    """Get cached iteration results for a specific gap."""
-    gap_key = gap_cache_key(gap["_source"], gap["_content"])
-    cache_base = CACHE_DIR / name / gap_key
+def get_cached_results_for_eval(name: str, eval_item: dict, skill_path: Path | None) -> list[dict]:
+    """Get cached iteration results for a specific eval."""
+    eval_key = eval_cache_key(eval_item["_source"], eval_item["_content"])
+    cache_base = CACHE_DIR / name / eval_key
 
     if skill_path is None:
         cache_dir = cache_base / "baseline"
