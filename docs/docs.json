@@ -17,7 +17,8 @@
   "navigation": {
     "pages": [
       "index",
-      "getting-started"
+      "getting-started",
+      "interactive-tutorial"
     ]
   },
   "contextual": {
