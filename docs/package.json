@@ -1,13 +1,12 @@
 {
-  "name": "docs",
+  "name": "skillet-docs",
   "version": "1.0.0",
-  "type": "module",
+  "private": true,
   "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
-    "preview": "vitepress preview"
+    "dev": "mintlify dev",
+    "build": "mintlify build"
   },
   "devDependencies": {
-    "vitepress": "^1.5.0"
+    "mintlify": "^4.0.0"
   }
 }
