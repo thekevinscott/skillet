@@ -56,7 +56,7 @@ def describe_compare_command():
 
         with (
             tempfile.TemporaryDirectory() as tmpdir,
-            patch("skillet.cli.commands.compare.compare", return_value=mock_result),
+            patch("skillet.cli.commands.compare.compare.compare", return_value=mock_result),
         ):
             skill_path = Path(tmpdir)
             compare_command("test-evals", skill_path)
@@ -79,7 +79,7 @@ def describe_compare_command():
 
         with (
             tempfile.TemporaryDirectory() as tmpdir,
-            patch("skillet.cli.commands.compare.compare", return_value=mock_result),
+            patch("skillet.cli.commands.compare.compare.compare", return_value=mock_result),
         ):
             skill_path = Path(tmpdir)
             compare_command("test-evals", skill_path)
@@ -101,7 +101,7 @@ def describe_compare_command():
 
         with (
             tempfile.TemporaryDirectory() as tmpdir,
-            patch("skillet.cli.commands.compare.compare", return_value=mock_result),
+            patch("skillet.cli.commands.compare.compare.compare", return_value=mock_result),
         ):
             skill_path = Path(tmpdir)
             compare_command("test-evals", skill_path)

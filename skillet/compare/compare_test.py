@@ -1,4 +1,4 @@
-"""Tests for compare/run module."""
+"""Tests for compare/compare module."""
 
 import tempfile
 from pathlib import Path
@@ -6,61 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
-from skillet.compare.run import calculate_pass_rate, compare, get_cached_results_for_gap
+from skillet.compare.compare import compare
 from skillet.errors import EmptyFolderError
-
-
-def describe_calculate_pass_rate():
-    """Tests for calculate_pass_rate function."""
-
-    def it_returns_none_for_empty_list():
-        result = calculate_pass_rate([])
-        assert result is None
-
-    def it_calculates_100_percent_for_all_pass():
-        iterations = [{"pass": True}, {"pass": True}, {"pass": True}]
-        result = calculate_pass_rate(iterations)
-        assert result == 100.0
-
-    def it_calculates_0_percent_for_all_fail():
-        iterations = [{"pass": False}, {"pass": False}]
-        result = calculate_pass_rate(iterations)
-        assert result == 0.0
-
-    def it_calculates_partial_pass_rate():
-        iterations = [{"pass": True}, {"pass": False}, {"pass": True}, {"pass": False}]
-        result = calculate_pass_rate(iterations)
-        assert result == 50.0
-
-    def it_handles_missing_pass_key():
-        iterations = [{"other": "data"}, {"pass": True}]
-        result = calculate_pass_rate(iterations)
-        assert result == 50.0
-
-
-def describe_get_cached_results_for_gap():
-    """Tests for get_cached_results_for_gap function."""
-
-    def it_returns_empty_for_nonexistent_cache():
-        gap = {"_source": "test.yaml", "_content": "prompt: test\nexpected: result"}
-        result = get_cached_results_for_gap("nonexistent-name-12345", gap, None)
-        assert result == []
-
-    def it_uses_baseline_path_when_no_skill():
-        gap = {"_source": "test.yaml", "_content": "prompt: test"}
-        with patch("skillet.compare.run.CACHE_DIR", Path("/tmp/fake-cache")):
-            result = get_cached_results_for_gap("myevals", gap, None)
-            assert result == []
-
-    def it_uses_skill_hash_path_when_skill_provided():
-        gap = {"_source": "test.yaml", "_content": "prompt: test"}
-        with tempfile.TemporaryDirectory() as tmpdir:
-            skill_path = Path(tmpdir)
-            (skill_path / "SKILL.md").write_text("# Test skill")
-
-            with patch("skillet.compare.run.CACHE_DIR", Path("/tmp/fake-cache")):
-                result = get_cached_results_for_gap("myevals", gap, skill_path)
-                assert result == []
 
 
 def describe_compare():
@@ -72,7 +19,7 @@ def describe_compare():
             (skill_path / "SKILL.md").write_text("# Test")
 
             with (
-                patch("skillet.compare.run.load_evals", return_value=[]),
+                patch("skillet.compare.compare.load_evals", return_value=[]),
                 pytest.raises(EmptyFolderError, match=r"No evals found"),
             ):
                 compare("nonexistent", skill_path)
@@ -91,8 +38,8 @@ def describe_compare():
                 }
             ]
             with (
-                patch("skillet.compare.run.load_evals", return_value=evals),
-                patch("skillet.compare.run.get_cached_results_for_gap", return_value=[]),
+                patch("skillet.compare.compare.load_evals", return_value=evals),
+                patch("skillet.compare.compare.get_cached_results_for_gap", return_value=[]),
             ):
                 result = compare("myevals", skill_path)
 
@@ -136,9 +83,9 @@ def describe_compare():
                     return [{"pass": True}, {"pass": False}]
 
             with (
-                patch("skillet.compare.run.load_evals", return_value=evals),
+                patch("skillet.compare.compare.load_evals", return_value=evals),
                 patch(
-                    "skillet.compare.run.get_cached_results_for_gap",
+                    "skillet.compare.compare.get_cached_results_for_gap",
                     side_effect=mock_cached,
                 ),
             ):
@@ -173,9 +120,9 @@ def describe_compare():
                 return []  # skill has no results
 
             with (
-                patch("skillet.compare.run.load_evals", return_value=evals),
+                patch("skillet.compare.compare.load_evals", return_value=evals),
                 patch(
-                    "skillet.compare.run.get_cached_results_for_gap",
+                    "skillet.compare.compare.get_cached_results_for_gap",
                     side_effect=mock_cached,
                 ),
             ):

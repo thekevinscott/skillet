@@ -1,6 +1,5 @@
 """CLI handler for tune command."""
 
-from datetime import datetime
 from pathlib import Path
 
 from rich.panel import Panel
@@ -10,19 +9,7 @@ from skillet.cli.display import LiveDisplay
 from skillet.gaps import load_evals
 from skillet.tune import TuneResult, tune
 
-
-def _get_default_output_path(name: str) -> Path:
-    """Generate default output path for tune results.
-
-    Returns ~/.skillet/tunes/{eval_name}/{timestamp}.json
-    """
-    # Extract eval name from path if it's a path
-    eval_name = Path(name).name if "/" in name or "\\" in name else name
-
-    # Generate timestamp
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-    return Path.home() / ".skillet" / "tunes" / eval_name / f"{timestamp}.json"
+from .output_path import get_default_output_path
 
 
 async def tune_command(
@@ -52,7 +39,7 @@ async def tune_command(
 
     # Default output path if not provided
     if output_path is None:
-        output_path = _get_default_output_path(name)
+        output_path = get_default_output_path(name)
 
     # Print header
     console.print()

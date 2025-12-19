@@ -7,18 +7,7 @@ from rich.table import Table
 from skillet.cli import console
 from skillet.compare import compare
 
-
-def format_delta(baseline: float | None, skill: float | None) -> str:
-    """Format delta with color."""
-    if baseline is None or skill is None:
-        return "-"
-    delta = skill - baseline
-    if delta > 0:
-        return f"[green]+{delta:.0f}%[/green]"
-    elif delta < 0:
-        return f"[red]{delta:.0f}%[/red]"
-    else:
-        return "0%"
+from .format_delta import format_delta
 
 
 def compare_command(name: str, skill_path: Path):
