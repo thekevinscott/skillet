@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Security: `--trust` flag for eval command to skip script confirmation prompt
+- Security: Interactive confirmation prompt when evals contain setup/teardown scripts
+
 ### Changed
 - **BREAKING:** CLI flag `--gaps/-g` renamed to `--max-evals/-m` for consistency
 - Renamed `skillet/gaps/` module to `skillet/evals/` for terminology consistency

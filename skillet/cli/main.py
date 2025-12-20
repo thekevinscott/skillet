@@ -21,6 +21,7 @@ async def eval(
     tools: Annotated[str | None, Parameter(name=["--tools", "-t"])] = None,
     parallel: Annotated[int, Parameter(name=["--parallel", "-p"])] = 3,
     skip_cache: Annotated[bool, Parameter(name=["--skip-cache"])] = False,
+    trust: Annotated[bool, Parameter(name=["--trust"])] = False,
 ):
     """Evaluate Claude against captured evals.
 
@@ -34,6 +35,10 @@ async def eval(
     Without SKILL: measures baseline performance (no skill active)
     With SKILL: measures performance with the skill loaded
 
+    SECURITY: Evals may contain setup/teardown scripts that execute shell commands.
+    You will be prompted before running evals with scripts. Use --trust to skip
+    the prompt (for automation or when you've reviewed the scripts).
+
     Examples:
         skillet eval browser-fallback                              # baseline
         skillet eval browser-fallback ~/.claude/skills/browser-fallback  # with skill
@@ -42,6 +47,7 @@ async def eval(
         skillet eval my-skill -m 5 -s 1                            # 5 random evals, 1 sample each
         skillet eval my-skill -p 5                                 # 5 parallel workers
         skillet eval my-skill --skip-cache                         # ignore cached results
+        skillet eval my-skill --trust                              # skip script confirmation
     """
     from skillet.cli.commands.eval import eval_command
 
@@ -54,6 +60,7 @@ async def eval(
         allowed_tools=allowed_tools,
         parallel=parallel,
         skip_cache=skip_cache,
+        trust=trust,
     )
 
 

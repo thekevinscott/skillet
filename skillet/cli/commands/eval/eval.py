@@ -1,12 +1,17 @@
 """CLI handler for eval command."""
 
+import logging
 from pathlib import Path
 
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.eval import evaluate
 
+from .get_scripts_from_evals import get_scripts_from_evals
+from .prompt_for_script_confirmation import prompt_for_script_confirmation
 from .summarize import summarize_responses
+
+logger = logging.getLogger(__name__)
 
 
 async def eval_command(
@@ -17,6 +22,7 @@ async def eval_command(
     allowed_tools: list[str] | None = None,
     parallel: int = 3,
     skip_cache: bool = False,
+    trust: bool = False,
 ):
     """Run eval command with display."""
     from skillet.evals import load_evals
@@ -35,6 +41,12 @@ async def eval_command(
         import random
 
         evals = random.sample(evals, max_evals)
+
+    # Check for scripts and prompt if needed
+    scripts = get_scripts_from_evals(evals)
+    if scripts and not trust and not prompt_for_script_confirmation(scripts):
+        console.print("[yellow]Aborted.[/yellow]")
+        return
 
     # Build task list for display initialization
     tasks = []
