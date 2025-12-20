@@ -295,6 +295,7 @@ h1, h2, h3, h4,
 /* Active sidebar item - left border indicator like agentskills.io */
 .VPSidebarItem.is-active > .item > .link {
   position: relative;
+  padding-left: 12px;
 }
 
 .VPSidebarItem.is-active > .item > .link::before {
