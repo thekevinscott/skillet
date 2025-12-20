@@ -15,6 +15,9 @@ export default {
       await import('../../components/claude-terminal/index.js')
       await import('../../components/local-llm-terminal/index.js')
       await import('../../components/unified-terminal/index.js')
+      // Enhanced reactivity components
+      await import('../../components/hint-toast/index.js')
+      await import('../../components/celebration-overlay/index.js')
     }
   }
 } satisfies Theme

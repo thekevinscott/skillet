@@ -2,6 +2,9 @@ import { LitElement, html, unsafeCSS } from 'lit'
 import { property, state, query } from 'lit/decorators.js'
 import type { Tutorial, TutorialState, TutorialAction } from '../../services/tutorial-types.js'
 import { tutorialReducer, createInitialState } from '../../services/tutorial-types.js'
+import { docsEventBus } from '../../services/event-bus.js'
+import { hintsService } from '../../services/reactivity/hints.js'
+import { celebrationService } from '../../services/reactivity/celebration.js'
 import '../terminal/index.js'
 import '../docs-panel/index.js'
 import type { SkilletTerminal } from '../terminal/terminal.js'
@@ -12,6 +15,11 @@ export const TAG_NAME = 'skillet-reactive-docs'
 /**
  * Reactive documentation layout with split-pane view.
  * Docs panel on the left, terminal on the right.
+ *
+ * Now with enhanced reactivity features:
+ * - Contextual hints based on terminal output
+ * - Progress celebrations on step/tutorial completion
+ * - Event bus integration for decoupled communication
  */
 export class SkilletReactiveDocs extends LitElement {
   static styles = unsafeCSS(styles)
@@ -86,16 +94,38 @@ export class SkilletReactiveDocs extends LitElement {
   }
 
   private dispatch(action: TutorialAction) {
+    const prevState = this.tutorialState
     this.tutorialState = tutorialReducer(this.tutorialState, action)
+
+    // Emit step change events
+    if (prevState.currentStepIndex !== this.tutorialState.currentStepIndex) {
+      const step = this.tutorialState.tutorial.steps[this.tutorialState.currentStepIndex]
+      if (step) {
+        docsEventBus.emit('step:change', {
+          index: this.tutorialState.currentStepIndex,
+          stepId: step.id,
+        })
+      }
+    }
+
+    // Check for tutorial completion
+    if (!prevState.isComplete && this.tutorialState.isComplete) {
+      celebrationService.celebrateTutorial(this.tutorialState.tutorial.name)
+    }
   }
 
   private handleTerminalReady() {
     this.isTerminalReady = true
+    docsEventBus.emit('terminal:ready', undefined)
   }
 
   private handleTerminalOutput(data: string) {
     this.outputBuffer += data
     this.dispatch({ type: 'OUTPUT', data })
+    docsEventBus.emit('terminal:output', data)
+
+    // Process output through hints service for contextual hints
+    hintsService.processOutput(data)
 
     // Check if we should auto-advance
     const currentStep = this.tutorialState.tutorial.steps[this.tutorialState.currentStepIndex]
@@ -109,8 +139,15 @@ export class SkilletReactiveDocs extends LitElement {
           clearTimeout(this.advanceTimeout)
         }
         this.advanceTimeout = setTimeout(() => {
+          // Celebrate step completion
+          celebrationService.celebrateStep(
+            this.tutorialState.currentStepIndex,
+            currentStep.title
+          )
+
           this.dispatch({ type: 'ADVANCE' })
           this.outputBuffer = ''
+          hintsService.clearAll()
         }, 1000)
       }
     }
@@ -122,6 +159,9 @@ export class SkilletReactiveDocs extends LitElement {
 
     this.dispatch({ type: 'EXECUTE_START' })
     this.outputBuffer = ''
+    hintsService.clearAll()
+
+    docsEventBus.emit('docs:execute', currentStep.command)
 
     try {
       await this.terminal.executeCommand(currentStep.command)
@@ -129,23 +169,31 @@ export class SkilletReactiveDocs extends LitElement {
       // If no watch pattern, advance after a delay
       if (!currentStep.watchPattern && !currentStep.validate) {
         setTimeout(() => {
+          celebrationService.celebrateStep(
+            this.tutorialState.currentStepIndex,
+            currentStep.title
+          )
           this.dispatch({ type: 'ADVANCE' })
         }, 1500)
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Command failed'
       this.dispatch({ type: 'ERROR', message })
+      docsEventBus.emit('terminal:error', message)
     }
   }
 
   private handleSkip() {
     this.dispatch({ type: 'SKIP' })
     this.outputBuffer = ''
+    hintsService.clearAll()
   }
 
   private handleReset() {
     this.dispatch({ type: 'RESET' })
     this.outputBuffer = ''
+    hintsService.reset()
+    celebrationService.clearHistory()
   }
 
   disconnectedCallback() {

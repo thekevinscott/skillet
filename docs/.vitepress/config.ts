@@ -25,7 +25,8 @@ export default defineConfig({
     sidebar: [
       { text: 'Overview', link: '/' },
       { text: 'Getting Started', link: '/getting-started' },
-      { text: 'Interactive Tutorial', link: '/interactive-tutorial' }
+      { text: 'Interactive Tutorial', link: '/interactive-tutorial' },
+      { text: 'Tutorial (Reactive)', link: '/interactive-tutorial-reactive' }
     ],
 
     // Right sidebar - "On this page" outline
