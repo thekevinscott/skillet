@@ -15,6 +15,7 @@ export default {
       await import('../../components/claude-terminal/index.js')
       await import('../../components/local-llm-terminal/index.js')
       await import('../../components/unified-terminal/index.js')
+      await import('../../components/cinematic-tutorial/index.js')
     }
   }
 } satisfies Theme
