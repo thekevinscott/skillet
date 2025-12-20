@@ -293,12 +293,16 @@ h1, h2, h3, h4,
 }
 
 /* Active sidebar item - left border indicator like agentskills.io */
-.VPSidebarItem.is-active > .item > .link {
+.VPSidebarItem > .item > .link {
   position: relative;
+  transition: padding-left 0.2s ease;
+}
+
+.VPSidebarItem.is-active > .item > .link {
   padding-left: 12px;
 }
 
-.VPSidebarItem.is-active > .item > .link::before {
+.VPSidebarItem > .item > .link::before {
   content: '';
   position: absolute;
   left: 0;
@@ -307,6 +311,14 @@ h1, h2, h3, h4,
   width: 2px;
   background-color: var(--vp-c-brand-1);
   border-radius: 1px;
+  opacity: 0;
+  transform: scaleY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.VPSidebarItem.is-active > .item > .link::before {
+  opacity: 1;
+  transform: scaleY(1);
 }
 
 /* Feature cards - clean borders */
