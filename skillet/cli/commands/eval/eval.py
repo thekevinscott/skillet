@@ -7,7 +7,8 @@ from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.eval import evaluate
 
-from .scripts import get_scripts_from_evals, prompt_for_script_confirmation
+from .get_scripts_from_evals import get_scripts_from_evals
+from .prompt_for_script_confirmation import prompt_for_script_confirmation
 from .summarize import summarize_responses
 
 logger = logging.getLogger(__name__)
