@@ -1,5 +1,7 @@
 """Tests for cli/display/live module."""
 
+from unittest.mock import patch
+
 import pytest
 
 from skillet.cli.display.live import CACHED, FAIL, PASS, PENDING, RUNNING, LiveDisplay
@@ -127,7 +129,8 @@ def describe_LiveDisplay():
         await display.update(tasks[0], "done", {"pass": True})
         await display.stop()
 
-    def it_finalize_prints_results(capsys):
+    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    def it_finalize_prints_results(mock_get_rate_color, capsys):
         tasks = [
             {"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"},
             {"eval_idx": 0, "iteration": 1, "eval_source": "test.yaml"},
@@ -141,8 +144,10 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "test.yaml" in captured.out
         assert "50%" in captured.out
+        mock_get_rate_color.assert_called_with(50.0)
 
-    def it_finalize_shows_cached_results(capsys):
+    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    def it_finalize_shows_cached_results(mock_get_rate_color, capsys):
         tasks = [
             {"eval_idx": 0, "iteration": 0, "eval_source": "cached.yaml"},
         ]
@@ -154,8 +159,10 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "cached.yaml" in captured.out
         assert "100%" in captured.out
+        mock_get_rate_color.assert_called_with(100.0)
 
-    def it_finalize_handles_pending_tasks(capsys):
+    @patch("skillet.cli.display.live.get_rate_color", return_value="red")
+    def it_finalize_handles_pending_tasks(mock_get_rate_color, capsys):
         tasks = [
             {"eval_idx": 0, "iteration": 0, "eval_source": "pending.yaml"},
         ]
@@ -166,3 +173,4 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "pending.yaml" in captured.out
         assert "0%" in captured.out
+        mock_get_rate_color.assert_called_with(0.0)

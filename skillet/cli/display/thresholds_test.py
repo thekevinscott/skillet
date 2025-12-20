@@ -1,5 +1,7 @@
 """Tests for pass rate threshold helpers."""
 
+import pytest
+
 from skillet.cli.display.thresholds import (
     PASS_RATE_GREEN,
     PASS_RATE_YELLOW,
@@ -20,26 +22,23 @@ def describe_constants():
 def describe_get_rate_color():
     """Tests for get_rate_color function."""
 
-    def it_returns_green_at_100():
-        assert get_rate_color(100) == "green"
-
-    def it_returns_green_at_80():
-        assert get_rate_color(80) == "green"
-
-    def it_returns_yellow_at_79():
-        assert get_rate_color(79) == "yellow"
-
-    def it_returns_yellow_at_50():
-        assert get_rate_color(50) == "yellow"
-
-    def it_returns_red_at_49():
-        assert get_rate_color(49) == "red"
-
-    def it_returns_red_at_0():
-        assert get_rate_color(0) == "red"
-
-    def it_handles_float_values():
-        assert get_rate_color(80.0) == "green"
-        assert get_rate_color(79.9) == "yellow"
-        assert get_rate_color(50.0) == "yellow"
-        assert get_rate_color(49.9) == "red"
+    @pytest.mark.parametrize(
+        ("pass_rate", "expected_color"),
+        [
+            # Green: >= 80
+            (100, "green"),
+            (80, "green"),
+            (80.0, "green"),
+            # Yellow: >= 50 and < 80
+            (79, "yellow"),
+            (79.9, "yellow"),
+            (50, "yellow"),
+            (50.0, "yellow"),
+            # Red: < 50
+            (49, "red"),
+            (49.9, "red"),
+            (0, "red"),
+        ],
+    )
+    def it_returns_correct_color(pass_rate: float, expected_color: str):
+        assert get_rate_color(pass_rate) == expected_color
