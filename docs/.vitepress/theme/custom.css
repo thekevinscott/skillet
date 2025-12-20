@@ -161,7 +161,7 @@ h1, h2, h3, h4,
   text-decoration: underline;
 }
 
-/* Navigation - clean and minimal */
+/* Navigation - clean and minimal like agentskills.io */
 .VPNavBar {
   border-bottom: 1px solid var(--vp-c-border);
   backdrop-filter: blur(12px);
@@ -178,6 +178,106 @@ h1, h2, h3, h4,
   font-weight: 500;
 }
 
+/* Search - styled like agentskills.io */
+.VPNavBarSearch {
+  padding-left: 16px;
+}
+
+.VPNavBarSearch .DocSearch-Button {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-border);
+  border-radius: 6px;
+}
+
+.VPNavBarSearch .DocSearch-Button:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+/* "On this page" outline - ensure visibility at wider viewports */
+@media (min-width: 1280px) {
+  .VPDoc:not(.has-sidebar) .VPDocAside {
+    display: block;
+  }
+
+  .VPDoc .aside {
+    display: block !important;
+  }
+
+  .VPDoc.has-aside .content-container {
+    max-width: 752px;
+  }
+}
+
+.VPDocAsideOutline .outline-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.VPDocAsideOutline .outline-link {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+  transition: color 0.15s ease;
+}
+
+.VPDocAsideOutline .outline-link:hover,
+.VPDocAsideOutline .outline-link.active {
+  color: var(--vp-c-brand-1);
+}
+
+/* Card grid for Get Started section */
+.vp-doc .card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .vp-doc .card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .vp-doc .card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.vp-doc .card {
+  display: block;
+  padding: 20px;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 8px;
+  text-decoration: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: var(--vp-c-bg);
+}
+
+.vp-doc .card:hover {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 2px 12px rgba(139, 115, 85, 0.08);
+}
+
+.vp-doc .card h3 {
+  margin: 0 0 8px 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  font-size: 15px !important;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc .card p {
+  margin: 0 !important;
+  font-size: 14px;
+  color: var(--vp-c-text-2);
+  line-height: 1.5;
+}
+
 /* Sidebar - flat navigation like agentskills.io */
 .VPSidebar {
   border-right: 1px solid var(--vp-c-border);
@@ -190,6 +290,35 @@ h1, h2, h3, h4,
 
 .VPSidebarItem.is-active > .item > .link > .text {
   color: var(--vp-c-brand-1);
+}
+
+/* Active sidebar item - left border indicator like agentskills.io */
+.VPSidebarItem > .item > .link {
+  position: relative;
+  transition: padding-left 0.2s ease;
+}
+
+.VPSidebarItem.is-active > .item > .link {
+  padding-left: 12px;
+}
+
+.VPSidebarItem > .item > .link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background-color: var(--vp-c-brand-1);
+  border-radius: 1px;
+  opacity: 0;
+  transform: scaleY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.VPSidebarItem.is-active > .item > .link::before {
+  opacity: 1;
+  transform: scaleY(1);
 }
 
 /* Feature cards - clean borders */

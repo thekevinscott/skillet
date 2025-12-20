@@ -11,26 +11,38 @@ export default defineConfig({
   themeConfig: {
     logo: '/favicon.svg',
 
+    // Search
+    search: {
+      provider: 'local'
+    },
+
+    // Minimal top nav like agentskills.io
     nav: [
-      { text: 'Home', link: '/' },
+      { text: 'GitHub', link: 'https://github.com/thekevinscott/skillet' }
+    ],
+
+    // Left sidebar - flat navigation
+    sidebar: [
+      { text: 'Overview', link: '/' },
       { text: 'Getting Started', link: '/getting-started' },
       { text: 'Interactive Tutorial', link: '/interactive-tutorial' }
     ],
 
-    sidebar: [
-      {
-        text: 'Guide',
-        items: [
-          { text: 'Overview', link: '/' },
-          { text: 'Getting Started', link: '/getting-started' },
-          { text: 'Interactive Tutorial', link: '/interactive-tutorial' }
-        ]
-      }
-    ],
+    // Right sidebar - "On this page" outline
+    outline: {
+      level: [2, 3],
+      label: 'On this page'
+    },
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/thekevinscott/skillet' }
-    ]
+    ],
+
+    // Footer
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2024-present'
+    }
   },
 
   vue: {
