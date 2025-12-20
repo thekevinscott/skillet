@@ -6,10 +6,10 @@ from rich.panel import Panel
 
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
-from skillet.cli.display.thresholds import PASS_RATE_YELLOW, get_rate_color
 from skillet.evals import load_evals
 from skillet.tune import TuneResult, tune
 
+from ...display.thresholds import PASS_RATE_YELLOW, get_rate_color
 from .output_path import get_default_output_path
 from .print_result import print_tune_result
 

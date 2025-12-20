@@ -17,14 +17,12 @@ def print_tune_result(result: TuneResult) -> None:
             f"[bold green]✓ Improved over baseline: "
             f"{baseline:.0f}% → {best:.0f}% (+{delta:.0f}%)[/bold green]"
         )
-    elif delta == 0:
+    else:
+        # delta == 0: best stayed at baseline (round 1)
+        # Note: delta < 0 is impossible since TuneResult.add_round only updates
+        # final_pass_rate when the new round's rate is >= current best
         console.print(
             f"[bold yellow]→ No improvement: {baseline:.0f}% (best was round 1)[/bold yellow]"
-        )
-    else:
-        console.print(
-            f"[bold yellow]→ Best was baseline: {baseline:.0f}% "
-            f"(round {result.result.best_round})[/bold yellow]"
         )
 
     console.print(f"[dim]Completed {result.result.rounds_completed} rounds[/dim]")

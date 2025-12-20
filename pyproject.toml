@@ -60,6 +60,7 @@ max-statements = 50
 [tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, have many statements, and complex describe blocks
 "*_test.py" = ["PLR2004", "PLR0915", "C901"]
+"tests/**/*.py" = ["PLR2004", "PLR0915", "C901"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["skillet"]
