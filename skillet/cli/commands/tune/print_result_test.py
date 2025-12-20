@@ -1,5 +1,6 @@
 """Tests for print_tune_result function."""
 
+from pathlib import Path
 from unittest.mock import patch
 
 from skillet.cli.commands.tune.print_result import print_tune_result
@@ -10,7 +11,7 @@ def _make_tune_result(rounds: list[RoundResult]) -> TuneResult:
     """Create a TuneResult with the given rounds."""
     result = TuneResult.create(
         eval_set="test",
-        skill_path="/test/skill.md",
+        skill_path=Path("/test/skill.md"),
         original_skill="original",
         config=TuneConfig(
             max_rounds=5,
