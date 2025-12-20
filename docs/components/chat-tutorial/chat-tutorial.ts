@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit'
 import { property, state, query } from 'lit/decorators.js'
+import { unsafeHTML } from 'lit/directives/unsafe-html.js'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebContainer } from '@webcontainer/api'
@@ -724,7 +725,7 @@ Ready to build something real? Check out the [Getting Started](/getting-started)
           ${msg.type === 'assistant' ? '🍳' : '👤'}
         </div>
         <div class="message-bubble">
-          <div .innerHTML=${this.formatContent(msg.content)}></div>
+          ${unsafeHTML(this.formatContent(msg.content))}
           ${msg.actions?.length
             ? html`
                 <div class="actions">
