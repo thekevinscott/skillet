@@ -6,6 +6,8 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
+from .thresholds import get_rate_color
+
 console = Console()
 
 # Status symbols with colors
@@ -118,7 +120,7 @@ class LiveDisplay:
                     symbols.append(PENDING)
 
             pct = pass_count / len(iterations) * 100 if iterations else 0
-            pct_color = "green" if pct >= 80 else "yellow" if pct >= 50 else "red"
+            pct_color = get_rate_color(pct)
             console.print(
                 f"  [cyan]{eval_item['source']}[/cyan]: {' '.join(symbols)} "
                 f"[{pct_color}]({pct:.0f}%)[/{pct_color}]"

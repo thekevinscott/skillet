@@ -6,13 +6,15 @@ from rich.panel import Panel
 
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
+from skillet.cli.display.thresholds import PASS_RATE_YELLOW, get_rate_color
 from skillet.evals import load_evals
 from skillet.tune import TuneResult, tune
 
 from .output_path import get_default_output_path
+from .print_result import print_tune_result
 
 
-async def tune_command(
+async def tune_command(  # noqa: C901 - complexity from inline display callbacks
     name: str,
     skill_path: Path,
     max_rounds: int = 5,
@@ -89,12 +91,11 @@ async def tune_command(
             await display.stop()
 
         console.print()
+        # Use green if target met, otherwise use threshold-based coloring
         if pass_rate >= target_pass_rate:
             rate_color = "green"
-        elif pass_rate >= 50:
-            rate_color = "yellow"
         else:
-            rate_color = "red"
+            rate_color = get_rate_color(pass_rate) if pass_rate >= PASS_RATE_YELLOW else "red"
         console.print(f"Pass rate: [{rate_color}]{pass_rate:.0f}%[/{rate_color}]")
 
         failures = [r for r in results if not r["pass"]]
@@ -122,28 +123,7 @@ async def tune_command(
         on_improved=on_improved,
     )
 
-    # Compare against baseline (round 1)
-    console.print()
-    baseline = result.rounds[0].pass_rate if result.rounds else 0
-    best = result.result.final_pass_rate
-    delta = best - baseline
-
-    if delta > 0:
-        console.print(
-            f"[bold green]✓ Improved over baseline: "
-            f"{baseline:.0f}% → {best:.0f}% (+{delta:.0f}%)[/bold green]"
-        )
-    elif delta == 0:
-        console.print(
-            f"[bold yellow]→ No improvement: {baseline:.0f}% (best was round 1)[/bold yellow]"
-        )
-    else:
-        console.print(
-            f"[bold yellow]→ Best was baseline: {baseline:.0f}% "
-            f"(round {result.result.best_round})[/bold yellow]"
-        )
-
-    console.print(f"[dim]Completed {result.result.rounds_completed} rounds[/dim]")
+    print_tune_result(result)
 
     # Save results (always saves, either to provided path or default)
     result.save(output_path)

@@ -19,7 +19,7 @@ from .run_prompt import run_prompt
 from .run_script import run_script
 
 
-async def run_single_eval(
+async def run_single_eval(  # noqa: C901, PLR0912 - orchestration with cache/script/eval logic
     task: dict,
     name: str,
     skill_path: Path | None,

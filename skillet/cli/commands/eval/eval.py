@@ -5,6 +5,7 @@ from pathlib import Path
 
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
+from skillet.cli.display.thresholds import get_rate_color
 from skillet.eval import evaluate
 
 from .get_scripts_from_evals import get_scripts_from_evals
@@ -107,13 +108,7 @@ async def eval_command(
             f"{eval_result['fresh_count']} fresh"
         )
 
-    rate_color = (
-        "green"
-        if eval_result["pass_rate"] >= 80
-        else "yellow"
-        if eval_result["pass_rate"] >= 50
-        else "red"
-    )
+    rate_color = get_rate_color(eval_result["pass_rate"])
     console.print(
         f"Overall pass rate: [{rate_color}]{eval_result['pass_rate']:.0f}%[/{rate_color}] "
         f"({eval_result['total_pass']}/{eval_result['total_runs']})"

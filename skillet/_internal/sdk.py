@@ -56,7 +56,7 @@ async def query_assistant_text(prompt: str, **options: Any) -> str:
     return result.strip()
 
 
-async def query_multiturn(
+async def query_multiturn(  # noqa: C901 - complexity from SDK protocol handling
     prompts: list[str],
     **options: Any,
 ) -> QueryResult:

@@ -102,7 +102,7 @@ def _results_to_eval_results(results: list[dict]) -> list[EvalResult]:
     ]
 
 
-async def tune(
+async def tune(  # noqa: PLR0913 - many args due to optional progress callbacks
     name: str,
     skill_path: Path,
     max_rounds: int = 5,
