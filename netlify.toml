@@ -1,6 +1,7 @@
 [build]
+  # Build happens in GitHub Actions (zero Netlify build minutes)
+  # Netlify only serves static files with headers/redirects
   base = "docs"
-  command = "npm run build"
   publish = ".vitepress/dist"
 
 # Required for WebContainer to work
