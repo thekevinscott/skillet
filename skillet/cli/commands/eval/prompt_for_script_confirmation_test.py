@@ -15,9 +15,7 @@ def describe_prompt_for_script_confirmation():
     @pytest.fixture
     def mock_console():
         """Mock the console for testing."""
-        with patch(
-            "skillet.cli.commands.eval.prompt_for_script_confirmation.console"
-        ) as mock:
+        with patch("skillet.cli.commands.eval.prompt_for_script_confirmation.console") as mock:
             yield mock
 
     def it_returns_true_when_user_confirms_with_y(mock_console):
