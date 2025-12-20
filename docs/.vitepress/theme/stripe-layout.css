@@ -1,0 +1,135 @@
+/**
+ * Stripe-style documentation layout
+ * Two columns: prose on left, sticky code/terminal on right
+ */
+
+/* Two-column section container */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  margin: 32px 0;
+  align-items: start;
+}
+
+/* Left column: prose content */
+.two-col .prose {
+  /* Normal flow */
+}
+
+/* Right column: sticky terminal/code */
+.two-col .sticky {
+  position: sticky;
+  top: calc(var(--vp-nav-height, 64px) + 24px);
+  max-height: calc(100vh - var(--vp-nav-height, 64px) - 48px);
+}
+
+/* Terminal wrapper styling */
+.two-col .terminal-wrap {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-border, #e5e7eb);
+  background: #1a1a1a;
+}
+
+.two-col .terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #252525;
+  border-bottom: 1px solid #333;
+}
+
+.two-col .terminal-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #333;
+}
+
+.two-col .terminal-dot.red { background: #ff5f56; }
+.two-col .terminal-dot.yellow { background: #ffbd2e; }
+.two-col .terminal-dot.green { background: #27c93f; }
+
+.two-col .terminal-title {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: #888;
+  font-family: var(--vp-font-family-mono);
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 960px) {
+  .two-col {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .two-col .sticky {
+    position: relative;
+    top: 0;
+    max-height: 400px;
+  }
+}
+
+/* Full-width terminal (not in two-col) */
+.terminal-full {
+  margin: 24px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-border, #e5e7eb);
+}
+
+/* Run button overlay */
+.terminal-wrap .run-button {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  padding: 8px 16px;
+  background: var(--vp-c-brand-1, #8B7355);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.terminal-wrap:hover .run-button {
+  opacity: 1;
+}
+
+.terminal-wrap .run-button:hover {
+  background: var(--vp-c-brand-3, #5C4D3D);
+}
+
+/* Command preview in prose */
+.command-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--vp-c-bg-soft, #f5f5f5);
+  border: 1px solid var(--vp-c-border, #e5e7eb);
+  border-radius: 6px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 14px;
+}
+
+.command-inline .copy-btn {
+  padding: 2px 6px;
+  background: transparent;
+  border: none;
+  color: var(--vp-c-text-3);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.command-inline .copy-btn:hover {
+  color: var(--vp-c-brand-1);
+}
