@@ -2,7 +2,7 @@
 
 Experience Skillet in action with this hands-on tutorial. The terminal below is a real sandboxed environment - click **Show me** to watch commands execute, or type your own.
 
-<skillet-reactive-docs></skillet-reactive-docs>
+<skillet-reactive-docs mode="scroll-snap" height="700px"></skillet-reactive-docs>
 
 ## How it works
 
