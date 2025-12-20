@@ -6,21 +6,24 @@
   display: flex;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--vp-c-border, #e5e7eb);
+  background: var(--vp-c-bg, #ffffff);
 }
 
 .docs-pane {
   width: 40%;
   min-width: 300px;
   max-width: 500px;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--vp-c-border, #e5e7eb);
+  background: var(--vp-c-bg-soft, #f9f9f9);
 }
 
 .terminal-pane {
   flex: 1;
   position: relative;
   min-width: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .terminal-loading {
@@ -37,13 +40,14 @@
   color: #d4d4d4;
   gap: 12px;
   z-index: 10;
+  border-radius: 0 0 11px 0;
 }
 
 .spinner {
   width: 24px;
   height: 24px;
   border: 3px solid #333;
-  border-top-color: #8B7355;
+  border-top-color: var(--skillet-primary, #8B7355);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

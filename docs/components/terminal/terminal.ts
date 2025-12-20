@@ -177,12 +177,13 @@ export class SkilletTerminal extends LitElement {
 
   /**
    * Type text character by character with animation
+   * Note: We only write to inputWriter, not xterm directly,
+   * because the shell echoes input back to the terminal.
    */
   async typeText(text: string, delay = 50): Promise<void> {
     if (!this.inputWriter) return
 
     for (const char of text) {
-      this.xterm?.write(char)
       await this.inputWriter.write(char)
       await this.sleep(delay)
     }

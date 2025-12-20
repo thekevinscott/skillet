@@ -1,9 +1,13 @@
 :host {
   display: block;
+  height: 100%;
 }
 
 .terminal-wrapper {
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .terminal-status {
@@ -11,7 +15,7 @@
   top: 8px;
   right: 8px;
   padding: 4px 8px;
-  background: #3b82f6;
+  background: var(--skillet-primary, #8B7355);
   color: white;
   border-radius: 4px;
   font-size: 12px;
@@ -27,7 +31,30 @@
 }
 
 .terminal-container {
+  flex: 1;
+  min-height: 0;
   border-radius: 8px;
   overflow: hidden;
   background: #1a1a1a;
+}
+
+/* Ensure xterm fills container */
+.terminal-container .xterm {
+  height: 100%;
+}
+
+.terminal-container .xterm-viewport {
+  overflow-y: auto !important;
+}
+
+/* Hide xterm's helper textarea (used for clipboard/IME) */
+.terminal-container .xterm-helper-textarea {
+  position: absolute !important;
+  opacity: 0 !important;
+  left: -9999px !important;
+  top: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  z-index: -10 !important;
+  pointer-events: none !important;
 }
