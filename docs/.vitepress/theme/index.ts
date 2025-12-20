@@ -1,9 +1,11 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
+import ReactiveLayout from './ReactiveLayout.vue'
 import './custom.css'
 
 export default {
   extends: DefaultTheme,
+  Layout: ReactiveLayout,
   async enhanceApp() {
     // Only run in browser (not during SSR)
     if (typeof window !== 'undefined') {
@@ -11,6 +13,7 @@ export default {
       await import('../../components/terminal/index.js')
       await import('../../components/docs-panel/index.js')
       await import('../../components/reactive-docs/index.js')
+      await import('../../components/scrolling-docs/index.js')
       await import('../../components/api-key-input/index.js')
       await import('../../components/claude-terminal/index.js')
       await import('../../components/local-llm-terminal/index.js')
