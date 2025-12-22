@@ -474,11 +474,11 @@ a, button {
   background: rgba(196, 181, 165, 0.04);
 }
 
-/* Two-column layout using ::: columns container */
+/* Two-column layout - code on right, prose on left */
 .vp-doc .columns {
   display: flex;
   gap: 2rem;
-  margin: 2rem 0;
+  margin: 1rem 0 2rem 0;
 }
 
 .vp-doc .columns > .left {

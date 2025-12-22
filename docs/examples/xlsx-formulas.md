@@ -10,10 +10,10 @@ Teaching Claude to create dynamic spreadsheets instead of static tables.
 This page demonstrates [Anthropic's 5-step process for building effective skills](https://www.anthropic.com/engineering/claude-code-best-practices) using Excel formula generation as a concrete example.
 :::
 
+## The Problem
+
 <div class="columns">
 <div class="left">
-
-## The Problem
 
 Claude can generate Excel files using `openpyxl`. But without guidance, it takes shortcuts:
 
@@ -38,10 +38,10 @@ sheet['D2'] = '=B2*C2'  # Formula!
 </div>
 </div>
 
+## Step 1: Identify Gaps
+
 <div class="columns">
 <div class="left">
-
-## Step 1: Identify Gaps
 
 First, we ask Claude to create a spreadsheet and observe what goes wrong:
 
@@ -75,10 +75,10 @@ sheet['D4'] = 11240     # ⚠️ Hardcoded!
 </div>
 </div>
 
+## Step 2: Create Evaluations
+
 <div class="columns">
 <div class="left">
-
-## Step 2: Create Evaluations
 
 Now we **capture** this failure as an evaluation using the Skillet workflow:
 
@@ -110,10 +110,10 @@ expected: |
 </div>
 </div>
 
+## Step 3: Establish Baseline
+
 <div class="columns">
 <div class="left">
-
-## Step 3: Establish Baseline
 
 Run the evaluations *without* a skill to see how Claude performs by default:
 
@@ -144,10 +144,10 @@ Results: 1/4 (25%)
 </div>
 </div>
 
+## Step 4: Write Minimal Instructions
+
 <div class="columns">
 <div class="left">
-
-## Step 4: Write Minimal Instructions
 
 Create a skill file with **just enough** guidance to fix the failures:
 
@@ -176,10 +176,10 @@ The skill is minimal—we're not writing a textbook. Just the critical rules.
 </div>
 </div>
 
+## Step 5: Iterate
+
 <div class="columns">
 <div class="left">
-
-## Step 5: Iterate
 
 Run the evaluations again—now *with* the skill:
 
