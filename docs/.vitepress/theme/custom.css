@@ -474,35 +474,35 @@ a, button {
   background: rgba(196, 181, 165, 0.04);
 }
 
-/* Two-column layout */
-.columns {
+/* Two-column layout using ::: columns container */
+.vp-doc .columns {
   display: flex;
   gap: 2rem;
   margin: 2rem 0;
 }
 
-.columns .left {
+.vp-doc .columns > .left {
   flex: 1;
   min-width: 0;
 }
 
-.columns .right {
+.vp-doc .columns > .right {
   width: 45%;
 }
 
-.columns .right > * {
+.vp-doc .columns > .right > * {
   position: sticky;
   top: 80px;
 }
 
 @media (max-width: 768px) {
-  .columns {
+  .vp-doc .columns {
     flex-direction: column;
   }
-  .columns .right {
+  .vp-doc .columns > .right {
     width: 100%;
   }
-  .columns .right > * {
+  .vp-doc .columns > .right > * {
     position: static;
   }
 }

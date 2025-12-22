@@ -10,8 +10,9 @@ Teaching Claude to create dynamic spreadsheets instead of static tables.
 This page demonstrates [Anthropic's 5-step process for building effective skills](https://www.anthropic.com/engineering/claude-code-best-practices) using Excel formula generation as a concrete example.
 :::
 
-<div class="columns">
-<div class="left">
+::: columns
+
+::: left
 
 ## The Problem
 
@@ -24,8 +25,9 @@ Claude can generate Excel files using `openpyxl`. But without guidance, it takes
 
 The spreadsheet *looks* right but doesn't *work* like one.
 
-</div>
-<div class="right">
+:::
+
+::: right
 
 ```python
 # What Claude writes:
@@ -35,11 +37,13 @@ sheet['D2'] = 5000      # Hardcoded!
 sheet['D2'] = '=B2*C2'  # Formula!
 ```
 
-</div>
-</div>
+:::
 
-<div class="columns">
-<div class="left">
+:::
+
+::: columns
+
+::: left
 
 ## Step 1: Identify Gaps
 
@@ -52,8 +56,9 @@ First, we ask Claude to create a spreadsheet and observe what goes wrong:
 
 Claude's response hardcodes the calculated values where formulas should be. This is the **gap** we want to fix.
 
-</div>
-<div class="right">
+:::
+
+::: right
 
 ```python
 # Claude's output:
@@ -72,11 +77,13 @@ sheet['D3'] = 6240      # ⚠️ Hardcoded!
 sheet['D4'] = 11240     # ⚠️ Hardcoded!
 ```
 
-</div>
-</div>
+:::
 
-<div class="columns">
-<div class="left">
+:::
+
+::: columns
+
+::: left
 
 ## Step 2: Create Evaluations
 
@@ -92,8 +99,9 @@ Skillet asks three questions:
 2. **What went wrong** with the response?
 3. **What should have happened** instead?
 
-</div>
-<div class="right">
+:::
+
+::: right
 
 ```yaml
 # evals/xlsx-formulas/001-uses-formulas.yaml
@@ -107,11 +115,13 @@ expected: |
   Total cell contains =SUM() formula.
 ```
 
-</div>
-</div>
+:::
 
-<div class="columns">
-<div class="left">
+:::
+
+::: columns
+
+::: left
 
 ## Step 3: Establish Baseline
 
@@ -125,8 +135,9 @@ skillet eval xlsx-formulas
 
 This is our baseline. Claude knows formulas exist but doesn't use them consistently.
 
-</div>
-<div class="right">
+:::
+
+::: right
 
 ```
 $ skillet eval xlsx-formulas
@@ -141,11 +152,13 @@ Running 4 evaluations...
 Results: 1/4 (25%)
 ```
 
-</div>
-</div>
+:::
 
-<div class="columns">
-<div class="left">
+:::
+
+::: columns
+
+::: left
 
 ## Step 4: Write Minimal Instructions
 
@@ -153,8 +166,9 @@ Create a skill file with **just enough** guidance to fix the failures:
 
 The skill is minimal—we're not writing a textbook. Just the critical rules.
 
-</div>
-<div class="right">
+:::
+
+::: right
 
 ```markdown
 # skills/xlsx-formulas/SKILL.md
@@ -173,11 +187,13 @@ The skill is minimal—we're not writing a textbook. Just the critical rules.
 - '=(B2-B1)/B1'   # Growth rate
 ```
 
-</div>
-</div>
+:::
 
-<div class="columns">
-<div class="left">
+:::
+
+::: columns
+
+::: left
 
 ## Step 5: Iterate
 
@@ -193,8 +209,9 @@ The journey: **25% → 100%**
 
 The evals are your proof. Re-run them anytime to verify the skill still works.
 
-</div>
-<div class="right">
+:::
+
+::: right
 
 ```
 $ skillet eval xlsx-formulas
@@ -209,5 +226,6 @@ Running 4 evaluations...
 Results: 4/4 (100%)
 ```
 
-</div>
-</div>
+:::
+
+:::
