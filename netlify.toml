@@ -1,6 +1,7 @@
 [build]
-  # Build happens in GitHub Actions (zero Netlify build minutes)
-  # Netlify only serves static files with headers/redirects
+  # Deploys happen via GitHub Actions - skip Netlify native builds
+  # ignore returns 0 = skip build, 1 = proceed with build
+  ignore = "exit 0"
   base = "docs"
   publish = ".vitepress/dist"
 
