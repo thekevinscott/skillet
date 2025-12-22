@@ -120,9 +120,7 @@ def describe_eval_command():
     async def it_aborts_when_scripts_not_confirmed(mock_get_scripts, mock_evaluate):
         """Aborts if user doesn't confirm scripts."""
         mock_get_scripts.return_value = [("test.yaml", "setup", "echo test")]
-        with patch(
-            "skillet.cli.commands.eval.eval.prompt_for_script_confirmation"
-        ) as mock_prompt:
+        with patch("skillet.cli.commands.eval.eval.prompt_for_script_confirmation") as mock_prompt:
             mock_prompt.return_value = False
             await eval_command("my-evals")
             mock_evaluate.assert_not_called()
@@ -131,9 +129,7 @@ def describe_eval_command():
     async def it_skips_script_prompt_with_trust_flag(mock_get_scripts, mock_evaluate):
         """Skips script confirmation when trust=True."""
         mock_get_scripts.return_value = [("test.yaml", "setup", "echo test")]
-        with patch(
-            "skillet.cli.commands.eval.eval.prompt_for_script_confirmation"
-        ) as mock_prompt:
+        with patch("skillet.cli.commands.eval.eval.prompt_for_script_confirmation") as mock_prompt:
             await eval_command("my-evals", trust=True)
             mock_prompt.assert_not_called()
             mock_evaluate.assert_called_once()

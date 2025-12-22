@@ -15,9 +15,7 @@ def describe_run_single_eval():
     @pytest.fixture(autouse=True)
     def mock_cache_lock():
         """Mock cache_lock to avoid creating MagicMock directories."""
-        with patch(
-            "skillet.eval.evaluate.cache_lock", lambda _: nullcontext()
-        ):
+        with patch("skillet.eval.evaluate.cache_lock", lambda _: nullcontext()):
             yield
 
     @pytest.fixture(autouse=True)
@@ -453,9 +451,7 @@ def describe_exception_handling():
     @pytest.fixture(autouse=True)
     def mock_cache_lock():
         """Mock cache_lock to avoid creating MagicMock directories."""
-        with patch(
-            "skillet.eval.evaluate.cache_lock", lambda _: nullcontext()
-        ):
+        with patch("skillet.eval.evaluate.cache_lock", lambda _: nullcontext()):
             yield
 
     @pytest.fixture(autouse=True)
