@@ -2,18 +2,22 @@
 title: "Excel Formulas"
 ---
 
+<script setup>
+import { ref, onMounted } from 'vue'
+</script>
+
 # Excel Formulas
 
 Teaching Claude to create dynamic spreadsheets instead of static tables.
 
 ::: tip Example Walkthrough
-This page demonstrates [Anthropic's 5-step process for building effective skills](https://www.anthropic.com/engineering/claude-code-best-practices) using Excel formula generation as a concrete example.
+This page demonstrates [Anthropic's 5-step process for building effective skills](https://www.anthropic.com/engineering/claude-code-best-practices) using Excel formula generation as a concrete example. Follow along in the terminal on the right!
 :::
 
-## The Problem
+<div class="tutorial-layout">
+<div class="tutorial-content">
 
-<div class="columns">
-<div class="left">
+## The Problem
 
 Claude can generate Excel files using `openpyxl`. But without guidance, it takes shortcuts:
 
@@ -24,18 +28,21 @@ Claude can generate Excel files using `openpyxl`. But without guidance, it takes
 
 The spreadsheet *looks* right but doesn't *work* like one.
 
-</div>
-<div class="right">
+When you ask Claude to create a revenue spreadsheet, it writes:
 
-<skillet-terminal height="200px"></skillet-terminal>
+```python
+sheet['D2'] = 5000      # Hardcoded!
+```
 
-</div>
-</div>
+Instead of:
+
+```python
+sheet['D2'] = '=B2*C2'  # Formula!
+```
+
+---
 
 ## Step 1: Identify Gaps
-
-<div class="columns">
-<div class="left">
 
 First, we ask Claude to create a spreadsheet and observe what goes wrong:
 
@@ -46,22 +53,15 @@ First, we ask Claude to create a spreadsheet and observe what goes wrong:
 
 Claude's response hardcodes the calculated values where formulas should be. This is the **gap** we want to fix.
 
-</div>
-<div class="right">
-
-<skillet-terminal height="300px"></skillet-terminal>
-
-</div>
-</div>
+---
 
 ## Step 2: Create Evaluations
 
-<div class="columns">
-<div class="left">
+Now we **capture** this failure as an evaluation using the Skillet workflow.
 
-Now we **capture** this failure as an evaluation using the Skillet workflow:
+Try it yourself - run this in the terminal:
 
-```
+```bash
 /skillet:add
 ```
 
@@ -71,18 +71,23 @@ Skillet asks three questions:
 2. **What went wrong** with the response?
 3. **What should have happened** instead?
 
-</div>
-<div class="right">
+This creates an eval file like:
 
-<skillet-terminal height="280px"></skillet-terminal>
+```yaml
+# evals/xlsx-formulas/001-uses-formulas.yaml
+prompt: |
+  Create an Excel file with Q1 sales data.
+  Calculate revenue from units and prices.
 
-</div>
-</div>
+expected: |
+  Uses Excel formulas for calculations.
+  Revenue cells contain =A2*B2 style formulas.
+  Total cell contains =SUM() formula.
+```
+
+---
 
 ## Step 3: Establish Baseline
-
-<div class="columns">
-<div class="left">
 
 Run the evaluations *without* a skill to see how Claude performs by default:
 
@@ -94,35 +99,34 @@ skillet eval xlsx-formulas
 
 This is our baseline. Claude knows formulas exist but doesn't use them consistently.
 
-</div>
-<div class="right">
-
-<skillet-terminal height="280px"></skillet-terminal>
-
-</div>
-</div>
+---
 
 ## Step 4: Write Minimal Instructions
 
-<div class="columns">
-<div class="left">
+Create a skill file with **just enough** guidance to fix the failures.
 
-Create a skill file with **just enough** guidance to fix the failures:
+The skill is minimal—we're not writing a textbook. Just the critical rules:
 
-The skill is minimal—we're not writing a textbook. Just the critical rules.
+```markdown
+# skills/xlsx-formulas/SKILL.md
 
-</div>
-<div class="right">
+**Always use formulas for calculations.**
 
-<skillet-terminal height="300px"></skillet-terminal>
+## Critical Rule
 
-</div>
-</div>
+❌ WRONG: sheet['B10'] = 5000
+✅ RIGHT: sheet['B10'] = '=SUM(B2:B9)'
+
+## Common Formulas
+
+- '=A2*B2'        # Multiply
+- '=SUM(C2:C9)'   # Sum range
+- '=(B2-B1)/B1'   # Growth rate
+```
+
+---
 
 ## Step 5: Iterate
-
-<div class="columns">
-<div class="left">
 
 Run the evaluations again—now *with* the skill:
 
@@ -137,9 +141,53 @@ The journey: **25% → 100%**
 The evals are your proof. Re-run them anytime to verify the skill still works.
 
 </div>
-<div class="right">
+<div class="tutorial-terminal">
 
-<skillet-terminal height="280px"></skillet-terminal>
+<skillet-terminal height="100%"></skillet-terminal>
 
 </div>
 </div>
+
+<style>
+.tutorial-layout {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.tutorial-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tutorial-terminal {
+  width: 45%;
+  position: sticky;
+  top: 80px;
+  height: calc(100vh - 120px);
+  max-height: 700px;
+}
+
+.tutorial-content hr {
+  margin: 2.5rem 0;
+  border: none;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.tutorial-content h2 {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+@media (max-width: 960px) {
+  .tutorial-layout {
+    flex-direction: column;
+  }
+  .tutorial-terminal {
+    width: 100%;
+    position: static;
+    height: 400px;
+  }
+}
+</style>
