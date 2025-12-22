@@ -95,11 +95,11 @@ def describe_print_tune_result():
             assert any("3 rounds" in call for call in calls)
 
     def it_handles_empty_rounds():
-        """Handles edge case of no rounds."""
+        """Handles edge case of no rounds with clear message."""
         result = _make_tune_result([])
 
         with patch("skillet.cli.commands.tune.print_result.console") as mock_console:
             print_tune_result(result)
 
-            # Should not crash, should print something
-            assert mock_console.print.called
+            calls = [str(call) for call in mock_console.print.call_args_list]
+            assert any("No rounds completed" in call for call in calls)

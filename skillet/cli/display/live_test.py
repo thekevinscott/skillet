@@ -144,6 +144,8 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "test.yaml" in captured.out
         assert "50%" in captured.out
+        # Verify get_rate_color is called with correct pass rate
+        # (Rich strips color markup in non-TTY output)
         mock_get_rate_color.assert_called_with(50.0)
 
     @patch("skillet.cli.display.live.get_rate_color", return_value="green")
@@ -159,6 +161,7 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "cached.yaml" in captured.out
         assert "100%" in captured.out
+        # Verify get_rate_color is called with correct pass rate
         mock_get_rate_color.assert_called_with(100.0)
 
     @patch("skillet.cli.display.live.get_rate_color", return_value="red")
@@ -173,4 +176,5 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "pending.yaml" in captured.out
         assert "0%" in captured.out
+        # Verify get_rate_color is called with correct pass rate
         mock_get_rate_color.assert_called_with(0.0)

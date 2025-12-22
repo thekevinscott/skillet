@@ -6,9 +6,16 @@ from skillet.tune import TuneResult
 
 def print_tune_result(result: TuneResult) -> None:
     """Print the final tune result summary."""
-    # Compare against baseline (round 1)
     console.print()
-    baseline = result.rounds[0].pass_rate if result.rounds else 0
+
+    # Handle edge case of no rounds (e.g., early termination)
+    if not result.rounds:
+        console.print("[bold yellow]→ No rounds completed[/bold yellow]")
+        console.print(f"[dim]Completed {result.result.rounds_completed} rounds[/dim]")
+        return
+
+    # Compare against baseline (round 1)
+    baseline = result.rounds[0].pass_rate
     best = result.result.final_pass_rate
     delta = best - baseline
 
