@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import container from 'markdown-it-container'
 
 export default defineConfig({
   title: 'Skillet',
@@ -7,6 +8,27 @@ export default defineConfig({
   head: [
     ['link', { rel: 'icon', href: '/favicon.svg' }]
   ],
+
+  markdown: {
+    config: (md) => {
+      // Register custom containers for two-column layout
+      md.use(container, 'columns', {
+        render: (tokens: any[], idx: number) => {
+          return tokens[idx].nesting === 1 ? '<div class="columns">\n' : '</div>\n'
+        }
+      })
+      md.use(container, 'left', {
+        render: (tokens: any[], idx: number) => {
+          return tokens[idx].nesting === 1 ? '<div class="left">\n' : '</div>\n'
+        }
+      })
+      md.use(container, 'right', {
+        render: (tokens: any[], idx: number) => {
+          return tokens[idx].nesting === 1 ? '<div class="right">\n' : '</div>\n'
+        }
+      })
+    }
+  },
 
   themeConfig: {
     logo: '/favicon.svg',
