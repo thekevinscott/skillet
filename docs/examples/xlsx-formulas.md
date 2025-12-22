@@ -27,13 +27,7 @@ The spreadsheet *looks* right but doesn't *work* like one.
 </div>
 <div class="right">
 
-```python
-# What Claude writes:
-sheet['D2'] = 5000      # Hardcoded!
-
-# What it should write:
-sheet['D2'] = '=B2*C2'  # Formula!
-```
+<skillet-terminal height="200px"></skillet-terminal>
 
 </div>
 </div>
@@ -55,22 +49,7 @@ Claude's response hardcodes the calculated values where formulas should be. This
 </div>
 <div class="right">
 
-```python
-# Claude's output:
-sheet['A1'] = 'Month'
-sheet['B1'] = 'Units'
-sheet['C1'] = 'Price'
-sheet['D1'] = 'Revenue'
-sheet['A2'] = 'January'
-sheet['B2'] = 100
-sheet['C2'] = 50
-sheet['D2'] = 5000      # ⚠️ Hardcoded!
-sheet['A3'] = 'February'
-sheet['B3'] = 120
-sheet['C3'] = 52
-sheet['D3'] = 6240      # ⚠️ Hardcoded!
-sheet['D4'] = 11240     # ⚠️ Hardcoded!
-```
+<skillet-terminal height="300px"></skillet-terminal>
 
 </div>
 </div>
@@ -95,17 +74,7 @@ Skillet asks three questions:
 </div>
 <div class="right">
 
-```yaml
-# evals/xlsx-formulas/001-uses-formulas.yaml
-prompt: |
-  Create an Excel file with Q1 sales data.
-  Calculate revenue from units and prices.
-
-expected: |
-  Uses Excel formulas for calculations.
-  Revenue cells contain =A2*B2 style formulas.
-  Total cell contains =SUM() formula.
-```
+<skillet-terminal height="280px"></skillet-terminal>
 
 </div>
 </div>
@@ -128,18 +97,7 @@ This is our baseline. Claude knows formulas exist but doesn't use them consisten
 </div>
 <div class="right">
 
-```
-$ skillet eval xlsx-formulas
-
-Running 4 evaluations...
-
-✗ 001-uses-formulas
-✗ 002-sum-formula
-✗ 003-percentage-formula
-✓ 004-basic-structure
-
-Results: 1/4 (25%)
-```
+<skillet-terminal height="280px"></skillet-terminal>
 
 </div>
 </div>
@@ -156,22 +114,7 @@ The skill is minimal—we're not writing a textbook. Just the critical rules.
 </div>
 <div class="right">
 
-```markdown
-# skills/xlsx-formulas/SKILL.md
-
-**Always use formulas for calculations.**
-
-## Critical Rule
-
-❌ WRONG: sheet['B10'] = 5000
-✅ RIGHT: sheet['B10'] = '=SUM(B2:B9)'
-
-## Common Formulas
-
-- '=A2*B2'        # Multiply
-- '=SUM(C2:C9)'   # Sum range
-- '=(B2-B1)/B1'   # Growth rate
-```
+<skillet-terminal height="300px"></skillet-terminal>
 
 </div>
 </div>
@@ -196,18 +139,7 @@ The evals are your proof. Re-run them anytime to verify the skill still works.
 </div>
 <div class="right">
 
-```
-$ skillet eval xlsx-formulas
-
-Running 4 evaluations...
-
-✓ 001-uses-formulas
-✓ 002-sum-formula
-✓ 003-percentage-formula
-✓ 004-basic-structure
-
-Results: 4/4 (100%)
-```
+<skillet-terminal height="280px"></skillet-terminal>
 
 </div>
 </div>
