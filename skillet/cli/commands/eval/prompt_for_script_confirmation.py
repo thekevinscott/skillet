@@ -2,6 +2,9 @@
 
 from skillet.cli import console
 
+# Maximum line length for script preview before truncation
+MAX_SCRIPT_LINE_LENGTH = 60
+
 
 def prompt_for_script_confirmation(scripts: list[tuple[str, str, str]]) -> bool:
     """Show scripts and prompt user for confirmation.
@@ -20,8 +23,8 @@ def prompt_for_script_confirmation(scripts: list[tuple[str, str, str]]) -> bool:
         console.print(f"  [dim]{source}[/dim] ({script_type}):")
         # Show first line or truncated script
         first_line = script.split("\n")[0]
-        if len(first_line) > 60:
-            first_line = first_line[:57] + "..."
+        if len(first_line) > MAX_SCRIPT_LINE_LENGTH:
+            first_line = first_line[: MAX_SCRIPT_LINE_LENGTH - 3] + "..."
         console.print(f"    [cyan]{first_line}[/cyan]")
 
     console.print()

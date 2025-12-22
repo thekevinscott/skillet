@@ -38,6 +38,8 @@ git worktree remove .worktrees/my-feature
 - `Conversation` helper for multi-turn test flows
 - `setting_sources=["project"]` loads slash commands from `.claude/commands/`
 - Commands in subdirs get namespaced: `skillet/add.md` -> `/skillet:add`
+- Use `@pytest.mark.parametrize` when testing multiple inputs/outputs for the same logic
+- Mock external dependencies (like `get_rate_color`) to isolate unit tests
 
 ## Key Commands
 ```bash
