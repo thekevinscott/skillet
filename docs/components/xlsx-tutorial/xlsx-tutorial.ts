@@ -17,7 +17,7 @@ export class SkilletXlsxTutorial extends LitElement {
     .section {
       display: flex;
       min-height: 100vh;
-      border-bottom: 1px solid #e5e5e5;
+      border-bottom: 1px solid var(--vp-c-border);
     }
 
     .section:last-child {
@@ -31,6 +31,7 @@ export class SkilletXlsxTutorial extends LitElement {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      background: var(--vp-c-bg);
     }
 
     /* Right column - terminal */
@@ -113,18 +114,18 @@ export class SkilletXlsxTutorial extends LitElement {
       border-left: 3px solid #fbbf24;
     }
 
-    /* Content typography */
+    /* Content typography - use VitePress CSS vars for dark mode support */
     h1 {
       font-size: 2.5rem;
       font-weight: 700;
       margin: 0 0 8px 0;
       line-height: 1.2;
-      color: #111;
+      color: var(--vp-c-text-1);
     }
 
     .subtitle {
       font-size: 1.125rem;
-      color: #6b7280;
+      color: var(--vp-c-text-2);
       margin: 0 0 32px 0;
     }
 
@@ -132,20 +133,20 @@ export class SkilletXlsxTutorial extends LitElement {
       font-size: 1.75rem;
       font-weight: 600;
       margin: 0 0 16px 0;
-      color: #111;
+      color: var(--vp-c-text-1);
     }
 
     p {
       margin: 0 0 16px 0;
       line-height: 1.7;
-      color: #374151;
+      color: var(--vp-c-text-2);
       font-size: 1rem;
     }
 
     ul {
       margin: 0 0 16px 0;
       padding-left: 24px;
-      color: #374151;
+      color: var(--vp-c-text-2);
     }
 
     li {
@@ -154,12 +155,12 @@ export class SkilletXlsxTutorial extends LitElement {
     }
 
     code {
-      background: #f3f4f6;
+      background: var(--vp-c-bg-soft);
       padding: 2px 6px;
       border-radius: 4px;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.875em;
-      color: #dc2626;
+      color: var(--vp-c-brand-1);
     }
 
     pre {
@@ -180,8 +181,8 @@ export class SkilletXlsxTutorial extends LitElement {
 
     .step-badge {
       display: inline-block;
-      background: #dbeafe;
-      color: #1d4ed8;
+      background: var(--vp-c-brand-soft);
+      color: var(--vp-c-brand-1);
       font-size: 0.75rem;
       font-weight: 600;
       padding: 4px 12px;
@@ -190,26 +191,26 @@ export class SkilletXlsxTutorial extends LitElement {
     }
 
     .result-box {
-      background: #f0fdf4;
-      border: 1px solid #86efac;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.3);
       border-radius: 8px;
       padding: 16px;
       margin: 16px 0;
     }
 
     .result-box.fail {
-      background: #fef2f2;
-      border-color: #fca5a5;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
     }
 
     .result-box .score {
       font-size: 1.5rem;
       font-weight: 700;
-      color: #16a34a;
+      color: #22c55e;
     }
 
     .result-box.fail .score {
-      color: #dc2626;
+      color: #ef4444;
     }
 
     /* Responsive */
