@@ -1,5 +1,4 @@
 ---
-layout: false
 title: "Excel Formulas - Use Case Walkthrough"
 ---
 
@@ -15,12 +14,17 @@ onMounted(() => { loaded.value = true })
 </ClientOnly>
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
-.VPNav, .VPSidebar, .VPFooter, .VPDocFooter, .VPDoc {
+/* Keep nav visible but hide sidebar and doc chrome */
+.VPSidebar, .VPDocFooter {
   display: none !important;
+}
+.VPDoc {
+  padding: 0 !important;
+}
+.VPDoc .container {
+  max-width: 100% !important;
+}
+.VPContent {
+  padding: 0 !important;
 }
 </style>
