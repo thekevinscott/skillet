@@ -6,6 +6,8 @@ export const TAG_NAME = 'skillet-xlsx-tutorial'
  * Excel formulas use case tutorial with Stripe-style layout.
  * Each section has its own content + terminal pair.
  * Terminals stick to viewport as you scroll through each section.
+ *
+ * v2: Multi-terminal layout (one terminal per section)
  */
 export class SkilletXlsxTutorial extends LitElement {
   static styles = css`
