@@ -473,3 +473,36 @@ a, button {
 .dark .vp-doc .custom-block.tip {
   background: rgba(196, 181, 165, 0.04);
 }
+
+/* Two-column layout */
+.columns {
+  display: flex;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.columns .left {
+  flex: 1;
+  min-width: 0;
+}
+
+.columns .right {
+  width: 45%;
+}
+
+.columns .right > * {
+  position: sticky;
+  top: 80px;
+}
+
+@media (max-width: 768px) {
+  .columns {
+    flex-direction: column;
+  }
+  .columns .right {
+    width: 100%;
+  }
+  .columns .right > * {
+    position: static;
+  }
+}
