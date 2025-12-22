@@ -6,9 +6,13 @@ title: "Excel Formulas"
 
 Teaching Claude to create dynamic spreadsheets instead of static tables.
 
+::: tip Example Walkthrough
+This page demonstrates [Anthropic's 5-step process for building effective skills](https://www.anthropic.com/engineering/claude-code-best-practices) using Excel formula generation as a concrete example.
+:::
+
 ## The Problem
 
-Claude can generate Excel files using openpyxl. But without guidance, it takes shortcuts:
+Claude can generate Excel files using `openpyxl`. But without guidance, it takes shortcuts:
 
 - **Hardcodes values** instead of using formulas
 - Creates spreadsheets that **don't update** when inputs change
