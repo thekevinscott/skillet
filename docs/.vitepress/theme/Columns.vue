@@ -1,15 +1,12 @@
-<script setup>
-import { useSlots } from 'vue'
-const slots = useSlots()
-</script>
-
 <template>
   <div class="columns">
     <div class="columns-left">
-      <slot />
+      <slot name="left" />
     </div>
     <div class="columns-right">
-      <slot name="code" />
+      <div class="columns-right-sticky">
+        <slot name="right" />
+      </div>
     </div>
   </div>
 </template>
@@ -28,10 +25,9 @@ const slots = useSlots()
 
 .columns-right {
   width: 45%;
-  position: relative;
 }
 
-.columns-right :deep(div) {
+.columns-right-sticky {
   position: sticky;
   top: 80px;
 }
@@ -43,7 +39,7 @@ const slots = useSlots()
   .columns-right {
     width: 100%;
   }
-  .columns-right :deep(div) {
+  .columns-right-sticky {
     position: static;
   }
 }
