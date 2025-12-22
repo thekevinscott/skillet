@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Security: `--trust` flag for eval command to skip script confirmation prompt
 - Security: Interactive confirmation prompt when evals contain setup/teardown scripts
+- Static analysis: mccabe complexity (C90) and pylint refactor (PLR) rules in ruff config
+- Shared `get_rate_color()` helper for consistent pass rate color coding
 
 ### Changed
 - **BREAKING:** CLI flag `--gaps/-g` renamed to `--max-evals/-m` for consistency

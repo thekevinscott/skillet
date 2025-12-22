@@ -41,12 +41,26 @@ select = [
     "I",      # isort
     "B",      # flake8-bugbear
     "C4",     # flake8-comprehensions
+    "C90",    # mccabe complexity
     "UP",     # pyupgrade
     "ARG",    # flake8-unused-arguments
     "SIM",    # flake8-simplify
     "PTH",    # flake8-use-pathlib
+    "PLR",    # pylint refactor
     "RUF",    # ruff-specific rules
 ]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 8
+max-statements = 50
+
+[tool.ruff.lint.per-file-ignores]
+# Tests can use magic values, have many statements, and complex describe blocks
+"*_test.py" = ["PLR2004", "PLR0915", "C901"]
+"tests/**/*.py" = ["PLR2004", "PLR0915", "C901"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["skillet"]
