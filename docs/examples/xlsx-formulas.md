@@ -2,6 +2,10 @@
 title: "Excel Formulas"
 ---
 
+<script setup>
+import Columns from '../.vitepress/theme/Columns.vue'
+</script>
+
 # Excel Formulas
 
 Teaching Claude to create dynamic spreadsheets instead of static tables.
