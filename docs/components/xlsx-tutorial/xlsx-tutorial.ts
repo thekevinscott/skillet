@@ -11,6 +11,9 @@ export class SkilletXlsxTutorial extends LitElement {
   static styles = css`
     :host {
       display: block;
+      /* Ensure component doesn't overlap VitePress nav (z-index: 40) */
+      position: relative;
+      z-index: 1;
     }
 
     /* Each section is a full two-column row */
