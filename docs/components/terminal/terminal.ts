@@ -2,7 +2,7 @@ import { LitElement, html, unsafeCSS } from 'lit'
 import { property, state, query } from 'lit/decorators.js'
 import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
-import { WebContainer } from '@webcontainer/api'
+import { getWebContainer } from '../../services/webcontainer-singleton.js'
 import styles from './terminal.css?raw'
 
 export const TAG_NAME = 'skillet-terminal'
@@ -81,8 +81,8 @@ export class SkilletTerminal extends LitElement {
 
       this.xterm.writeln('Booting WebContainer...\r\n')
 
-      // Boot WebContainer
-      this.container = await WebContainer.boot()
+      // Get shared WebContainer instance (singleton)
+      this.container = await getWebContainer()
       if (!this.mounted) return
 
       // Mount files
