@@ -1,10 +1,12 @@
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import './custom.css'
+import Columns from './Columns.vue'
 
 export default {
   extends: DefaultTheme,
-  async enhanceApp() {
+  async enhanceApp({ app }) {
+    app.component('Columns', Columns)
     // Only run in browser (not during SSR)
     if (typeof window !== 'undefined') {
       // Dynamically import components to register custom elements
