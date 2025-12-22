@@ -1,6 +1,8 @@
 [build]
+  # Deploys happen via GitHub Actions - skip Netlify native builds
+  # ignore returns 0 = skip build, 1 = proceed with build
+  ignore = "exit 0"
   base = "docs"
-  command = "npm run build"
   publish = ".vitepress/dist"
 
 # Required for WebContainer to work
