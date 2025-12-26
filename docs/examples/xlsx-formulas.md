@@ -3,7 +3,8 @@ title: "Excel Formulas"
 ---
 
 <script setup>
-import { ref, onMounted } from 'vue'
+// Force full page reload for WebContainer pages to avoid "clone" errors
+// WebContainer can only boot once per page load
 </script>
 
 # Excel Formulas
@@ -143,7 +144,9 @@ The evals are your proof. Re-run them anytime to verify the skill still works.
 </div>
 <div class="tutorial-terminal">
 
-<skillet-terminal height="100%"></skillet-terminal>
+<ClientOnly>
+  <skillet-terminal height="100%"></skillet-terminal>
+</ClientOnly>
 
 </div>
 </div>
