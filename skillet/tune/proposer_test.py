@@ -22,7 +22,7 @@ def mock_get_claude_lm():
         yield mock
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_dspy():
     """Mock dspy.context to avoid actual LM calls."""
     with patch("skillet.tune.proposer.dspy") as mock_dspy:
