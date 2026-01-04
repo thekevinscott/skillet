@@ -10,12 +10,11 @@ This gives us the best of both worlds:
 import tempfile
 from pathlib import Path
 
-import dspy
-
 from skillet.evals import load_evals
-from skillet.optimize import evals_to_trainset, get_claude_lm
+from skillet.optimize import evals_to_trainset
 
 from .improve import get_skill_file
+from .proposer import propose_instruction
 from .result import (
     RoundResult,
     TuneCallbacks,
@@ -24,10 +23,6 @@ from .result import (
     results_to_eval_results,
 )
 from .run import run_tune_eval
-
-# Load proposer prompt from file
-_PROPOSER_PROMPT_PATH = Path(__file__).parent / "proposer_prompt.txt"
-_PROPOSER_PROMPT = _PROPOSER_PROMPT_PATH.read_text().strip()
 
 
 async def tune_dspy(
@@ -133,7 +128,7 @@ async def tune_dspy(
             if callbacks.on_improving:
                 await callbacks.on_improving("Improving skill...")
 
-            new_instruction = _propose_instruction(
+            new_instruction = propose_instruction(
                 current_instruction=current_skill_content,
                 trainset=trainset,
                 failures=[r for r in results if not r["pass"]],
@@ -155,47 +150,3 @@ async def tune_dspy(
         if callbacks.on_complete:
             await callbacks.on_complete(original_skill_file)
         return tune_result
-
-
-def _propose_instruction(
-    current_instruction: str,
-    trainset: list,
-    failures: list[dict],
-    instruction_history: list[dict],
-) -> str:
-    """Generate a new instruction using DSPy's proposal mechanism.
-
-    Uses insights from MIPRO's grounded proposer to generate improved instructions
-    based on the training data, failures, and previous attempts.
-    """
-    # Build context for proposal
-    failures_summary = "\n".join([
-        f"- Prompt: {f['prompt']}\n  Expected: {f['expected']}\n  Got: {f['response'][:200]}..."
-        for f in failures[:3]  # Limit to 3 failures
-    ])
-
-    history_summary = "\n".join([
-        f"- Score: {h['score']:.0%}\n  Instruction: {h['instruction'][:100]}..."
-        for h in instruction_history[-3:]  # Last 3 attempts
-    ])
-
-    examples_summary = "\n".join([
-        f"- Input: {ex.prompt}\n  Expected: {ex.expected}"
-        for ex in trainset[:3]  # First 3 examples
-    ])
-
-    # Use DSPy to generate improved instruction (scoped to avoid global state)
-    with dspy.context(lm=get_claude_lm()):
-        proposer = dspy.Predict(
-            "current_instruction, failures, history, examples -> improved_instruction"
-        )
-        proposer.signature = proposer.signature.with_instructions(_PROPOSER_PROMPT)
-
-        result = proposer(
-            current_instruction=current_instruction,
-            failures=failures_summary or "No failures to report",
-            history=history_summary or "No previous attempts",
-            examples=examples_summary,
-        )
-
-        return result.improved_instruction.strip()
