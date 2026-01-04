@@ -8,14 +8,15 @@ import pytest
 
 from skillet._internal.sdk import QueryResult
 from skillet.tune.result import EvalResult
-from skillet.tune.run import _results_to_eval_results, run_tune_eval, tune
+from skillet.tune.results_to_eval_results import results_to_eval_results
+from skillet.tune.run import run_tune_eval, tune
 
 
-def describe_results_to_eval_results():
-    """Tests for _results_to_eval_results function."""
+def describeresults_to_eval_results():
+    """Tests for results_to_eval_results function."""
 
     def it_converts_empty_list():
-        result = _results_to_eval_results([])
+        result = results_to_eval_results([])
         assert result == []
 
     def it_converts_single_result():
@@ -28,7 +29,7 @@ def describe_results_to_eval_results():
                 "tool_calls": [{"name": "read"}],
             }
         ]
-        converted = _results_to_eval_results(results)
+        converted = results_to_eval_results(results)
 
         assert len(converted) == 1
         assert isinstance(converted[0], EvalResult)
@@ -55,7 +56,7 @@ def describe_results_to_eval_results():
                 "tool_calls": None,
             },
         ]
-        converted = _results_to_eval_results(results)
+        converted = results_to_eval_results(results)
 
         assert len(converted) == 2
         assert converted[0].source == "a.yaml"
@@ -71,7 +72,7 @@ def describe_results_to_eval_results():
                 "judgment": {},  # missing reasoning
             }
         ]
-        converted = _results_to_eval_results(results)
+        converted = results_to_eval_results(results)
 
         assert len(converted) == 1
         assert converted[0].reasoning == ""

@@ -20,8 +20,8 @@ from .result import (
     TuneCallbacks,
     TuneConfig,
     TuneResult,
-    results_to_eval_results,
 )
+from .results_to_eval_results import results_to_eval_results
 from .run import run_tune_eval
 
 
