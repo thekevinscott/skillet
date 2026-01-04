@@ -6,12 +6,22 @@ import pytest
 
 from skillet.optimize.dspy_integration.claude_lm import ClaudeAgentLM
 
+CLAUDE_LM_MODULE = "skillet.optimize.dspy_integration.claude_lm"
 
-@pytest.fixture
+
+@pytest.fixture(autouse=True)
 def mock_run_sync():
     """Mock run_sync to avoid actual SDK calls."""
-    with patch("skillet.optimize.dspy_integration.claude_lm.run_sync") as mock:
+    with patch(f"{CLAUDE_LM_MODULE}.run_sync") as mock:
         mock.return_value = "mocked response"
+        yield mock
+
+
+@pytest.fixture
+def mock_query_async():
+    """Mock query_assistant_text for async tests."""
+    with patch(f"{CLAUDE_LM_MODULE}.query_assistant_text", new_callable=AsyncMock) as mock:
+        mock.return_value = "async response"
         yield mock
 
 
@@ -64,20 +74,16 @@ def describe_ClaudeAgentLM():
             assert result.choices[0].message.content == ""
 
     def describe_aforward():
-        CLAUDE_LM_QUERY = "skillet.optimize.dspy_integration.claude_lm.query_assistant_text"
-
         @pytest.mark.asyncio
-        @patch(CLAUDE_LM_QUERY, new_callable=AsyncMock)
-        async def it_calls_query_assistant_text_async(mock_query):
-            mock_query.return_value = "Async response"
+        async def it_calls_query_assistant_text_async(mock_query_async):
+            mock_query_async.return_value = "Async response"
             lm = ClaudeAgentLM()
             result = await lm.aforward(prompt="Async test")
             assert result.choices[0].message.content == "Async response"
 
         @pytest.mark.asyncio
-        @patch(CLAUDE_LM_QUERY, new_callable=AsyncMock)
-        async def it_extracts_prompt_from_messages_async(mock_query):
-            mock_query.return_value = "Response"
+        async def it_extracts_prompt_from_messages_async(mock_query_async):
+            mock_query_async.return_value = "Response"
             lm = ClaudeAgentLM()
             result = await lm.aforward(
                 messages=[{"role": "user", "content": "Question"}]
