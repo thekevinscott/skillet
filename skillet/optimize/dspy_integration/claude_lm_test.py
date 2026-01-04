@@ -4,47 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from skillet.optimize.dspy_integration.claude_lm import (
-    Choice,
-    ClaudeAgentLM,
-    CompletionResponse,
-    Message,
-)
-
-
-def describe_Message():
-    def it_stores_role_and_content():
-        msg = Message(role="assistant", content="Hello")
-        assert msg.role == "assistant"
-        assert msg.content == "Hello"
-        assert msg.tool_calls is None
-
-    def it_allows_tool_calls():
-        msg = Message(role="assistant", content="", tool_calls=[{"id": "1"}])
-        assert msg.tool_calls == [{"id": "1"}]
-
-
-def describe_Choice():
-    def it_stores_message():
-        msg = Message(role="assistant", content="test")
-        choice = Choice(index=0, message=msg)
-        assert choice.index == 0
-        assert choice.message == msg
-        assert choice.finish_reason == "stop"
-
-
-def describe_CompletionResponse():
-    def it_creates_with_defaults():
-        response = CompletionResponse(id="test-123")
-        assert response.id == "test-123"
-        assert response.object == "chat.completion"
-        assert response.model == "claude-agent-sdk"
-        assert response.choices == []
-        assert response.usage == {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "total_tokens": 0,
-        }
+from skillet.optimize.dspy_integration.claude_lm import ClaudeAgentLM
 
 
 def describe_ClaudeAgentLM():

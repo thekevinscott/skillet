@@ -13,29 +13,7 @@ from skillet._internal.async_utils import run_sync
 from skillet._internal.sdk import query_assistant_text
 
 from .dataclasses import Choice, CompletionResponse, Message
-
-
-def _extract_prompt(prompt: str | None, messages: list[dict] | None) -> str:
-    """Extract a single prompt string from prompt or messages.
-
-    Args:
-        prompt: Simple string prompt
-        messages: List of message dicts (OpenAI format)
-
-    Returns:
-        Extracted prompt string
-    """
-    if messages:
-        # Extract the last user message as the prompt
-        user_messages = [m for m in messages if m.get("role") == "user"]
-        if user_messages:
-            return user_messages[-1].get("content", "")
-        # Concatenate all messages
-        return "\n".join(
-            f"{m.get('role', 'user')}: {m.get('content', '')}"
-            for m in messages
-        )
-    return prompt or ""
+from .prompt_utils import extract_prompt
 
 
 class ClaudeAgentLM(BaseLM):
@@ -95,7 +73,7 @@ class ClaudeAgentLM(BaseLM):
         Returns:
             CompletionResponse in OpenAI format
         """
-        extracted_prompt = _extract_prompt(prompt, messages)
+        extracted_prompt = extract_prompt(prompt, messages)
 
         # Call Claude Agent SDK (synchronously, as DSPy expects sync)
         response_text = run_sync(
@@ -116,7 +94,7 @@ class ClaudeAgentLM(BaseLM):
         **kwargs,
     ) -> CompletionResponse:
         """Async forward pass through Claude Agent SDK."""
-        extracted_prompt = _extract_prompt(prompt, messages)
+        extracted_prompt = extract_prompt(prompt, messages)
 
         # Call Claude Agent SDK asynchronously
         response_text = await query_assistant_text(
