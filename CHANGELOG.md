@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared `get_rate_color()` helper for consistent pass rate color coding
 
 ### Changed
+- Removed `notes/` folder from version control (now gitignored)
 - **BREAKING:** CLI flag `--gaps/-g` renamed to `--max-evals/-m` for consistency
 - Renamed `skillet/gaps/` module to `skillet/evals/` for terminology consistency
 - Renamed `get_cached_results_for_gap` to `get_cached_results_for_eval`
