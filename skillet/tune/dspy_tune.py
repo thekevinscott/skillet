@@ -17,22 +17,12 @@ from skillet.evals import load_evals
 from skillet.optimize import evals_to_trainset, get_claude_lm
 
 from .improve import get_skill_file
-from .result import EvalResult, RoundResult, TuneConfig, TuneResult
+from .result import RoundResult, TuneConfig, TuneResult, results_to_eval_results
 from .run import run_tune_eval
 
-
-def _results_to_eval_results(results: list[dict]) -> list[EvalResult]:
-    """Convert raw eval results to EvalResult objects."""
-    return [
-        EvalResult(
-            source=r["eval_source"],
-            passed=r["pass"],
-            reasoning=r["judgment"].get("reasoning", ""),
-            response=r.get("response"),
-            tool_calls=r.get("tool_calls"),
-        )
-        for r in results
-    ]
+# Load proposer prompt from file
+_PROPOSER_PROMPT_PATH = Path(__file__).parent / "proposer_prompt.txt"
+_PROPOSER_PROMPT = _PROPOSER_PROMPT_PATH.read_text().strip()
 
 
 async def tune_dspy(  # noqa: PLR0913
@@ -126,7 +116,7 @@ async def tune_dspy(  # noqa: PLR0913
                 pass_rate=pass_rate,
                 skill_content=current_skill_content,
                 tip_used="DSPy GroundedProposer",
-                evals=_results_to_eval_results(results),
+                evals=results_to_eval_results(results),
             )
             tune_result.add_round(round_result)
 
@@ -207,19 +197,7 @@ def _propose_instruction(
         proposer = dspy.Predict(
             "current_instruction, failures, history, examples -> improved_instruction"
         )
-        proposer.signature = proposer.signature.with_instructions("""
-You are an expert prompt engineer optimizing instructions for a Claude Code skill.
-
-Given the current instruction, examples of failures, previous attempts with scores,
-and training examples, generate an improved instruction that:
-1. Addresses the specific failures observed
-2. Builds on what worked in previous attempts
-3. Is clear, specific, and actionable
-4. Uses imperative language (DO this, NEVER do that)
-5. Keeps the instruction concise but complete
-
-Return ONLY the improved instruction text, no explanations.
-""")
+        proposer.signature = proposer.signature.with_instructions(_PROPOSER_PROMPT)
 
         result = proposer(
             current_instruction=current_instruction,

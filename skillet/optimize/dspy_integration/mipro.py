@@ -3,27 +3,17 @@
 import logging
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
 from dspy.teleprompt import MIPROv2
 from dspy.teleprompt.mipro_optimizer_v2 import eval_candidate_program, save_candidate_program
 
+from .dataclasses import TrialResult
+
 logger = logging.getLogger(__name__)
 
 # Type alias for sync callbacks (async not supported - DSPy optimization loop is sync)
 CallbackType = Callable[..., None] | None
-
-
-@dataclass
-class TrialResult:
-    """Result of a single optimization trial."""
-
-    trial_num: int
-    score: float
-    is_best: bool
-    instruction: str
-    is_full_eval: bool
 
 
 class SkilletMIPRO(MIPROv2):
@@ -41,6 +31,11 @@ class SkilletMIPRO(MIPROv2):
         )
         optimized = optimizer.compile(module, trainset=data)
     """
+
+    _on_trial_start: CallbackType
+    _on_trial_complete: CallbackType
+    _on_new_best: CallbackType
+    _current_instruction_candidates: dict[int, list[str]]
 
     def __init__(
         self,
@@ -64,7 +59,7 @@ class SkilletMIPRO(MIPROv2):
         self._on_trial_start = on_trial_start
         self._on_trial_complete = on_trial_complete
         self._on_new_best = on_new_best
-        self._current_instruction_candidates: dict[int, list[str]] = {}
+        self._current_instruction_candidates = {}
 
     def _optimize_prompt_parameters(  # noqa: C901, PLR0913, PLR0915
         self,

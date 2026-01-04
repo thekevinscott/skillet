@@ -5,7 +5,6 @@ that Skillet's eval system uses, ensuring consistent behavior.
 """
 
 import uuid
-from dataclasses import dataclass, field
 from typing import Any
 
 from dspy.clients.base_lm import BaseLM
@@ -13,40 +12,30 @@ from dspy.clients.base_lm import BaseLM
 from skillet._internal.async_utils import run_sync
 from skillet._internal.sdk import query_assistant_text
 
-
-@dataclass
-class Message:
-    """OpenAI-style message."""
-
-    role: str
-    content: str
-    tool_calls: list | None = None
+from .dataclasses import Choice, CompletionResponse, Message
 
 
-@dataclass
-class Choice:
-    """OpenAI-style choice."""
+def _extract_prompt(prompt: str | None, messages: list[dict] | None) -> str:
+    """Extract a single prompt string from prompt or messages.
 
-    index: int
-    message: Message
-    finish_reason: str = "stop"
-    logprobs: Any = None
+    Args:
+        prompt: Simple string prompt
+        messages: List of message dicts (OpenAI format)
 
-
-@dataclass
-class CompletionResponse:
-    """OpenAI-style completion response."""
-
-    id: str
-    object: str = "chat.completion"
-    model: str = "claude-agent-sdk"
-    choices: list[Choice] = field(default_factory=list)
-    # Usage as dict for DSPy compatibility (it calls dict(response.usage))
-    usage: dict = field(default_factory=lambda: {
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "total_tokens": 0,
-    })
+    Returns:
+        Extracted prompt string
+    """
+    if messages:
+        # Extract the last user message as the prompt
+        user_messages = [m for m in messages if m.get("role") == "user"]
+        if user_messages:
+            return user_messages[-1].get("content", "")
+        # Concatenate all messages
+        return "\n".join(
+            f"{m.get('role', 'user')}: {m.get('content', '')}"
+            for m in messages
+        )
+    return prompt or ""
 
 
 class ClaudeAgentLM(BaseLM):
@@ -106,54 +95,19 @@ class ClaudeAgentLM(BaseLM):
         Returns:
             CompletionResponse in OpenAI format
         """
-        # Convert messages to a single prompt if needed
-        if messages:
-            # Extract the last user message as the prompt
-            user_messages = [m for m in messages if m.get("role") == "user"]
-            if user_messages:
-                prompt = user_messages[-1].get("content", "")
-            else:
-                # Concatenate all messages
-                prompt = "\n".join(
-                    f"{m.get('role', 'user')}: {m.get('content', '')}"
-                    for m in messages
-                )
-
-        if not prompt:
-            prompt = ""
+        extracted_prompt = _extract_prompt(prompt, messages)
 
         # Call Claude Agent SDK (synchronously, as DSPy expects sync)
         response_text = run_sync(
             query_assistant_text(
-                prompt,
+                extracted_prompt,
                 max_turns=1,
                 allowed_tools=[],
                 **self.kwargs,
             )
         )
 
-        # Format as OpenAI response object
-        result = CompletionResponse(
-            id=f"claude-agent-{uuid.uuid4().hex[:8]}",
-            model=self.model,
-            choices=[
-                Choice(
-                    index=0,
-                    message=Message(role="assistant", content=response_text),
-                )
-            ],
-        )
-
-        # Update history for DSPy tracking
-        self.update_history(
-            {
-                "prompt": prompt,
-                "response": result,
-                "kwargs": kwargs,
-            }
-        )
-
-        return result
+        return self._build_response(extracted_prompt, response_text, kwargs)
 
     async def aforward(
         self,
@@ -162,29 +116,22 @@ class ClaudeAgentLM(BaseLM):
         **kwargs,
     ) -> CompletionResponse:
         """Async forward pass through Claude Agent SDK."""
-        # Convert messages to prompt
-        if messages:
-            user_messages = [m for m in messages if m.get("role") == "user"]
-            if user_messages:
-                prompt = user_messages[-1].get("content", "")
-            else:
-                prompt = "\n".join(
-                    f"{m.get('role', 'user')}: {m.get('content', '')}"
-                    for m in messages
-                )
-
-        if not prompt:
-            prompt = ""
+        extracted_prompt = _extract_prompt(prompt, messages)
 
         # Call Claude Agent SDK asynchronously
         response_text = await query_assistant_text(
-            prompt,
+            extracted_prompt,
             max_turns=1,
             allowed_tools=[],
             **self.kwargs,
         )
 
-        # Format as OpenAI response object
+        return self._build_response(extracted_prompt, response_text, kwargs)
+
+    def _build_response(
+        self, prompt: str, response_text: str, kwargs: dict
+    ) -> CompletionResponse:
+        """Build a CompletionResponse and update history."""
         result = CompletionResponse(
             id=f"claude-agent-{uuid.uuid4().hex[:8]}",
             model=self.model,
@@ -196,13 +143,7 @@ class ClaudeAgentLM(BaseLM):
             ],
         )
 
-        self.update_history(
-            {
-                "prompt": prompt,
-                "response": result,
-                "kwargs": kwargs,
-            }
-        )
+        self.update_history({"prompt": prompt, "response": result, "kwargs": kwargs})
 
         return result
 
