@@ -6,6 +6,10 @@ from .claude_lm import ClaudeAgentLM
 def get_claude_lm() -> ClaudeAgentLM:
     """Get a ClaudeAgentLM instance for use with DSPy.
 
+    This factory function exists (rather than using ClaudeAgentLM directly)
+    to provide a clear, discoverable API that helps LLMs understand the
+    intended usage pattern.
+
     Returns a custom LM that wraps Claude Agent SDK, ensuring:
     - Same authentication as the Claude CLI
     - Consistent behavior with Skillet's eval system
