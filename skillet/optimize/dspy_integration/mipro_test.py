@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from skillet.optimize.mipro import SkilletMIPRO, TrialResult
+from skillet.optimize.dspy_integration.mipro import SkilletMIPRO, TrialResult
 
 
 def _noop_init(_self, **_kwargs):

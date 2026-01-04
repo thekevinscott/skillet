@@ -1,10 +1,10 @@
 """Prompt optimization using DSPy."""
 
-from .claude_lm import ClaudeAgentLM
-from .configure import configure_dspy
+from .dspy_integration.claude_lm import ClaudeAgentLM
+from .dspy_integration.configure import configure_dspy
+from .dspy_integration.mipro import SkilletMIPRO, TrialResult
 from .loaders import evals_to_trainset
 from .metric import create_skillet_metric
-from .mipro import SkilletMIPRO, TrialResult
 from .optimizer import optimize_skill
 from .skill_module import SkillModule
 

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from skillet.optimize.claude_lm import (
+from skillet.optimize.dspy_integration.claude_lm import (
     Choice,
     ClaudeAgentLM,
     CompletionResponse,
@@ -63,7 +63,7 @@ def describe_ClaudeAgentLM():
             assert lm.kwargs["custom_arg"] == "value"
 
     def describe_forward():
-        @patch("skillet.optimize.claude_lm.run_sync")
+        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_calls_query_assistant_text(mock_run_sync):
             mock_run_sync.return_value = "Hello world"
             lm = ClaudeAgentLM()
@@ -72,7 +72,7 @@ def describe_ClaudeAgentLM():
             assert len(result.choices) == 1
             assert result.choices[0].message.content == "Hello world"
 
-        @patch("skillet.optimize.claude_lm.run_sync")
+        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_extracts_prompt_from_messages(mock_run_sync):
             mock_run_sync.return_value = "Response"
             lm = ClaudeAgentLM()
@@ -84,7 +84,7 @@ def describe_ClaudeAgentLM():
             )
             assert result.choices[0].message.content == "Response"
 
-        @patch("skillet.optimize.claude_lm.run_sync")
+        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_updates_history(mock_run_sync):
             mock_run_sync.return_value = "Answer"
             lm = ClaudeAgentLM()
@@ -92,7 +92,7 @@ def describe_ClaudeAgentLM():
             assert len(lm.history) == 1
             assert lm.history[0]["prompt"] == "Question"
 
-        @patch("skillet.optimize.claude_lm.run_sync")
+        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_handles_empty_prompt(mock_run_sync):
             mock_run_sync.return_value = ""
             lm = ClaudeAgentLM()
@@ -100,8 +100,10 @@ def describe_ClaudeAgentLM():
             assert result.choices[0].message.content == ""
 
     def describe_aforward():
+        CLAUDE_LM_QUERY = "skillet.optimize.dspy_integration.claude_lm.query_assistant_text"
+
         @pytest.mark.asyncio
-        @patch("skillet.optimize.claude_lm.query_assistant_text", new_callable=AsyncMock)
+        @patch(CLAUDE_LM_QUERY, new_callable=AsyncMock)
         async def it_calls_query_assistant_text_async(mock_query):
             mock_query.return_value = "Async response"
             lm = ClaudeAgentLM()
@@ -109,7 +111,7 @@ def describe_ClaudeAgentLM():
             assert result.choices[0].message.content == "Async response"
 
         @pytest.mark.asyncio
-        @patch("skillet.optimize.claude_lm.query_assistant_text", new_callable=AsyncMock)
+        @patch(CLAUDE_LM_QUERY, new_callable=AsyncMock)
         async def it_extracts_prompt_from_messages_async(mock_query):
             mock_query.return_value = "Response"
             lm = ClaudeAgentLM()
@@ -132,7 +134,7 @@ def describe_ClaudeAgentLM():
             assert "extra_arg" not in lm.kwargs
 
     def describe_inspect_history():
-        @patch("skillet.optimize.claude_lm.run_sync")
+        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_returns_last_n_entries(mock_run_sync):
             mock_run_sync.return_value = "Response"
             lm = ClaudeAgentLM()
