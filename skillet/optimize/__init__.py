@@ -2,7 +2,8 @@
 
 from .dspy_integration.claude_lm import ClaudeAgentLM
 from .dspy_integration.configure import get_claude_lm
-from .dspy_integration.mipro import SkilletMIPRO, TrialResult
+from .dspy_integration.dataclasses import TrialResult
+from .dspy_integration.skillet_mipro import SkilletMIPRO
 from .loaders import evals_to_trainset
 from .metric import create_skillet_metric
 from .optimizer import optimize_skill

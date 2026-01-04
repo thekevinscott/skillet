@@ -2,28 +2,12 @@
 
 from unittest.mock import MagicMock, patch
 
-from skillet.optimize.dspy_integration.mipro import SkilletMIPRO, TrialResult
+from skillet.optimize.dspy_integration.skillet_mipro import SkilletMIPRO
 
 
 def _noop_init(_self, **_kwargs):
     """No-op init for patching MIPROv2 parent class."""
     pass
-
-
-def describe_TrialResult():
-    def it_stores_trial_data():
-        result = TrialResult(
-            trial_num=1,
-            score=0.85,
-            is_best=True,
-            instruction="Test instruction",
-            is_full_eval=True,
-        )
-        assert result.trial_num == 1
-        assert result.score == 0.85
-        assert result.is_best is True
-        assert result.instruction == "Test instruction"
-        assert result.is_full_eval is True
 
 
 def describe_SkilletMIPRO():

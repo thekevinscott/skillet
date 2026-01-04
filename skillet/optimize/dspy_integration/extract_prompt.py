@@ -1,7 +1,7 @@
 """Prompt extraction utilities for DSPy integration."""
 
 
-def extract_prompt(prompt: str | None, messages: list[dict] | None) -> str:
+def extract_prompt(prompt: str | None = None, messages: list[dict] | None = None) -> str:
     """Extract a single prompt string from prompt or messages.
 
     Args:

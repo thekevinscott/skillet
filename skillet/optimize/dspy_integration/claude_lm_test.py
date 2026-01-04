@@ -7,6 +7,14 @@ import pytest
 from skillet.optimize.dspy_integration.claude_lm import ClaudeAgentLM
 
 
+@pytest.fixture
+def mock_run_sync():
+    """Mock run_sync to avoid actual SDK calls."""
+    with patch("skillet.optimize.dspy_integration.claude_lm.run_sync") as mock:
+        mock.return_value = "mocked response"
+        yield mock
+
+
 def describe_ClaudeAgentLM():
     def describe_init():
         def it_sets_default_values():
@@ -23,7 +31,6 @@ def describe_ClaudeAgentLM():
             assert lm.kwargs["custom_arg"] == "value"
 
     def describe_forward():
-        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_calls_query_assistant_text(mock_run_sync):
             mock_run_sync.return_value = "Hello world"
             lm = ClaudeAgentLM()
@@ -32,7 +39,6 @@ def describe_ClaudeAgentLM():
             assert len(result.choices) == 1
             assert result.choices[0].message.content == "Hello world"
 
-        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_extracts_prompt_from_messages(mock_run_sync):
             mock_run_sync.return_value = "Response"
             lm = ClaudeAgentLM()
@@ -44,7 +50,6 @@ def describe_ClaudeAgentLM():
             )
             assert result.choices[0].message.content == "Response"
 
-        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_updates_history(mock_run_sync):
             mock_run_sync.return_value = "Answer"
             lm = ClaudeAgentLM()
@@ -52,7 +57,6 @@ def describe_ClaudeAgentLM():
             assert len(lm.history) == 1
             assert lm.history[0]["prompt"] == "Question"
 
-        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_handles_empty_prompt(mock_run_sync):
             mock_run_sync.return_value = ""
             lm = ClaudeAgentLM()
@@ -94,7 +98,6 @@ def describe_ClaudeAgentLM():
             assert "extra_arg" not in lm.kwargs
 
     def describe_inspect_history():
-        @patch("skillet.optimize.dspy_integration.claude_lm.run_sync")
         def it_returns_last_n_entries(mock_run_sync):
             mock_run_sync.return_value = "Response"
             lm = ClaudeAgentLM()

@@ -13,7 +13,7 @@ from skillet._internal.async_utils import run_sync
 from skillet._internal.sdk import query_assistant_text
 
 from .dataclasses import Choice, CompletionResponse, Message
-from .prompt_utils import extract_prompt
+from .extract_prompt import extract_prompt
 
 
 class ClaudeAgentLM(BaseLM):
