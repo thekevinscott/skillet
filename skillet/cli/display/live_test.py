@@ -129,6 +129,97 @@ def describe_LiveDisplay():
         await display.update(tasks[0], "done", {"pass": True})
         await display.stop()
 
+    def describe_get_symbol_and_counts():
+        """Tests for _get_symbol_and_counts method."""
+
+        def it_returns_pending_for_pending_state():
+            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+            display = LiveDisplay(tasks)
+            symbol, passed, done = display._get_symbol_and_counts(
+                {"state": "pending", "result": None}
+            )
+            assert symbol == PENDING
+            assert passed is False
+            assert done is False
+
+        def it_returns_running_for_running_state():
+            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+            display = LiveDisplay(tasks)
+            symbol, passed, done = display._get_symbol_and_counts(
+                {"state": "running", "result": None}
+            )
+            assert symbol == RUNNING
+            assert passed is False
+            assert done is False
+
+        def it_returns_cached_pass_for_cached_passing():
+            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+            display = LiveDisplay(tasks)
+            symbol, passed, done = display._get_symbol_and_counts(
+                {"state": "cached", "result": {"pass": True}}
+            )
+            assert symbol == CACHED
+            assert passed is True
+            assert done is True
+
+        def it_returns_cached_fail_for_cached_failing():
+            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+            display = LiveDisplay(tasks)
+            symbol, passed, done = display._get_symbol_and_counts(
+                {"state": "cached", "result": {"pass": False}}
+            )
+            assert symbol == CACHED
+            assert passed is False
+            assert done is True
+
+        def it_returns_pass_for_done_passing():
+            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+            display = LiveDisplay(tasks)
+            symbol, passed, done = display._get_symbol_and_counts(
+                {"state": "done", "result": {"pass": True}}
+            )
+            assert symbol == PASS
+            assert passed is True
+            assert done is True
+
+        def it_returns_fail_for_done_failing():
+            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+            display = LiveDisplay(tasks)
+            symbol, passed, done = display._get_symbol_and_counts(
+                {"state": "done", "result": {"pass": False}}
+            )
+            assert symbol == FAIL
+            assert passed is False
+            assert done is True
+
+        def it_handles_none_result():
+            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+            display = LiveDisplay(tasks)
+            symbol, passed, done = display._get_symbol_and_counts(
+                {"state": "done", "result": None}
+            )
+            assert symbol == FAIL
+            assert not passed  # None is falsy
+            assert done is True
+
+    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    def it_shows_percentage_when_all_samples_done(mock_get_rate_color):
+        """Test that percentage appears in table when all samples complete."""
+        tasks = [
+            {"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"},
+            {"eval_idx": 0, "iteration": 1, "eval_source": "test.yaml"},
+        ]
+        display = LiveDisplay(tasks)
+
+        # Mark all tasks as done
+        display.status["0:0"] = {"state": "done", "result": {"pass": True}}
+        display.status["0:1"] = {"state": "done", "result": {"pass": False}}
+
+        table = display._build_table()
+        # The table should have rich markup for the percentage
+        assert table.row_count == 1
+        mock_get_rate_color.assert_called_with(50.0)
+
     @patch("skillet.cli.display.live.get_rate_color", return_value="green")
     def it_finalize_prints_results(mock_get_rate_color, capsys):
         tasks = [
