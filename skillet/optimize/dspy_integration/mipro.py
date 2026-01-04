@@ -2,7 +2,7 @@
 
 import logging
 from collections import defaultdict
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,8 +11,8 @@ from dspy.teleprompt.mipro_optimizer_v2 import eval_candidate_program, save_cand
 
 logger = logging.getLogger(__name__)
 
-# Type alias for callbacks that can be sync or async
-CallbackType = Callable[..., None] | Callable[..., Awaitable[None]] | None
+# Type alias for sync callbacks (async not supported - DSPy optimization loop is sync)
+CallbackType = Callable[..., None] | None
 
 
 @dataclass
@@ -66,26 +66,7 @@ class SkilletMIPRO(MIPROv2):
         self._on_new_best = on_new_best
         self._current_instruction_candidates: dict[int, list[str]] = {}
 
-    def _call_callback(self, callback: CallbackType, *args) -> None:
-        """Call a callback, handling both sync and async."""
-        if callback is None:
-            return
-
-        import asyncio
-        import inspect
-
-        if inspect.iscoroutinefunction(callback):
-            # Run async callback
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(callback(*args))  # noqa: RUF006
-            except RuntimeError:
-                # No running loop, run synchronously
-                asyncio.run(callback(*args))
-        else:
-            callback(*args)
-
-    def _optimize_prompt_parameters(  # noqa: PLR0913, PLR0915
+    def _optimize_prompt_parameters(  # noqa: C901, PLR0913, PLR0915
         self,
         program: Any,
         instruction_candidates: dict[int, list[str]],
@@ -116,7 +97,8 @@ class SkilletMIPRO(MIPROv2):
         )
 
         # Evaluate default program
-        self._call_callback(self._on_trial_start, 1, adjusted_num_trials)
+        if self._on_trial_start:
+            self._on_trial_start(1, adjusted_num_trials)
 
         default_score = eval_candidate_program(
             len(valset), valset, program, evaluate, self.rng
@@ -139,8 +121,10 @@ class SkilletMIPRO(MIPROv2):
             instruction=self._get_current_instruction(program),
             is_full_eval=True,
         )
-        self._call_callback(self._on_trial_complete, default_result)
-        self._call_callback(self._on_new_best, default_result)
+        if self._on_trial_complete:
+            self._on_trial_complete(default_result)
+        if self._on_new_best:
+            self._on_new_best(default_result)
 
         # Initialize optimization state
         best_score = default_score
@@ -154,7 +138,8 @@ class SkilletMIPRO(MIPROv2):
             nonlocal program, best_program, best_score, trial_logs, total_eval_calls, score_data
 
             trial_num = trial.number + 2  # +2 because trial 1 is default
-            self._call_callback(self._on_trial_start, trial_num, adjusted_num_trials)
+            if self._on_trial_start:
+                self._on_trial_start(trial_num, adjusted_num_trials)
 
             trial_logs[trial_num] = {}
             candidate_program = program.deepcopy()
@@ -197,9 +182,10 @@ class SkilletMIPRO(MIPROv2):
                 instruction=self._get_current_instruction(candidate_program),
                 is_full_eval=batch_size >= len(valset),
             )
-            self._call_callback(self._on_trial_complete, result)
-            if is_new_best:
-                self._call_callback(self._on_new_best, result)
+            if self._on_trial_complete:
+                self._on_trial_complete(result)
+            if is_new_best and self._on_new_best:
+                self._on_new_best(result)
 
             # Track for minibatch full eval
             if minibatch:

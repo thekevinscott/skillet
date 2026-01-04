@@ -44,36 +44,6 @@ def describe_SkilletMIPRO():
             assert mipro._on_trial_complete is on_complete
             assert mipro._on_new_best is on_best
 
-    def describe_call_callback():
-        def it_calls_sync_callback():
-            with patch.object(SkilletMIPRO, "__init__", _noop_init):
-                mipro = SkilletMIPRO.__new__(SkilletMIPRO)
-
-            mock_callback = MagicMock()
-            mipro._call_callback(mock_callback, "arg1", "arg2")
-            mock_callback.assert_called_once_with("arg1", "arg2")
-
-        def it_handles_none_callback():
-            with patch.object(SkilletMIPRO, "__init__", _noop_init):
-                mipro = SkilletMIPRO.__new__(SkilletMIPRO)
-
-            # Should not raise
-            mipro._call_callback(None, "arg1")
-
-        def it_calls_async_callback_without_loop():
-            """When no loop is running, async callback is run via asyncio.run."""
-            with patch.object(SkilletMIPRO, "__init__", _noop_init):
-                mipro = SkilletMIPRO.__new__(SkilletMIPRO)
-
-            called = []
-
-            async def async_callback(value):
-                called.append(value)
-
-            # When no event loop is running, asyncio.run is used
-            mipro._call_callback(async_callback, "test")
-            assert called == ["test"]
-
     def describe_get_current_instruction():
         def it_extracts_from_skill_module():
             with patch.object(SkilletMIPRO, "__init__", _noop_init):
