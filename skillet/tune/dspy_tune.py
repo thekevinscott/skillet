@@ -14,7 +14,7 @@ from pathlib import Path
 import dspy
 
 from skillet.evals import load_evals
-from skillet.optimize import configure_dspy, evals_to_trainset
+from skillet.optimize import evals_to_trainset, get_claude_lm
 
 from .improve import get_skill_file
 from .result import EvalResult, RoundResult, TuneConfig, TuneResult
@@ -76,9 +76,6 @@ async def tune_dspy(  # noqa: PLR0913
     Returns:
         TuneResult with all rounds and the best skill content
     """
-    # Configure DSPy for instruction generation
-    configure_dspy()
-
     # Load skill and evals
     original_skill_file = get_skill_file(skill_path)
     original_skill_content = original_skill_file.read_text()
@@ -205,11 +202,12 @@ def _propose_instruction(
         for ex in trainset[:3]  # First 3 examples
     ])
 
-    # Use DSPy to generate improved instruction
-    proposer = dspy.Predict(
-        "current_instruction, failures, history, examples -> improved_instruction"
-    )
-    proposer.signature = proposer.signature.with_instructions("""
+    # Use DSPy to generate improved instruction (scoped to avoid global state)
+    with dspy.context(lm=get_claude_lm()):
+        proposer = dspy.Predict(
+            "current_instruction, failures, history, examples -> improved_instruction"
+        )
+        proposer.signature = proposer.signature.with_instructions("""
 You are an expert prompt engineer optimizing instructions for a Claude Code skill.
 
 Given the current instruction, examples of failures, previous attempts with scores,
@@ -223,11 +221,11 @@ and training examples, generate an improved instruction that:
 Return ONLY the improved instruction text, no explanations.
 """)
 
-    result = proposer(
-        current_instruction=current_instruction,
-        failures=failures_summary or "No failures to report",
-        history=history_summary or "No previous attempts",
-        examples=examples_summary,
-    )
+        result = proposer(
+            current_instruction=current_instruction,
+            failures=failures_summary or "No failures to report",
+            history=history_summary or "No previous attempts",
+            examples=examples_summary,
+        )
 
-    return result.improved_instruction.strip()
+        return result.improved_instruction.strip()

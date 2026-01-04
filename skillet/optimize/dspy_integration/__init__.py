@@ -1,12 +1,12 @@
-"""DSPy-based optimizer for skill tuning."""
+"""DSPy integration for skill tuning."""
 
 from .claude_lm import ClaudeAgentLM
-from .configure import configure_dspy
+from .configure import get_claude_lm
 from .mipro import SkilletMIPRO, TrialResult
 
 __all__ = [
     "ClaudeAgentLM",
     "SkilletMIPRO",
     "TrialResult",
-    "configure_dspy",
+    "get_claude_lm",
 ]

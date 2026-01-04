@@ -1,7 +1,7 @@
 """Prompt optimization using DSPy."""
 
 from .dspy_integration.claude_lm import ClaudeAgentLM
-from .dspy_integration.configure import configure_dspy
+from .dspy_integration.configure import get_claude_lm
 from .dspy_integration.mipro import SkilletMIPRO, TrialResult
 from .loaders import evals_to_trainset
 from .metric import create_skillet_metric
@@ -13,8 +13,8 @@ __all__ = [
     "SkillModule",
     "SkilletMIPRO",
     "TrialResult",
-    "configure_dspy",
     "create_skillet_metric",
     "evals_to_trainset",
+    "get_claude_lm",
     "optimize_skill",
 ]
