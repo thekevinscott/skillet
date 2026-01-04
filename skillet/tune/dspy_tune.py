@@ -8,7 +8,6 @@ This gives us the best of both worlds:
 """
 
 import tempfile
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 import dspy
@@ -17,7 +16,13 @@ from skillet.evals import load_evals
 from skillet.optimize import evals_to_trainset, get_claude_lm
 
 from .improve import get_skill_file
-from .result import RoundResult, TuneConfig, TuneResult, results_to_eval_results
+from .result import (
+    RoundResult,
+    TuneCallbacks,
+    TuneConfig,
+    TuneResult,
+    results_to_eval_results,
+)
 from .run import run_tune_eval
 
 # Load proposer prompt from file
@@ -25,19 +30,11 @@ _PROPOSER_PROMPT_PATH = Path(__file__).parent / "proposer_prompt.txt"
 _PROPOSER_PROMPT = _PROPOSER_PROMPT_PATH.read_text().strip()
 
 
-async def tune_dspy(  # noqa: PLR0913
+async def tune_dspy(
     name: str,
     skill_path: Path,
-    max_rounds: int = 5,
-    target_pass_rate: float = 100.0,
-    samples: int = 1,
-    parallel: int = 3,
-    on_round_start: Callable[[int, int], Awaitable[None]] | None = None,
-    on_eval_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
-    on_round_complete: Callable[[int, float, list[dict]], Awaitable[None]] | None = None,
-    on_improving: Callable[[str], Awaitable[None]] | None = None,
-    on_improved: Callable[[str, Path], Awaitable[None]] | None = None,
-    on_complete: Callable[[Path], Awaitable[None]] | None = None,
+    config: TuneConfig | None = None,
+    callbacks: TuneCallbacks | None = None,
 ) -> TuneResult:
     """Tune a skill using DSPy's MIPROv2-inspired instruction generation.
 
@@ -52,20 +49,16 @@ async def tune_dspy(  # noqa: PLR0913
     Args:
         name: Name of eval set (path to evals directory)
         skill_path: Path to skill file or directory
-        max_rounds: Maximum optimization rounds
-        target_pass_rate: Target pass rate percentage
-        samples: Number of samples per eval
-        parallel: Number of parallel workers
-        on_round_start: Callback when round starts (round_num, total_rounds)
-        on_eval_status: Callback for eval status updates (task, status, result)
-        on_round_complete: Callback when round completes (round_num, score, results)
-        on_improving: Callback when optimization starts (message)
-        on_improved: Callback when skill improved and saved (instruction, save_path)
-        on_complete: Callback when tuning completes (save_path)
+        config: Tuning configuration (max_rounds, target_pass_rate, samples, parallel)
+        callbacks: Progress callbacks for UI updates
 
     Returns:
         TuneResult with all rounds and the best skill content
     """
+    # Use defaults if not provided
+    config = config or TuneConfig()
+    callbacks = callbacks or TuneCallbacks()
+
     # Load skill and evals
     original_skill_file = get_skill_file(skill_path)
     original_skill_content = original_skill_file.read_text()
@@ -77,12 +70,7 @@ async def tune_dspy(  # noqa: PLR0913
         eval_set=name,
         skill_path=skill_path,
         original_skill=original_skill_content,
-        config=TuneConfig(
-            max_rounds=max_rounds,
-            target_pass_rate=target_pass_rate,
-            samples=samples,
-            parallel=parallel,
-        ),
+        config=config,
     )
 
     # Create temporary directory for skill iterations
@@ -101,13 +89,17 @@ async def tune_dspy(  # noqa: PLR0913
         current_skill_content = original_skill_content
         instruction_history: list[dict] = []
 
-        for round_num in range(1, max_rounds + 1):
-            if on_round_start:
-                await on_round_start(round_num, max_rounds)
+        for round_num in range(1, config.max_rounds + 1):
+            if callbacks.on_round_start:
+                await callbacks.on_round_start(round_num, config.max_rounds)
 
             # Run evals using our native eval system
             pass_rate, results = await run_tune_eval(
-                evals, temp_skill_path, samples, parallel, on_eval_status
+                evals,
+                temp_skill_path,
+                config.samples,
+                config.parallel,
+                callbacks.on_eval_status,
             )
 
             # Record this round
@@ -126,20 +118,20 @@ async def tune_dspy(  # noqa: PLR0913
                 "score": pass_rate / 100,  # Normalize to 0-1
             })
 
-            if on_round_complete:
-                await on_round_complete(round_num, pass_rate, results)
+            if callbacks.on_round_complete:
+                await callbacks.on_round_complete(round_num, pass_rate, results)
 
-            if pass_rate >= target_pass_rate:
+            if pass_rate >= config.target_pass_rate:
                 tune_result.finalize(success=True)
                 # Save final skill and notify
                 original_skill_file.write_text(tune_result.best_skill + "\n")
-                if on_complete:
-                    await on_complete(original_skill_file)
+                if callbacks.on_complete:
+                    await callbacks.on_complete(original_skill_file)
                 return tune_result
 
             # Generate new instruction using DSPy's proposal mechanism
-            if on_improving:
-                await on_improving("Improving skill...")
+            if callbacks.on_improving:
+                await callbacks.on_improving("Improving skill...")
 
             new_instruction = _propose_instruction(
                 current_instruction=current_skill_content,
@@ -154,14 +146,14 @@ async def tune_dspy(  # noqa: PLR0913
             # Save improved skill to original file (for interrupt safety)
             original_skill_file.write_text(new_instruction + "\n")
 
-            if on_improved:
-                await on_improved(new_instruction, original_skill_file)
+            if callbacks.on_improved:
+                await callbacks.on_improved(new_instruction, original_skill_file)
 
         tune_result.finalize(success=False)
         # Save best skill and notify
         original_skill_file.write_text(tune_result.best_skill + "\n")
-        if on_complete:
-            await on_complete(original_skill_file)
+        if callbacks.on_complete:
+            await callbacks.on_complete(original_skill_file)
         return tune_result
 
 

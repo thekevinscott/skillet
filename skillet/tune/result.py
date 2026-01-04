@@ -3,6 +3,7 @@
 import json
 import platform
 import sys
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -51,10 +52,33 @@ class RoundResult:
 class TuneConfig:
     """Configuration for a tune run."""
 
-    max_rounds: int
-    target_pass_rate: float
-    samples: int
-    parallel: int
+    max_rounds: int = 5
+    target_pass_rate: float = 100.0
+    samples: int = 1
+    parallel: int = 3
+
+
+@dataclass
+class TuneCallbacks:
+    """Callbacks for tune progress reporting."""
+
+    on_round_start: Callable[[int, int], Awaitable[None]] | None = None
+    """Called when a round starts. Args: (round_num, total_rounds)"""
+
+    on_eval_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None
+    """Called for eval status updates. Args: (task, status, result)"""
+
+    on_round_complete: Callable[[int, float, list[dict]], Awaitable[None]] | None = None
+    """Called when a round completes. Args: (round_num, pass_rate, results)"""
+
+    on_improving: Callable[[str], Awaitable[None]] | None = None
+    """Called when optimization starts. Args: (message,)"""
+
+    on_improved: Callable[[str, Path], Awaitable[None]] | None = None
+    """Called when skill improved. Args: (instruction, save_path)"""
+
+    on_complete: Callable[[Path], Awaitable[None]] | None = None
+    """Called when tuning completes. Args: (save_path,)"""
 
 
 @dataclass
