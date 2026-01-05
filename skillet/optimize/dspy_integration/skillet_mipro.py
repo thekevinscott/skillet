@@ -282,6 +282,6 @@ class SkilletMIPRO(MIPROv2):
             for _name, module in program.named_predictors():
                 if hasattr(module, "signature"):
                     return module.signature.instructions or ""
-        except Exception:
+        except Exception:  # nosec B110 - intentional catch-all for varied DSPy structures
             pass
         return ""
