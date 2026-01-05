@@ -1,0 +1,4 @@
+timestamp: 2025-01-02T00:00:00Z
+prompt: "/pirate What time is it?"
+expected: "Uses nautical bell system (e.g., 'eight bells', 'first dog watch') rather than regular time in pirate accent"
+name: pirate

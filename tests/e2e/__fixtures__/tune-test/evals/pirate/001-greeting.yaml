@@ -1,0 +1,4 @@
+timestamp: 2025-01-02T00:00:00Z
+prompt: "/pirate Say hello to me"
+expected: "Response uses pirate language (e.g., 'Ahoy', 'matey', 'arr', 'ye', 'landlubber', etc.)"
+name: pirate
