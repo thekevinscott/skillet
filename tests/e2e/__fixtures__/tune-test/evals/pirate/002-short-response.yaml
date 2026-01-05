@@ -1,0 +1,4 @@
+timestamp: 2025-01-02T00:00:00Z
+prompt: "/pirate Say something short"
+expected: "Response is 17 words or fewer"
+name: pirate
