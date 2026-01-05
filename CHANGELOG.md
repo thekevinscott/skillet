@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- DSPy integration for skill tuning with MIPROv2-inspired instruction optimization
+- `TuneConfig` and `TuneCallbacks` dataclasses for cleaner tune API
+- `ClaudeAgentLM` - Custom DSPy language model using Claude Agent SDK
+- `SkilletMIPRO` - MIPROv2 wrapper with callback hooks for progress reporting
+- `propose_instruction` function for DSPy-powered instruction generation
 - Security: `--trust` flag for eval command to skip script confirmation prompt
 - Security: Interactive confirmation prompt when evals contain setup/teardown scripts
 - Static analysis: mccabe complexity (C90) and pylint refactor (PLR) rules in ruff config
