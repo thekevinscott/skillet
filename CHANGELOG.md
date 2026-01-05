@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Tune display: live progress with per-eval pass/fail symbols and pass rate percentages
 - DSPy integration for skill tuning with MIPROv2-inspired instruction optimization
 - `TuneConfig` and `TuneCallbacks` dataclasses for cleaner tune API
 - `ClaudeAgentLM` - Custom DSPy language model using Claude Agent SDK
