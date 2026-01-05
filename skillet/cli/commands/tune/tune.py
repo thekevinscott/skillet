@@ -8,6 +8,7 @@ from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.evals import load_evals
 from skillet.tune import TuneResult, tune
+from skillet.tune.result import TuneCallbacks, TuneConfig
 
 from ...display.thresholds import PASS_RATE_YELLOW, get_rate_color
 from .output_path import get_default_output_path
@@ -106,21 +107,28 @@ async def tune_command(  # noqa: C901 - complexity from inline display callbacks
     async def on_improving(_tip: str):
         console.print("Improving skill...")
 
-    async def on_improved(_new_content: str):
+    async def on_improved(_new_content: str, _path: Path):
         console.print("[green]Skill improved[/green]")
 
-    result = await tune(
-        name,
-        skill_path,
+    config = TuneConfig(
         max_rounds=max_rounds,
         target_pass_rate=target_pass_rate,
         samples=samples,
         parallel=parallel,
+    )
+    callbacks = TuneCallbacks(
         on_round_start=on_round_start,
         on_eval_status=on_eval_status,
         on_round_complete=on_round_complete,
         on_improving=on_improving,
         on_improved=on_improved,
+    )
+
+    result = await tune(
+        name,
+        skill_path,
+        config=config,
+        callbacks=callbacks,
     )
 
     print_tune_result(result)

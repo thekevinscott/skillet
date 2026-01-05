@@ -85,9 +85,7 @@ def describe_ClaudeAgentLM():
         async def it_extracts_prompt_from_messages_async(mock_query_async):
             mock_query_async.return_value = "Response"
             lm = ClaudeAgentLM()
-            result = await lm.aforward(
-                messages=[{"role": "user", "content": "Question"}]
-            )
+            result = await lm.aforward(messages=[{"role": "user", "content": "Question"}])
             assert result.choices[0].message.content == "Response"
 
     def describe_copy():

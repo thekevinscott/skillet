@@ -17,8 +17,5 @@ def extract_prompt(prompt: str | None = None, messages: list[dict] | None = None
         if user_messages:
             return user_messages[-1].get("content", "")
         # Concatenate all messages
-        return "\n".join(
-            f"{m.get('role', 'user')}: {m.get('content', '')}"
-            for m in messages
-        )
+        return "\n".join(f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages)
     return prompt or ""

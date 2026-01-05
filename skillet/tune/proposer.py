@@ -32,20 +32,26 @@ def propose_instruction(
         Improved instruction text
     """
     # Build context for proposal
-    failures_summary = "\n".join([
-        f"- Prompt: {f['prompt']}\n  Expected: {f['expected']}\n  Got: {f['response'][:200]}..."
-        for f in failures[:3]  # Limit to 3 failures
-    ])
+    failures_summary = "\n".join(
+        [
+            f"- Prompt: {f['prompt']}\n  Expected: {f['expected']}\n  Got: {f['response'][:200]}..."
+            for f in failures[:3]  # Limit to 3 failures
+        ]
+    )
 
-    history_summary = "\n".join([
-        f"- Score: {h['score']:.0%}\n  Instruction: {h['instruction'][:100]}..."
-        for h in instruction_history[-3:]  # Last 3 attempts
-    ])
+    history_summary = "\n".join(
+        [
+            f"- Score: {h['score']:.0%}\n  Instruction: {h['instruction'][:100]}..."
+            for h in instruction_history[-3:]  # Last 3 attempts
+        ]
+    )
 
-    examples_summary = "\n".join([
-        f"- Input: {ex.prompt}\n  Expected: {ex.expected}"
-        for ex in trainset[:3]  # First 3 examples
-    ])
+    examples_summary = "\n".join(
+        [
+            f"- Input: {ex.prompt}\n  Expected: {ex.expected}"
+            for ex in trainset[:3]  # First 3 examples
+        ]
+    )
 
     # Use DSPy to generate improved instruction (scoped to avoid global state)
     with dspy.context(lm=get_claude_lm()):

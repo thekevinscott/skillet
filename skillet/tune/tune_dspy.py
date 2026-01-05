@@ -108,10 +108,12 @@ async def tune_dspy(
             tune_result.add_round(round_result)
 
             # Track for instruction proposal
-            instruction_history.append({
-                "instruction": current_skill_content,
-                "score": pass_rate / 100,  # Normalize to 0-1
-            })
+            instruction_history.append(
+                {
+                    "instruction": current_skill_content,
+                    "score": pass_rate / 100,  # Normalize to 0-1
+                }
+            )
 
             if callbacks.on_round_complete:
                 await callbacks.on_round_complete(round_num, pass_rate, results)

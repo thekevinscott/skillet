@@ -106,9 +106,7 @@ class ClaudeAgentLM(BaseLM):
 
         return self._build_response(extracted_prompt, response_text, kwargs)
 
-    def _build_response(
-        self, prompt: str, response_text: str, kwargs: dict
-    ) -> CompletionResponse:
+    def _build_response(self, prompt: str, response_text: str, kwargs: dict) -> CompletionResponse:
         """Build a CompletionResponse and update history."""
         result = CompletionResponse(
             id=f"claude-agent-{uuid.uuid4().hex[:8]}",

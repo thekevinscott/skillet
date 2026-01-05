@@ -110,8 +110,7 @@ def describe_propose_instruction():
         from skillet.tune.proposer import propose_instruction
 
         failures = [
-            {"prompt": f"Q{i}", "expected": f"A{i}", "response": f"Wrong{i}"}
-            for i in range(10)
+            {"prompt": f"Q{i}", "expected": f"A{i}", "response": f"Wrong{i}"} for i in range(10)
         ]
 
         propose_instruction(

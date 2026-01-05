@@ -121,10 +121,14 @@ def describe_tune_command():
         call_args = mock_tune.call_args
         assert call_args[0][0] == "my-evals"
         assert call_args[0][1] == Path("/path/to/skill.md")
-        assert call_args[1]["max_rounds"] == 10
-        assert call_args[1]["target_pass_rate"] == 90.0
-        assert call_args[1]["samples"] == 3
-        assert call_args[1]["parallel"] == 5
+        # Config is passed as a dataclass
+        config = call_args[1]["config"]
+        assert config.max_rounds == 10
+        assert config.target_pass_rate == 90.0
+        assert config.samples == 3
+        assert config.parallel == 5
+        # Callbacks are passed as a dataclass
+        assert "callbacks" in call_args[1]
 
     @pytest.mark.asyncio
     async def it_calls_print_tune_result(mock_print_result, mock_tune_result):

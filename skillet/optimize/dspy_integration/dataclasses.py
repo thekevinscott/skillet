@@ -32,11 +32,13 @@ class CompletionResponse:
     model: str = "claude-agent-sdk"
     choices: list[Choice] = field(default_factory=list)
     # Usage as dict for DSPy compatibility (it calls dict(response.usage))
-    usage: dict = field(default_factory=lambda: {
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "total_tokens": 0,
-    })
+    usage: dict = field(
+        default_factory=lambda: {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+        }
+    )
 
 
 @dataclass

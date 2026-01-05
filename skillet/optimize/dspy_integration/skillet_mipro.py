@@ -3,7 +3,7 @@
 import logging
 from collections import defaultdict
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from dspy.teleprompt import MIPROv2
 from dspy.teleprompt.mipro_optimizer_v2 import eval_candidate_program, save_candidate_program
@@ -163,11 +163,13 @@ class SkilletMIPRO(MIPROv2):
                 is_new_best = True
                 logger.info(f"New best score: {score}")
 
-            score_data.append({
-                "score": score,
-                "program": candidate_program,
-                "full_eval": batch_size >= len(valset),
-            })
+            score_data.append(
+                {
+                    "score": score,
+                    "program": candidate_program,
+                    "full_eval": batch_size >= len(valset),
+                }
+            )
 
             # Callbacks
             result = TrialResult(
@@ -186,15 +188,32 @@ class SkilletMIPRO(MIPROv2):
             if minibatch:
                 param_score_dict[chosen_params].append(score)
                 self._log_minibatch_eval(
-                    score, best_score, batch_size, chosen_params, score_data,
-                    trial, adjusted_num_trials, trial_logs, trial_num,
-                    candidate_program, total_eval_calls,
+                    score,
+                    best_score,
+                    batch_size,
+                    chosen_params,
+                    score_data,
+                    trial,
+                    adjusted_num_trials,
+                    trial_logs,
+                    trial_num,
+                    candidate_program,
+                    total_eval_calls,
                 )
             else:
                 self._log_normal_eval(
-                    score, best_score, chosen_params, score_data, trial,
-                    num_trials, trial_logs, trial_num, valset, batch_size,
-                    candidate_program, total_eval_calls,
+                    score,
+                    best_score,
+                    chosen_params,
+                    score_data,
+                    trial,
+                    num_trials,
+                    trial_logs,
+                    trial_num,
+                    valset,
+                    batch_size,
+                    candidate_program,
+                    total_eval_calls,
                 )
 
             # Minibatch full evaluation at intervals
@@ -216,8 +235,8 @@ class SkilletMIPRO(MIPROv2):
                     best_score,
                     best_program,
                     study,
-                    instruction_candidates,
-                    demo_candidates,
+                    cast(list, instruction_candidates),
+                    cast(list, demo_candidates or []),
                 )
 
             return score
@@ -246,8 +265,8 @@ class SkilletMIPRO(MIPROv2):
                 best_score,
                 best_program,
                 study,
-                instruction_candidates,
-                demo_candidates,
+                cast(list, instruction_candidates),
+                cast(list, demo_candidates or []),
             )
 
         best_program.trial_logs = trial_logs
