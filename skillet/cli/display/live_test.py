@@ -129,78 +129,36 @@ def describe_LiveDisplay():
         await display.update(tasks[0], "done", {"pass": True})
         await display.stop()
 
-    def describe_get_symbol_and_counts():
-        """Tests for _get_symbol_and_counts method."""
-
-        def it_returns_pending_for_pending_state():
-            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-            display = LiveDisplay(tasks)
-            symbol, passed, done = display._get_symbol_and_counts(
-                {"state": "pending", "result": None}
-            )
-            assert symbol == PENDING
-            assert passed is False
-            assert done is False
-
-        def it_returns_running_for_running_state():
-            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-            display = LiveDisplay(tasks)
-            symbol, passed, done = display._get_symbol_and_counts(
-                {"state": "running", "result": None}
-            )
-            assert symbol == RUNNING
-            assert passed is False
-            assert done is False
-
-        def it_returns_cached_pass_for_cached_passing():
-            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-            display = LiveDisplay(tasks)
-            symbol, passed, done = display._get_symbol_and_counts(
-                {"state": "cached", "result": {"pass": True}}
-            )
-            assert symbol == CACHED
-            assert passed is True
-            assert done is True
-
-        def it_returns_cached_fail_for_cached_failing():
-            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-            display = LiveDisplay(tasks)
-            symbol, passed, done = display._get_symbol_and_counts(
-                {"state": "cached", "result": {"pass": False}}
-            )
-            assert symbol == CACHED
-            assert passed is False
-            assert done is True
-
-        def it_returns_pass_for_done_passing():
-            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-            display = LiveDisplay(tasks)
-            symbol, passed, done = display._get_symbol_and_counts(
-                {"state": "done", "result": {"pass": True}}
-            )
-            assert symbol == PASS
-            assert passed is True
-            assert done is True
-
-        def it_returns_fail_for_done_failing():
-            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-            display = LiveDisplay(tasks)
-            symbol, passed, done = display._get_symbol_and_counts(
-                {"state": "done", "result": {"pass": False}}
-            )
-            assert symbol == FAIL
-            assert passed is False
-            assert done is True
-
-        def it_handles_none_result():
-            tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-            display = LiveDisplay(tasks)
-            symbol, passed, done = display._get_symbol_and_counts(
-                {"state": "done", "result": None}
-            )
-            assert symbol == FAIL
-            assert not passed  # None is falsy
-            assert done is True
+    @pytest.mark.parametrize(
+        "state,result,expected_symbol,expected_passed,expected_done",
+        [
+            ("pending", None, PENDING, False, False),
+            ("running", None, RUNNING, False, False),
+            ("cached", {"pass": True}, CACHED, True, True),
+            ("cached", {"pass": False}, CACHED, False, True),
+            ("done", {"pass": True}, PASS, True, True),
+            ("done", {"pass": False}, FAIL, False, True),
+            ("done", None, FAIL, None, True),  # None result -> passed is None (falsy)
+        ],
+        ids=[
+            "pending",
+            "running",
+            "cached_pass",
+            "cached_fail",
+            "done_pass",
+            "done_fail",
+            "done_none_result",
+        ],
+    )
+    def test_get_symbol_and_counts(state, result, expected_symbol, expected_passed, expected_done):
+        """Test _get_symbol_and_counts returns correct values for each state."""
+        tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
+        display = LiveDisplay(tasks)
+        symbol, passed, done = display._get_symbol_and_counts({"state": state, "result": result})
+        assert symbol == expected_symbol
+        # For None result, passed is None (falsy), so check truthiness
+        assert bool(passed) == bool(expected_passed)
+        assert done == expected_done
 
     @patch("skillet.cli.display.live.get_rate_color", return_value="green")
     def it_shows_percentage_when_all_samples_done(mock_get_rate_color):
