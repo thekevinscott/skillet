@@ -31,6 +31,20 @@ class LiveDisplay:
     def _key(self, task: dict) -> str:
         return f"{task['eval_idx']}:{task['iteration']}"
 
+    def _get_symbol_and_counts(self, it: dict) -> tuple[str, bool, bool]:
+        """Get symbol for iteration state, and whether it passed/is done."""
+        state = it["state"]
+        if state == "pending":
+            return PENDING, False, False
+        if state == "running":
+            return RUNNING, False, False
+        # cached or done
+        passed = it["result"] and it["result"].get("pass")
+        if state == "cached":
+            return CACHED, passed, True
+        # done
+        return PASS if passed else FAIL, passed, True
+
     def _build_table(self) -> Table:
         """Build the status table."""
         table = Table(show_header=False, box=None, padding=(0, 1))
@@ -54,20 +68,24 @@ class LiveDisplay:
             iterations = eval_item["iterations"]
 
             symbols = []
+            pass_count = 0
+            done_count = 0
             for it in iterations:
-                if it["state"] == "pending":
-                    symbols.append(PENDING)
-                elif it["state"] == "cached":
-                    symbols.append(CACHED)
-                elif it["state"] == "running":
-                    symbols.append(RUNNING)
-                elif it["state"] == "done":
-                    if it["result"] and it["result"].get("pass"):
-                        symbols.append(PASS)
-                    else:
-                        symbols.append(FAIL)
+                symbol, passed, done = self._get_symbol_and_counts(it)
+                symbols.append(symbol)
+                if passed:
+                    pass_count += 1
+                if done:
+                    done_count += 1
 
-            table.add_row(eval_item["source"], " ".join(symbols))
+            row_content = " ".join(symbols)
+            # Show percentage as soon as all samples for this eval are done
+            if done_count == len(iterations) and done_count > 0:
+                pct = pass_count / len(iterations) * 100
+                pct_color = get_rate_color(pct)
+                row_content += f" [{pct_color}]({pct:.0f}%)[/{pct_color}]"
+
+            table.add_row(eval_item["source"], row_content)
 
         return table
 
