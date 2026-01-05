@@ -11,7 +11,8 @@ from skillet.eval import judge_response, run_prompt
 from skillet.evals import load_evals
 
 from .improve import TUNE_TIPS, get_skill_file, improve_skill
-from .result import EvalResult, RoundResult, TuneConfig, TuneResult
+from .result import RoundResult, TuneConfig, TuneResult
+from .results_to_eval_results import results_to_eval_results
 
 
 async def run_tune_eval(
@@ -86,20 +87,6 @@ async def run_tune_eval(
     pass_rate = total_pass / len(results) * 100 if results else 0
 
     return pass_rate, list(results)
-
-
-def _results_to_eval_results(results: list[dict]) -> list[EvalResult]:
-    """Convert raw eval results to EvalResult objects."""
-    return [
-        EvalResult(
-            source=r["eval_source"],
-            passed=r["pass"],
-            reasoning=r["judgment"].get("reasoning", ""),
-            response=r.get("response"),
-            tool_calls=r.get("tool_calls"),
-        )
-        for r in results
-    ]
 
 
 async def tune(  # noqa: PLR0913 - many args due to optional progress callbacks
@@ -192,7 +179,7 @@ async def tune(  # noqa: PLR0913 - many args due to optional progress callbacks
                 pass_rate=pass_rate,
                 skill_content=current_skill_content,
                 tip_used=last_tip,
-                evals=_results_to_eval_results(results),
+                evals=results_to_eval_results(results),
             )
             tune_result.add_round(round_result)
 
