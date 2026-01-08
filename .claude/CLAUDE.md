@@ -42,10 +42,13 @@ git worktree remove .worktrees/my-feature
 - Mock external dependencies (like `get_rate_color`) to isolate unit tests
 
 ## Key Commands
+
+`just` is installed via uv as `rust-just`, so run it with `uv run just`:
+
 ```bash
-just build-claude    # Build .claude/commands/ from templates
-just test-e2e        # Run e2e tests
-just test-unit       # Run unit tests
+uv run just build-claude    # Build .claude/commands/ from templates
+uv run just test-e2e        # Run e2e tests
+uv run just test-unit       # Run unit tests
 ```
 
 ## Container Development
