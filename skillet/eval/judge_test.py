@@ -176,6 +176,22 @@ def describe_judge_response():
             assert "Failed to parse" in result["reasoning"]
 
     @pytest.mark.asyncio
+    async def it_strips_markdown_code_blocks():
+        """Test that JSON wrapped in markdown code blocks is parsed correctly."""
+        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
+            # Claude sometimes returns JSON wrapped in markdown code blocks
+            mock_query.return_value = '```json\n{"pass": true, "reasoning": "Looks good"}\n```'
+
+            result = await judge_response(
+                prompt="test",
+                response="response",
+                expected="expected",
+            )
+
+            assert result["pass"] is True
+            assert result["reasoning"] == "Looks good"
+
+    @pytest.mark.asyncio
     async def it_passes_output_format_to_query():
         with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = '{"pass": true, "reasoning": "OK"}'
