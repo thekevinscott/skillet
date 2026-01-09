@@ -18,6 +18,7 @@ notes/
 .coverage
 .pnpm-store
 .worktrees
+backlog/
 
 # Generated from .claude-template/
 .claude/commands/
