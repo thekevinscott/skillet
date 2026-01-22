@@ -87,7 +87,19 @@ async def judge_response(
 
     # Parse JSON response using Pydantic
     try:
-        judgment = Judgment.model_validate_json(result)
+        # Strip markdown code blocks if present (Claude sometimes wraps JSON output)
+        cleaned_result = result.strip()
+        if cleaned_result.startswith("```"):
+            # Remove opening fence (with optional language identifier)
+            lines = cleaned_result.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            # Remove closing fence
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            cleaned_result = "\n".join(lines).strip()
+
+        judgment = Judgment.model_validate_json(cleaned_result)
         return {
             "pass": judgment.passed,
             "reasoning": judgment.reasoning,
