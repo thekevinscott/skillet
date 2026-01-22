@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `get_cached_results_for_gap` to `get_cached_results_for_eval`
 
 ### Fixed
+- Add `SlashCommand` to `DEFAULT_SKILL_TOOLS` so eval prompts with `/command` syntax work
+- Strip markdown code blocks from judge JSON responses (Claude sometimes wraps in ```json)
 - Resource leaks: use `TemporaryDirectory` context manager instead of manual cleanup
 - File operations now have proper error handling with `SkillError` exceptions
 - Judge now uses structured JSON output instead of text parsing for reliable pass/fail detection
