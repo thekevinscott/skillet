@@ -14,7 +14,7 @@ pip install pyskillet
 
 ## Why
 
-Anthropic recommends building evaluations before writing skills:
+Anthropic [recommends building evaluations before writing skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#build-evaluations-first):
 
 > Create evaluations BEFORE writing extensive documentation. This ensures your Skill solves real problems rather than documenting imagined ones.
 
