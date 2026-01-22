@@ -29,17 +29,21 @@ Install Skillet:
 pip install pyskillet
 ```
 
-Then capture a gap, run an eval, and improve your skill:
+Then capture evals, create a skill, and tune it:
 
 ```bash
-# Capture a failure scenario
-skillet gap add
+# In Claude Code, capture a failure with /skillet:add
+# Then run baseline eval
+skillet eval my-skill
 
-# Run evaluations
-skillet eval run
+# Create a skill from captured evals
+skillet new my-skill
 
-# Improve your skill based on results
-skillet tune
+# Eval with the skill
+skillet eval my-skill ~/.claude/skills/my-skill
+
+# Iteratively improve
+skillet tune my-skill ~/.claude/skills/my-skill
 ```
 
 ## Get started
@@ -47,11 +51,11 @@ skillet tune
 <div class="card-grid">
   <a href="/getting-started" class="card">
     <h3>Getting Started</h3>
-    <p>Learn about skills, how they work, and why they matter.</p>
+    <p>Step-by-step guide to your first evaluation-driven skill.</p>
   </a>
-  <a href="/interactive-tutorial" class="card">
-    <h3>Interactive Tutorial</h3>
-    <p>Try Skillet in your browser with our interactive tutorial.</p>
+  <a href="/reference/cli" class="card">
+    <h3>CLI Reference</h3>
+    <p>Complete documentation for all Skillet commands.</p>
   </a>
   <a href="https://github.com/thekevinscott/skillet" class="card">
     <h3>View on GitHub</h3>

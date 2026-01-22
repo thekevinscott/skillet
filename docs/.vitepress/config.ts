@@ -21,10 +21,24 @@ export default defineConfig({
       { text: 'GitHub', link: 'https://github.com/thekevinscott/skillet' }
     ],
 
-    // Left sidebar - flat navigation
+    // Left sidebar - organized navigation
     sidebar: [
       { text: 'Overview', link: '/' },
-      { text: 'Getting Started', link: '/getting-started' }
+      { text: 'Getting Started', link: '/getting-started' },
+      {
+        text: 'Guides',
+        items: [
+          { text: 'Capture with /skillet:add', link: '/guides/capture-with-slash-command' }
+        ]
+      },
+      {
+        text: 'Reference',
+        items: [
+          { text: 'CLI', link: '/reference/cli' },
+          { text: 'Eval Format', link: '/reference/eval-format' },
+          { text: 'Python API', link: '/reference/python-api' }
+        ]
+      }
     ],
 
     // Right sidebar - "On this page" outline
@@ -41,6 +55,13 @@ export default defineConfig({
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Copyright © 2024-present'
+    }
+  },
+
+  vite: {
+    server: {
+      port: 5180,
+      strictPort: true
     }
   },
 
