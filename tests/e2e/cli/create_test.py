@@ -1,4 +1,4 @@
-"""End-to-end tests for the `skillet new` command."""
+"""End-to-end tests for the `skillet create` command."""
 
 import os
 import subprocess
@@ -10,12 +10,12 @@ import pytest
 from tests.e2e.helpers import add_evals
 
 
-def describe_skillet_new():
-    """Tests for the `skillet new` command."""
+def describe_skillet_create():
+    """Tests for the `skillet create` command."""
 
     @pytest.mark.asyncio
     async def it_creates_skill_from_evals(skillet_env: Path):
-        """Test that skillet new creates SKILL.md from eval files."""
+        """Test that skillet create creates SKILL.md from eval files."""
         # Setup: Create minimal eval fixtures
         add_evals(skillet_env, "browser-fallback", count=2)
 
@@ -32,7 +32,7 @@ def describe_skillet_new():
                 sys.executable,
                 "-m",
                 "skillet.cli.main",
-                "new",
+                "create",
                 "browser-fallback",
                 "-d",
                 str(output_dir),
