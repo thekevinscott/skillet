@@ -148,6 +148,61 @@ async def create(
     await create_command(name, output_dir=output_dir, extra_prompt=prompt)
 
 
+@app.command
+def lint(
+    path: Annotated[Path | None, Parameter(name="path")] = None,
+    *,
+    format: Annotated[str, Parameter(name=["--format", "-f"])] = "text",
+    fail_on: Annotated[str, Parameter(name=["--fail-on"])] = "error",
+    disable: Annotated[str | None, Parameter(name=["--disable", "-d"])] = None,
+    list_rules: Annotated[bool, Parameter(name=["--list-rules"])] = False,
+):
+    """Lint a SKILL.md file for common issues.
+
+    Validates skill files for quality issues without running evals.
+    Checks frontmatter, structure, vague language, and more.
+
+    PATH can be:
+    - A directory containing SKILL.md
+    - A path to a SKILL.md file directly
+
+    Exit codes:
+        0 = pass (no findings above threshold)
+        1 = findings above threshold
+        2 = error (file not found, parse error, etc.)
+
+    Examples:
+        skillet lint skill/                           # lint skill/SKILL.md
+        skillet lint skill/SKILL.md                   # lint specific file
+        skillet lint skill/ --format json             # JSON output
+        skillet lint skill/ --fail-on warning         # fail on warnings too
+        skillet lint skill/ -d vague-language         # disable a rule
+        skillet lint skill/ -d "vague-language,passive-voice"
+        skillet lint --list-rules                     # show available rules
+    """
+    import sys
+
+    from skillet.cli.commands.lint import lint_command
+
+    # Validate: path is required unless --list-rules is used
+    if path is None and not list_rules:
+        from skillet.cli import console
+
+        console.print("[red]Error:[/red] PATH is required (or use --list-rules)")
+        sys.exit(2)
+
+    disabled_rules = [r.strip() for r in disable.split(",")] if disable else None
+
+    exit_code = lint_command(
+        path,  # type: ignore[arg-type]  # None checked above
+        format=format,
+        fail_on=fail_on,
+        disable=disabled_rules,
+        list_rules=list_rules,
+    )
+    sys.exit(exit_code)
+
+
 def main():
     """Entry point for the CLI."""
     app()
