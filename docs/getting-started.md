@@ -69,7 +69,7 @@ Pass rate: 0% (0/15)
 Generate a skill from your captured evals:
 
 ```bash
-skillet new conventional-comments
+skillet create conventional-comments
 ```
 
 ```

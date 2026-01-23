@@ -132,6 +132,6 @@ This location can be changed with the `SKILLET_DIR` environment variable.
 After capturing 3-5 evals:
 
 1. Run baseline: `skillet eval <category>`
-2. Create skill: `skillet new <category>`
+2. Create skill: `skillet create <category>`
 3. Test skill: `skillet eval <category> ~/.claude/skills/<category>`
 4. Tune: `skillet tune <category> ~/.claude/skills/<category>`

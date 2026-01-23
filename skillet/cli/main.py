@@ -124,7 +124,7 @@ async def tune(
 
 
 @app.command
-async def new(
+async def create(
     name: str,
     *,
     dir: Annotated[Path | None, Parameter(name=["--dir", "-d"])] = None,
@@ -136,16 +136,16 @@ async def new(
     Output is always written to <dir>/.claude/skills/<name>/SKILL.md
 
     Examples:
-        skillet new browser-fallback                  # ~/.claude/skills/browser-fallback/
-        skillet new browser-fallback -d .             # ./.claude/skills/browser-fallback/
-        skillet new browser-fallback -d /tmp/myproj   # /tmp/myproj/.claude/skills/browser-fallback/
-        skillet new browser-fallback -p "Be concise"
+        skillet create browser-fallback                  # ~/.claude/skills/browser-fallback/
+        skillet create browser-fallback -d .             # ./.claude/skills/browser-fallback/
+        skillet create browser-fallback -d /tmp/myproj
+        skillet create browser-fallback -p "Be concise"
     """
-    from skillet.cli.commands.new import new_command
+    from skillet.cli.commands.create import create_command
 
     base = Path.home() if dir is None else dir
     output_dir = base / ".claude" / "skills"
-    await new_command(name, output_dir=output_dir, extra_prompt=prompt)
+    await create_command(name, output_dir=output_dir, extra_prompt=prompt)
 
 
 def main():

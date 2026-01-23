@@ -118,12 +118,12 @@ skillet tune conventional-comments skill/ -o results.json
 skillet tune conventional-comments skill/ -s 3
 ```
 
-## new
+## create
 
 Create a new skill from captured evals.
 
 ```bash
-skillet new <name> [options]
+skillet create <name> [options]
 ```
 
 ### Arguments
@@ -145,18 +145,18 @@ Output is written to `<dir>/.claude/skills/<name>/SKILL.md`.
 
 ```bash
 # Create in home directory (default)
-skillet new browser-fallback
+skillet create browser-fallback
 # Creates ~/.claude/skills/browser-fallback/SKILL.md
 
 # Create in current directory
-skillet new browser-fallback -d .
+skillet create browser-fallback -d .
 # Creates ./.claude/skills/browser-fallback/SKILL.md
 
 # Create in specific project
-skillet new browser-fallback -d /path/to/project
+skillet create browser-fallback -d /path/to/project
 
 # Add extra instructions
-skillet new browser-fallback -p "Be concise, max 20 lines"
+skillet create browser-fallback -p "Be concise, max 20 lines"
 ```
 
 ## Exit Codes
