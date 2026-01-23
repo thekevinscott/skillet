@@ -25,3 +25,10 @@ backlog/
 
 # Docs
 docs/node_modules/
+cache/
+
+# Environment
+.env
+
+# Backlog (local issue tracking)
+backlog/

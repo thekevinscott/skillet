@@ -26,22 +26,22 @@ skillet fills that gap.
 
 ## Workflow
 
-### 1. Capture gaps with `/gap`
+### 1. Capture evals with `/skillet:add`
 
 When Claude does something wrong, capture it:
 
 ```
 > Write a code review comment for this SQL query...
 
-● This code has a SQL injection vulnerability...
+Claude: This code has a SQL injection vulnerability...
 
-> /gap
+> /skillet:add
 
-● What did you expect instead?
+Claude: What did you expect instead?
 
 > Should start with **issue** (blocking): using conventional comments format
 
-● Gap saved to ~/.skillet/gaps/conventional-comments/001.yaml
+Claude: Eval saved to ~/.skillet/evals/conventional-comments/001.yaml
 ```
 
 ### 2. Run baseline eval
@@ -53,8 +53,8 @@ skillet eval conventional-comments
 ```
 Eval Results (baseline, no skill)
 ==================================
-Gaps: 5
-Iterations: 3 per gap
+Evals: 5
+Samples: 3 per eval
 Total runs: 15
 
 Pass rate: 0% (0/15)
@@ -67,55 +67,75 @@ skillet new conventional-comments
 ```
 
 ```
-Found 5 gaps for 'conventional-comments', drafting SKILL.md...
+Found 5 evals for 'conventional-comments', drafting SKILL.md...
 
-Created plugins/conventional-comments/
-├── .claude-plugin/
-│   └── plugin.json
-└── skills/conventional-comments/
-    └── SKILL.md (draft from 5 gaps)
+Created ~/.claude/skills/conventional-comments/
+└── SKILL.md (draft from 5 evals)
 ```
 
 ### 4. Eval with skill
 
 ```bash
-skillet eval conventional-comments --skill plugins/conventional-comments
+skillet eval conventional-comments ~/.claude/skills/conventional-comments
 ```
 
 ```
 Eval Results (with skill)
 =========================
-Skill: plugins/conventional-comments
-Gaps: 5
-Iterations: 3 per gap
+Skill: ~/.claude/skills/conventional-comments
+Evals: 5
+Samples: 3 per eval
 Total runs: 15
 
 Pass rate: 80% (12/15)
 ```
 
-### 5. Iterate
+### 5. Tune the skill
 
-Edit SKILL.md, re-run eval, repeat.
+```bash
+skillet tune conventional-comments ~/.claude/skills/conventional-comments
+```
+
+```
+Round 1/5: Pass rate 80% (12/15)
+  Improving skill...
+Round 2/5: Pass rate 93% (14/15)
+  Improving skill...
+Round 3/5: Pass rate 100% (15/15)
+  Target reached!
+
+Best skill saved to ~/.claude/skills/conventional-comments/SKILL.md
+```
 
 ## Commands
 
 ```bash
-skillet eval <name>                    # baseline eval (no skill)
-skillet eval <name> --skill <path>     # eval with skill
-skillet new <name>                     # create skill from gaps
+skillet eval <name>              # baseline eval (no skill)
+skillet eval <name> <skill>      # eval with skill
+skillet new <name>               # create skill from evals
+skillet tune <name> <skill>      # iteratively improve skill
 ```
 
-## Gaps
+## Evals
 
-Gaps are stored in `~/.skillet/gaps/<name>/`:
+Evals are stored in `~/.skillet/evals/<name>/`:
 
 ```yaml
-# ~/.skillet/gaps/conventional-comments/001.yaml
+# ~/.skillet/evals/conventional-comments/001.yaml
 timestamp: 2025-01-15T10:30:00Z
+name: conventional-comments
 prompt: "Write a code review comment for..."
-actual: "This code has a SQL injection..."
 expected: "Should start with **issue** (blocking):"
 ```
+
+## Documentation
+
+Full documentation available at the [docs site](https://skillet.dev):
+
+- [Getting Started](https://skillet.dev/getting-started)
+- [CLI Reference](https://skillet.dev/reference/cli)
+- [Eval Format](https://skillet.dev/reference/eval-format)
+- [Python API](https://skillet.dev/reference/python-api)
 
 ## Roadmap
 
