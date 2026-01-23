@@ -63,7 +63,7 @@ Pass rate: 0% (0/15)
 ### 3. Create the skill
 
 ```bash
-skillet new conventional-comments
+skillet create conventional-comments
 ```
 
 ```
@@ -112,7 +112,7 @@ Best skill saved to ~/.claude/skills/conventional-comments/SKILL.md
 ```bash
 skillet eval <name>              # baseline eval (no skill)
 skillet eval <name> <skill>      # eval with skill
-skillet new <name>               # create skill from evals
+skillet create <name>               # create skill from evals
 skillet tune <name> <skill>      # iteratively improve skill
 ```
 

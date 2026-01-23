@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from skillet.cli.main import app, compare, eval, main, new, tune
+from skillet.cli.main import app, compare, create, eval, main, tune
 
 
 def describe_app():
@@ -23,7 +23,7 @@ def describe_app():
         assert len(app._registered_commands) > 0
 
     def it_has_multiple_commands():
-        # Should have at least new, eval, tune, compare commands
+        # Should have at least create, eval, tune, compare commands
         assert len(app._registered_commands) >= 4
 
 
@@ -83,16 +83,16 @@ def describe_tune_command():
             assert call_kwargs["target_pass_rate"] == 100.0
 
 
-def describe_new_command():
-    """Tests for new CLI command."""
+def describe_create_command():
+    """Tests for create CLI command."""
 
     @pytest.mark.asyncio
-    async def it_calls_new_command_with_home_default():
+    async def it_calls_create_command_with_home_default():
         with patch(
-            "skillet.cli.commands.new.new_command",
+            "skillet.cli.commands.create.create_command",
             new_callable=AsyncMock,
         ) as mock_cmd:
-            await new("my-skill")
+            await create("my-skill")
 
             mock_cmd.assert_called_once()
             call_kwargs = mock_cmd.call_args[1]

@@ -1,4 +1,4 @@
-"""CLI handler for new command."""
+"""CLI handler for create command."""
 
 from pathlib import Path
 
@@ -11,12 +11,12 @@ from skillet.evals import load_evals
 from skillet.skill import create_skill
 
 
-async def new_command(
+async def create_command(
     name: str,
     output_dir: Path,
     extra_prompt: str | None = None,
 ):
-    """Run new command with display."""
+    """Run create command with display."""
     # Load evals first to get count
     evals = load_evals(name)
 

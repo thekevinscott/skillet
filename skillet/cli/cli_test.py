@@ -22,7 +22,7 @@ def describe_cli():
         "command",
         [
             "eval",
-            "new",
+            "create",
             "tune",
             "compare",
         ],

@@ -37,7 +37,7 @@ Then capture evals, create a skill, and tune it:
 skillet eval my-skill
 
 # Create a skill from captured evals
-skillet new my-skill
+skillet create my-skill
 
 # Eval with the skill
 skillet eval my-skill ~/.claude/skills/my-skill
