@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `skillet lint` command for static SKILL.md validation without running evals
 - Docs: comprehensive documentation for `tune` command, eval format, Python API, and `/skillet:add` guide
 - E2E test: pirate skill tuning validation with calibrated evals
 - Tune display: live progress with per-eval pass/fail symbols and pass rate percentages

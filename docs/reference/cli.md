@@ -159,6 +159,68 @@ skillet create browser-fallback -d /path/to/project
 skillet create browser-fallback -p "Be concise, max 20 lines"
 ```
 
+## lint
+
+Validate a SKILL.md file for common issues without running evals.
+
+```bash
+skillet lint <path> [options]
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `path` | Yes* | Path to skill directory or SKILL.md file |
+
+*Required unless using `--list-rules`.
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Pass (no findings above threshold) |
+| 1 | Findings above threshold |
+| 2 | Error (file not found, parse error, etc.) |
+
+### Examples
+
+```bash
+# Lint a skill directory
+skillet lint skill/
+
+# Lint a specific file
+skillet lint skill/SKILL.md
+
+# JSON output for tooling
+skillet lint skill/ --format json
+
+# Fail on warnings too (not just errors)
+skillet lint skill/ --fail-on warning
+
+# Disable a specific rule
+skillet lint skill/ -d frontmatter-valid
+
+# List available rules
+skillet lint --list-rules
+```
+
+### Available Rules
+
+| Rule ID | Severity | Description |
+|---------|----------|-------------|
+| `frontmatter-valid` | ERROR | Checks for valid YAML frontmatter with required `name` and `description` fields |
+
+## compare
+
+Compare baseline vs skill results from cache.
+
+```bash
+skillet compare <name> <skill>
+```
+
+This command is used to compare cached results between baseline runs (without a skill) and runs with a skill loaded. Run `skillet eval <name>` and `skillet eval <name> <skill>` first to populate the cache.
+
 ## Exit Codes
 
 | Code | Meaning |
