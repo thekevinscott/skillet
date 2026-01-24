@@ -3,9 +3,9 @@
 import json
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from skillet._internal.sdk import query_assistant_text
+from skillet._internal.sdk import StructuredOutputError, query_structured
 from skillet.prompts import load_prompt
 
 JUDGE_PROMPT = Path(__file__).parent / "judge.txt"
@@ -13,6 +13,8 @@ JUDGE_PROMPT = Path(__file__).parent / "judge.txt"
 
 class Judgment(BaseModel):
     """Structured output for judge responses."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     passed: bool = Field(
         description="Whether the response meets the expected behavior",
@@ -78,37 +80,23 @@ async def judge_response(
         expected=expected,
     )
 
-    result = await query_assistant_text(
-        judge_prompt,
-        max_turns=1,
-        allowed_tools=[],
-        output_format={"type": "json", "schema": Judgment.model_json_schema()},
-    )
-
-    # Parse JSON response using Pydantic
     try:
-        # Strip markdown code blocks if present (Claude sometimes wraps JSON output)
-        cleaned_result = result.strip()
-        if cleaned_result.startswith("```"):
-            # Remove opening fence (with optional language identifier)
-            lines = cleaned_result.split("\n")
-            if lines[0].startswith("```"):
-                lines = lines[1:]
-            # Remove closing fence
-            if lines and lines[-1].strip() == "```":
-                lines = lines[:-1]
-            cleaned_result = "\n".join(lines).strip()
-
-        judgment = Judgment.model_validate_json(cleaned_result)
+        judgment = await query_structured(
+            judge_prompt,
+            Judgment,
+            max_turns=1,
+            allowed_tools=[],
+        )
         return {
             "pass": judgment.passed,
             "reasoning": judgment.reasoning,
-            "raw": result,
         }
+    except StructuredOutputError:
+        # Canary triggered: structured output contained backticks
+        raise
     except Exception as e:
         # Fallback: if parsing fails, treat as failure
         return {
             "pass": False,
             "reasoning": f"Failed to parse judge response: {e}",
-            "raw": result,
         }

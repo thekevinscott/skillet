@@ -3,9 +3,19 @@
 ## Workflow
 - Work in git worktrees under `.worktrees/` folder, tie PRs to GitHub issues
 - **NEVER commit directly to main** - always create a PR
-- Before pushing: `just lint && just test-unit`
-- After pushing: monitor CI checks
+- **Before pushing, run the same checks CI runs:**
+  ```bash
+  uv run just lint && uv run just format-check && uv run just typecheck && uv run just test-unit
+  ```
+- After pushing: monitor CI checks and fix any failures immediately
 - **After a PR is merged**: pull main in the root repository to keep worktrees in sync
+
+### PR Scope
+- **Keep PRs minimal but complete** - each PR should deliver one useful, self-contained piece of functionality
+- Don't add code that isn't used until a future PR (e.g., an error class with no callers)
+- If a task is too large for one PR, create child beads under the parent bead - one per PR
+- Every PR must include appropriate: unit tests, integration tests (if applicable), e2e tests (if applicable), and docs
+- **Changelog**: Update `CHANGELOG.md` for user-facing changes. For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label to bypass the CI check
 
 ### Git Worktrees
 All development work should happen in git worktrees, not on the main branch directly.
@@ -34,12 +44,34 @@ git worktree remove .worktrees/my-feature
 - `tests/e2e/` - End-to-end tests using Claude Agent SDK
 
 ## Testing
-- E2E tests auto-build `.claude/commands/` via conftest.py
+- **Unit tests**: Colocate with source files (`foo.py` → `foo_test.py` in same directory)
+- **E2E tests**: Live in `tests/e2e/`, auto-build `.claude/commands/` via conftest.py
 - `Conversation` helper for multi-turn test flows
 - `setting_sources=["project"]` loads slash commands from `.claude/commands/`
 - Commands in subdirs get namespaced: `skillet/add.md` -> `/skillet:add`
 - Use `@pytest.mark.parametrize` when testing multiple inputs/outputs for the same logic
 - Mock external dependencies (like `get_rate_color`) to isolate unit tests
+
+### Mocking with pytest-describe
+
+Use `@pytest.fixture(autouse=True)` for shared mocks within a describe block. Pass fixture as function parameter (not `self`):
+
+```python
+def describe_my_function():
+    @pytest.fixture(autouse=True)
+    def mock_dependency():
+        with patch("module.dependency", new_callable=AsyncMock) as mock:
+            mock.return_value = default_value
+            yield mock
+
+    @pytest.mark.asyncio
+    async def it_does_something(mock_dependency):
+        mock_dependency.return_value = specific_value
+        result = await my_function()
+        assert result == expected
+```
+
+Prefer `autouse=True` fixtures over inline `with patch(...)` when multiple tests share the same mock setup.
 
 ## Key Commands
 
@@ -61,6 +93,34 @@ uv run pytest tests/ -v
 ```
 
 This prevents the host's `.venv` from being invalidated when switching contexts.
+
+## Code Style
+
+### Docstrings
+- **Skip `Args:`, `Returns:`, `Raises:` sections** - these are statically analyzable from type hints
+- Use docstrings for *why* and *what*, not *how* the signature works
+- One-liner docstrings for simple functions; multi-line only when behavior needs explanation
+
+### Type Hints
+- **Prefer fixing type issues over `# type: ignore`** - investigate the root cause first
+
+```python
+# Good
+def query_structured[T: BaseModel](prompt: str, model: type[T]) -> T:
+    """Query Claude and return a validated Pydantic model."""
+
+# Avoid
+def query_structured[T: BaseModel](prompt: str, model: type[T]) -> T:
+    """Query Claude and return a validated Pydantic model.
+
+    Args:
+        prompt: The prompt to send
+        model: A Pydantic model class
+
+    Returns:
+        An instance of the model
+    """
+```
 
 ## Guidelines
 - Check `uv.lock` for dependency versions - don't ask the user for info you can look up
