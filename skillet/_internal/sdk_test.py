@@ -406,16 +406,12 @@ def describe_query_structured():
     @pytest.mark.asyncio
     async def it_raises_type_error_for_non_pydantic_model():
         """Test that TypeError is raised if model is not a Pydantic BaseModel."""
-        from typing import cast
-
-        from pydantic import BaseModel
 
         class NotPydantic:
             pass
 
-        # Cast to BaseModel to test runtime type checking (intentionally wrong type)
         with pytest.raises(TypeError) as exc_info:
-            await query_structured("test", cast(type[BaseModel], NotPydantic))
+            await query_structured("test", NotPydantic)  # type: ignore[type-var]
 
         assert "Pydantic BaseModel" in str(exc_info.value)
 

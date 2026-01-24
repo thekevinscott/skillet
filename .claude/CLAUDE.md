@@ -101,13 +101,7 @@ This prevents the host's `.venv` from being invalidated when switching contexts.
 - One-liner docstrings for simple functions; multi-line only when behavior needs explanation
 
 ### Type Hints
-- **Avoid `# type: ignore` comments** - fix the underlying issue instead
-- For testing intentionally wrong types, use `cast()` to document intent:
-  ```python
-  # Instead of: await func(wrong_type)  # type: ignore
-  await func(cast(type[Expected], wrong_type))  # explicit intent
-  ```
-- Use Pydantic's `model_validate(dict)` for creating models with aliases (avoids `**{}` unpacking issues)
+- **Prefer fixing type issues over `# type: ignore`** - investigate the root cause first
 
 ```python
 # Good
