@@ -34,12 +34,34 @@ git worktree remove .worktrees/my-feature
 - `tests/e2e/` - End-to-end tests using Claude Agent SDK
 
 ## Testing
-- E2E tests auto-build `.claude/commands/` via conftest.py
+- **Unit tests**: Colocate with source files (`foo.py` → `foo_test.py` in same directory)
+- **E2E tests**: Live in `tests/e2e/`, auto-build `.claude/commands/` via conftest.py
 - `Conversation` helper for multi-turn test flows
 - `setting_sources=["project"]` loads slash commands from `.claude/commands/`
 - Commands in subdirs get namespaced: `skillet/add.md` -> `/skillet:add`
 - Use `@pytest.mark.parametrize` when testing multiple inputs/outputs for the same logic
 - Mock external dependencies (like `get_rate_color`) to isolate unit tests
+
+### Mocking with pytest-describe
+
+Use `@pytest.fixture(autouse=True)` for shared mocks within a describe block. Pass fixture as function parameter (not `self`):
+
+```python
+def describe_my_function():
+    @pytest.fixture(autouse=True)
+    def mock_dependency():
+        with patch("module.dependency", new_callable=AsyncMock) as mock:
+            mock.return_value = default_value
+            yield mock
+
+    @pytest.mark.asyncio
+    async def it_does_something(mock_dependency):
+        mock_dependency.return_value = specific_value
+        result = await my_function()
+        assert result == expected
+```
+
+Prefer `autouse=True` fixtures over inline `with patch(...)` when multiple tests share the same mock setup.
 
 ## Key Commands
 
