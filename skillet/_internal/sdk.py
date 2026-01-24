@@ -68,20 +68,8 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
     """Query Claude and return a validated Pydantic model.
 
     Uses the Claude Agent SDK's structured output feature to guarantee
-    schema-compliant JSON responses without markdown wrapping.
-
-    Args:
-        prompt: The prompt to send to Claude
-        model: A Pydantic BaseModel subclass defining the expected response shape
-        **options: Additional options passed to ClaudeAgentOptions
-
-    Returns:
-        An instance of the provided model, validated from Claude's response
-
-    Raises:
-        StructuredOutputError: If response contains backticks (indicates
-            structured output was not properly configured)
-        ValueError: If no structured output was returned
+    schema-compliant JSON responses without markdown wrapping. Raises
+    StructuredOutputError if backticks are detected (canary for misconfiguration).
     """
     if not (isinstance(model, type) and issubclass(model, BaseModel)):
         raise TypeError(f"model must be a Pydantic BaseModel subclass, got {type(model)}")

@@ -84,6 +84,31 @@ uv run pytest tests/ -v
 
 This prevents the host's `.venv` from being invalidated when switching contexts.
 
+## Code Style
+
+### Docstrings
+- **Skip `Args:`, `Returns:`, `Raises:` sections** - these are statically analyzable from type hints
+- Use docstrings for *why* and *what*, not *how* the signature works
+- One-liner docstrings for simple functions; multi-line only when behavior needs explanation
+
+```python
+# Good
+def query_structured[T: BaseModel](prompt: str, model: type[T]) -> T:
+    """Query Claude and return a validated Pydantic model."""
+
+# Avoid
+def query_structured[T: BaseModel](prompt: str, model: type[T]) -> T:
+    """Query Claude and return a validated Pydantic model.
+
+    Args:
+        prompt: The prompt to send
+        model: A Pydantic model class
+
+    Returns:
+        An instance of the model
+    """
+```
+
 ## Guidelines
 - Check `uv.lock` for dependency versions - don't ask the user for info you can look up
 - Don't make up installation commands - verify in docs or source code first
