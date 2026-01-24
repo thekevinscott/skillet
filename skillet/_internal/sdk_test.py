@@ -6,10 +6,12 @@ import pytest
 
 from skillet._internal.sdk import (
     QueryResult,
+    StructuredOutputError,
     _stderr_callback,
     for_query,
     query_assistant_text,
     query_multiturn,
+    query_structured,
 )
 
 
@@ -287,3 +289,154 @@ def describe_query_multiturn():
             assert len(result.tool_calls) == 1
             assert result.tool_calls[0]["name"] == "read_file"
             assert result.tool_calls[0]["input"] == {"path": "/test"}
+
+
+def describe_StructuredOutputError():
+    """Tests for StructuredOutputError exception."""
+
+    def it_can_be_raised_with_message():
+        with pytest.raises(StructuredOutputError) as exc_info:
+            raise StructuredOutputError("test message")
+        assert "test message" in str(exc_info.value)
+
+    def it_is_an_exception():
+        assert issubclass(StructuredOutputError, Exception)
+
+
+def describe_query_structured():
+    """Tests for query_structured function."""
+
+    @pytest.mark.asyncio
+    async def it_returns_validated_pydantic_model():
+        """Test that structured output is validated into a Pydantic model."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            name: str
+            value: int
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = {"name": "test", "value": 42}
+        mock_result.result = None
+
+        async def mock_query_gen(*_args, **_kwargs):
+            yield mock_result
+
+        with patch("skillet._internal.sdk.query", mock_query_gen):
+            result = await query_structured("test prompt", TestModel)
+
+            assert isinstance(result, TestModel)
+            assert result.name == "test"
+            assert result.value == 42
+
+    @pytest.mark.asyncio
+    async def it_passes_json_schema_output_format():
+        """Test that output_format with json_schema type is passed."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = {"data": "test"}
+        mock_result.result = None
+
+        captured_options = None
+
+        async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
+            nonlocal captured_options
+            captured_options = options
+            yield mock_result
+
+        with patch("skillet._internal.sdk.query", mock_query_gen):
+            await query_structured("test", TestModel)
+
+            assert captured_options is not None
+            assert captured_options.output_format["type"] == "json_schema"
+            assert "schema" in captured_options.output_format
+
+    @pytest.mark.asyncio
+    async def it_raises_on_backticks_in_result():
+        """Test that StructuredOutputError is raised when backticks detected."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = None
+        mock_result.result = '```json\n{"data": "test"}\n```'
+
+        async def mock_query_gen(*_args, **_kwargs):
+            yield mock_result
+
+        with patch("skillet._internal.sdk.query", mock_query_gen):
+            with pytest.raises(StructuredOutputError) as exc_info:
+                await query_structured("test", TestModel)
+
+            assert "markdown code fences" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_raises_value_error_when_no_structured_output():
+        """Test that ValueError is raised when no structured output returned."""
+        from claude_agent_sdk import AssistantMessage, TextBlock
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+
+        # Return an AssistantMessage instead of ResultMessage
+        mock_text = MagicMock(spec=TextBlock)
+        mock_text.text = "plain text"
+        mock_message = MagicMock(spec=AssistantMessage)
+        mock_message.content = [mock_text]
+
+        async def mock_query_gen(*_args, **_kwargs):
+            yield mock_message
+
+        with patch("skillet._internal.sdk.query", mock_query_gen):
+            with pytest.raises(ValueError) as exc_info:
+                await query_structured("test", TestModel)
+
+            assert "No structured output" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_raises_type_error_for_non_pydantic_model():
+        """Test that TypeError is raised if model is not a Pydantic BaseModel."""
+
+        class NotPydantic:
+            pass
+
+        with pytest.raises(TypeError) as exc_info:
+            await query_structured("test", NotPydantic)
+
+        assert "Pydantic BaseModel" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_passes_through_additional_options():
+        """Test that additional options are passed to ClaudeAgentOptions."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = {"data": "test"}
+        mock_result.result = None
+
+        captured_options = None
+
+        async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
+            nonlocal captured_options
+            captured_options = options
+            yield mock_result
+
+        with patch("skillet._internal.sdk.query", mock_query_gen):
+            await query_structured("test", TestModel, max_turns=5, allowed_tools=["Read"])
+
+            assert captured_options.max_turns == 5
+            assert captured_options.allowed_tools == ["Read"]

@@ -4,7 +4,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from skillet._internal.sdk import StructuredOutputError
 from skillet.eval.judge import (
+    Judgment,
     format_prompt_for_judge,
     format_tool_calls_for_judge,
     judge_response,
@@ -70,8 +72,8 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_returns_pass_true_when_response_passes():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = '{"pass": true, "reasoning": "Response meets expectations"}'
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = Judgment(passed=True, reasoning="Response meets expectations")
 
             result = await judge_response(
                 prompt="Say hello",
@@ -84,8 +86,8 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_returns_pass_false_when_response_fails():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = '{"pass": false, "reasoning": "Did not greet the user"}'
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = Judgment(passed=False, reasoning="Did not greet the user")
 
             result = await judge_response(
                 prompt="Say hello",
@@ -98,8 +100,8 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_includes_tool_calls_in_prompt():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = '{"pass": true, "reasoning": "Correct tools used"}'
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = Judgment(passed=True, reasoning="Correct tools used")
 
             tool_calls = [{"name": "read_file", "input": {"path": "/test.txt"}}]
 
@@ -117,8 +119,8 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_handles_multi_turn_prompts():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = '{"pass": true, "reasoning": "Good"}'
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = Judgment(passed=True, reasoning="Good")
 
             await judge_response(
                 prompt=["First question", "Follow up"],
@@ -133,8 +135,8 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_handles_missing_reasoning():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = '{"pass": true}'
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = Judgment(passed=True)
 
             result = await judge_response(
                 prompt="test",
@@ -147,8 +149,8 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_handles_none_tool_calls():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = '{"pass": true, "reasoning": "OK"}'
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = Judgment(passed=True, reasoning="OK")
 
             await judge_response(
                 prompt="test",
@@ -162,9 +164,9 @@ def describe_judge_response():
             assert "(no tools used)" in prompt
 
     @pytest.mark.asyncio
-    async def it_handles_invalid_json():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = "This is not valid JSON"
+    async def it_handles_validation_errors():
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.side_effect = ValueError("No structured output returned")
 
             result = await judge_response(
                 prompt="test",
@@ -176,25 +178,22 @@ def describe_judge_response():
             assert "Failed to parse" in result["reasoning"]
 
     @pytest.mark.asyncio
-    async def it_strips_markdown_code_blocks():
-        """Test that JSON wrapped in markdown code blocks is parsed correctly."""
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            # Claude sometimes returns JSON wrapped in markdown code blocks
-            mock_query.return_value = '```json\n{"pass": true, "reasoning": "Looks good"}\n```'
+    async def it_raises_on_backticks_canary():
+        """Test that StructuredOutputError is raised if backticks detected."""
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.side_effect = StructuredOutputError("Response contains markdown code fences")
 
-            result = await judge_response(
-                prompt="test",
-                response="response",
-                expected="expected",
-            )
-
-            assert result["pass"] is True
-            assert result["reasoning"] == "Looks good"
+            with pytest.raises(StructuredOutputError):
+                await judge_response(
+                    prompt="test",
+                    response="response",
+                    expected="expected",
+                )
 
     @pytest.mark.asyncio
-    async def it_passes_output_format_to_query():
-        with patch("skillet.eval.judge.query_assistant_text", new_callable=AsyncMock) as mock_query:
-            mock_query.return_value = '{"pass": true, "reasoning": "OK"}'
+    async def it_calls_query_structured_with_judgment_model():
+        with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock_query:
+            mock_query.return_value = Judgment(passed=True, reasoning="OK")
 
             await judge_response(
                 prompt="test",
@@ -202,7 +201,7 @@ def describe_judge_response():
                 expected="expected",
             )
 
-            call_kwargs = mock_query.call_args[1]
-            assert "output_format" in call_kwargs
-            assert call_kwargs["output_format"]["type"] == "json"
-            assert "schema" in call_kwargs["output_format"]
+            call_args = mock_query.call_args
+            assert call_args[0][1] is Judgment
+            assert call_args[1]["max_turns"] == 1
+            assert call_args[1]["allowed_tools"] == []
