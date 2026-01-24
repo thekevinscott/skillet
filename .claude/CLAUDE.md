@@ -15,6 +15,7 @@
 - Don't add code that isn't used until a future PR (e.g., an error class with no callers)
 - If a task is too large for one PR, create child beads under the parent bead - one per PR
 - Every PR must include appropriate: unit tests, integration tests (if applicable), e2e tests (if applicable), and docs
+- **Changelog**: Update `CHANGELOG.md` for user-facing changes. For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label to bypass the CI check
 
 ### Git Worktrees
 All development work should happen in git worktrees, not on the main branch directly.
