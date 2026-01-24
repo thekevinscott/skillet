@@ -4,16 +4,10 @@ This guide walks you through installing Skillet and creating your first evaluati
 
 ## Installation
 
-Install Skillet using pip or uv:
+Install Skillet using pip:
 
 ```bash
 pip install pyskillet
-```
-
-Or with uv:
-
-```bash
-uv add pyskillet
 ```
 
 ## Core Concepts
