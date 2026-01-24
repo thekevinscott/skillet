@@ -3,8 +3,11 @@
 ## Workflow
 - Work in git worktrees under `.worktrees/` folder, tie PRs to GitHub issues
 - **NEVER commit directly to main** - always create a PR
-- Before pushing: `just lint && just test-unit`
-- After pushing: monitor CI checks
+- **Before pushing, run the same checks CI runs:**
+  ```bash
+  uv run just lint && uv run just format-check && uv run just typecheck && uv run just test-unit
+  ```
+- After pushing: monitor CI checks and fix any failures immediately
 - **After a PR is merged**: pull main in the root repository to keep worktrees in sync
 
 ### PR Scope
@@ -96,6 +99,15 @@ This prevents the host's `.venv` from being invalidated when switching contexts.
 - **Skip `Args:`, `Returns:`, `Raises:` sections** - these are statically analyzable from type hints
 - Use docstrings for *why* and *what*, not *how* the signature works
 - One-liner docstrings for simple functions; multi-line only when behavior needs explanation
+
+### Type Hints
+- **Avoid `# type: ignore` comments** - fix the underlying issue instead
+- For testing intentionally wrong types, use `cast()` to document intent:
+  ```python
+  # Instead of: await func(wrong_type)  # type: ignore
+  await func(cast(type[Expected], wrong_type))  # explicit intent
+  ```
+- Use Pydantic's `model_validate(dict)` for creating models with aliases (avoids `**{}` unpacking issues)
 
 ```python
 # Good

@@ -74,14 +74,14 @@ def describe_judge_response():
     def mock_query_structured():
         """Mock query_structured for all tests in this describe block."""
         with patch("skillet.eval.judge.query_structured", new_callable=AsyncMock) as mock:
-            # Default return value - tests can override via mock.return_value or mock.side_effect
-            mock.return_value = Judgment(passed=True, reasoning="OK")
+            # Default return value - use model_validate with alias for type safety
+            mock.return_value = Judgment.model_validate({"pass": True, "reasoning": "OK"})
             yield mock
 
     @pytest.mark.asyncio
     async def it_returns_pass_true_when_response_passes(mock_query_structured):
-        mock_query_structured.return_value = Judgment(
-            passed=True, reasoning="Response meets expectations"
+        mock_query_structured.return_value = Judgment.model_validate(
+            {"pass": True, "reasoning": "Response meets expectations"}
         )
 
         result = await judge_response(
@@ -95,8 +95,8 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_returns_pass_false_when_response_fails(mock_query_structured):
-        mock_query_structured.return_value = Judgment(
-            passed=False, reasoning="Did not greet the user"
+        mock_query_structured.return_value = Judgment.model_validate(
+            {"pass": False, "reasoning": "Did not greet the user"}
         )
 
         result = await judge_response(
@@ -110,7 +110,9 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_includes_tool_calls_in_prompt(mock_query_structured):
-        mock_query_structured.return_value = Judgment(passed=True, reasoning="Correct tools used")
+        mock_query_structured.return_value = Judgment.model_validate(
+            {"pass": True, "reasoning": "Correct tools used"}
+        )
         tool_calls = [{"name": "read_file", "input": {"path": "/test.txt"}}]
 
         await judge_response(
@@ -127,7 +129,9 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_handles_multi_turn_prompts(mock_query_structured):
-        mock_query_structured.return_value = Judgment(passed=True, reasoning="Good")
+        mock_query_structured.return_value = Judgment.model_validate(
+            {"pass": True, "reasoning": "Good"}
+        )
 
         await judge_response(
             prompt=["First question", "Follow up"],
@@ -142,7 +146,7 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_handles_missing_reasoning(mock_query_structured):
-        mock_query_structured.return_value = Judgment(passed=True)
+        mock_query_structured.return_value = Judgment.model_validate({"pass": True})
 
         result = await judge_response(
             prompt="test",
@@ -155,7 +159,9 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_handles_none_tool_calls(mock_query_structured):
-        mock_query_structured.return_value = Judgment(passed=True, reasoning="OK")
+        mock_query_structured.return_value = Judgment.model_validate(
+            {"pass": True, "reasoning": "OK"}
+        )
 
         await judge_response(
             prompt="test",
@@ -197,7 +203,9 @@ def describe_judge_response():
 
     @pytest.mark.asyncio
     async def it_calls_query_structured_with_judgment_model(mock_query_structured):
-        mock_query_structured.return_value = Judgment(passed=True, reasoning="OK")
+        mock_query_structured.return_value = Judgment.model_validate(
+            {"pass": True, "reasoning": "OK"}
+        )
 
         await judge_response(
             prompt="test",

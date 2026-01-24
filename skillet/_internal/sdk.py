@@ -128,7 +128,7 @@ async def query_multiturn(  # noqa: C901 - complexity from SDK protocol handling
             # Capture session ID from init message
             if hasattr(message, "subtype") and message.subtype == "init":
                 if hasattr(message, "session_id"):
-                    session_id = str(message.session_id)  # type: ignore[attr-defined]
+                    session_id = str(message.session_id)
                 elif hasattr(message, "data"):
                     data = getattr(message, "data", None)
                     if isinstance(data, dict) and "session_id" in data:
