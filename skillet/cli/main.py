@@ -148,6 +148,17 @@ async def create(
     await create_command(name, output_dir=output_dir, extra_prompt=prompt)
 
 
+@app.command(name="generate-evals")
+async def generate_evals(
+    skill: Path,
+    *,
+    output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
+    dry_run: Annotated[bool, Parameter(name=["--dry-run", "-n"])] = False,
+):
+    """Generate candidate evals from a SKILL.md."""
+    pass
+
+
 def main():
     """Entry point for the CLI."""
     app()
