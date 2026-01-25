@@ -4,10 +4,11 @@ from pathlib import Path
 
 import yaml
 
-from skillet._internal.sdk import query_assistant_text
-from skillet._internal.text import strip_markdown, summarize_failure_for_tuning
+from skillet._internal.sdk import query_structured
+from skillet._internal.text import summarize_failure_for_tuning
 from skillet.config import MAX_SKILL_LINES
 from skillet.prompts import load_prompt
+from skillet.skill.models import SkillContent
 
 IMPROVE_PROMPT = Path(__file__).parent / "improve.txt"
 
@@ -70,12 +71,12 @@ async def improve_skill(
         tip_section=tip_section,
     )
 
-    result = await query_assistant_text(prompt, max_turns=1, allowed_tools=[])
-    result = strip_markdown(result)
+    result = await query_structured(prompt, SkillContent, max_turns=1, allowed_tools=[])
+    content = result.content
 
     # Hard limit: truncate to MAX_SKILL_LINES if still too long
-    lines = result.split("\n")
+    lines = content.split("\n")
     if len(lines) > MAX_SKILL_LINES:
-        result = "\n".join(lines[:MAX_SKILL_LINES])
+        content = "\n".join(lines[:MAX_SKILL_LINES])
 
-    return result
+    return content

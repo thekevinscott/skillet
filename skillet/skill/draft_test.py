@@ -5,97 +5,84 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from skillet.skill.draft import draft_skill
+from skillet.skill.models import SkillContent
 
 
 def describe_draft_skill():
     """Tests for draft_skill function."""
 
-    @pytest.mark.asyncio
-    async def it_calls_claude_with_evals_summary():
+    @pytest.fixture(autouse=True)
+    def mock_query_structured():
         with patch(
-            "skillet.skill.draft.query_assistant_text",
+            "skillet.skill.draft.query_structured",
             new_callable=AsyncMock,
-        ) as mock_query:
-            mock_query.return_value = "# Generated Skill"
-
-            evals = [
-                {"prompt": "Say hello", "expected": "Respond with greeting"},
-                {"prompt": "Count to 5", "expected": "1, 2, 3, 4, 5"},
-            ]
-
-            result = await draft_skill("test-skill", evals)
-
-            assert result == "# Generated Skill"
-            mock_query.assert_called_once()
-
-            # Check that evals were included in the prompt
-            call_args = mock_query.call_args
-            prompt = call_args[0][0]
-            assert "test-skill" in prompt
-            assert "Say hello" in prompt
-            assert "Count to 5" in prompt
+        ) as mock:
+            mock.return_value = SkillContent(content="# Generated Skill")
+            yield mock
 
     @pytest.mark.asyncio
-    async def it_includes_extra_prompt_when_provided():
-        with patch(
-            "skillet.skill.draft.query_assistant_text",
-            new_callable=AsyncMock,
-        ) as mock_query:
-            mock_query.return_value = "# Skill"
+    async def it_calls_claude_with_evals_summary(mock_query_structured):
+        evals = [
+            {"prompt": "Say hello", "expected": "Respond with greeting"},
+            {"prompt": "Count to 5", "expected": "1, 2, 3, 4, 5"},
+        ]
 
-            evals = [{"prompt": "test", "expected": "result"}]
+        result = await draft_skill("test-skill", evals)
 
-            await draft_skill("my-skill", evals, extra_prompt="Be very concise")
+        assert result == "# Generated Skill"
+        mock_query_structured.assert_called_once()
 
-            call_args = mock_query.call_args
-            prompt = call_args[0][0]
-            assert "Be very concise" in prompt
-
-    @pytest.mark.asyncio
-    async def it_strips_markdown_from_response():
-        with patch(
-            "skillet.skill.draft.query_assistant_text",
-            new_callable=AsyncMock,
-        ) as mock_query:
-            mock_query.return_value = "```markdown\n# Skill Content\n```"
-
-            evals = [{"prompt": "p", "expected": "e"}]
-
-            result = await draft_skill("test", evals)
-
-            assert result == "# Skill Content"
-            assert "```" not in result
+        # Check that evals were included in the prompt
+        call_args = mock_query_structured.call_args
+        prompt = call_args[0][0]
+        assert "test-skill" in prompt
+        assert "Say hello" in prompt
+        assert "Count to 5" in prompt
 
     @pytest.mark.asyncio
-    async def it_handles_empty_evals_list():
-        with patch(
-            "skillet.skill.draft.query_assistant_text",
-            new_callable=AsyncMock,
-        ) as mock_query:
-            mock_query.return_value = "# Empty Skill"
+    async def it_includes_extra_prompt_when_provided(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Skill")
 
-            result = await draft_skill("empty", [])
+        evals = [{"prompt": "test", "expected": "result"}]
 
-            assert result == "# Empty Skill"
+        await draft_skill("my-skill", evals, extra_prompt="Be very concise")
+
+        call_args = mock_query_structured.call_args
+        prompt = call_args[0][0]
+        assert "Be very concise" in prompt
 
     @pytest.mark.asyncio
-    async def it_formats_multiple_evals_with_numbers():
-        with patch(
-            "skillet.skill.draft.query_assistant_text",
-            new_callable=AsyncMock,
-        ) as mock_query:
-            mock_query.return_value = "# Result"
+    async def it_extracts_content_from_structured_output(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Skill Content")
 
-            evals = [
-                {"prompt": "first", "expected": "one"},
-                {"prompt": "second", "expected": "two"},
-                {"prompt": "third", "expected": "three"},
-            ]
+        evals = [{"prompt": "p", "expected": "e"}]
 
-            await draft_skill("numbered", evals)
+        result = await draft_skill("test", evals)
 
-            call_args = mock_query.call_args
-            prompt = call_args[0][0]
-            assert "Eval 1" in prompt
-            assert "Eval 2" in prompt
-            assert "Eval 3" in prompt
+        assert result == "# Skill Content"
+
+    @pytest.mark.asyncio
+    async def it_handles_empty_evals_list(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Empty Skill")
+
+        result = await draft_skill("empty", [])
+
+        assert result == "# Empty Skill"
+
+    @pytest.mark.asyncio
+    async def it_formats_multiple_evals_with_numbers(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Result")
+
+        evals = [
+            {"prompt": "first", "expected": "one"},
+            {"prompt": "second", "expected": "two"},
+            {"prompt": "third", "expected": "three"},
+        ]
+
+        await draft_skill("numbered", evals)
+
+        call_args = mock_query_structured.call_args
+        prompt = call_args[0][0]
+        assert "Eval 1" in prompt
+        assert "Eval 2" in prompt
+        assert "Eval 3" in prompt
