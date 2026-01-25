@@ -4,9 +4,11 @@ from pathlib import Path
 
 import yaml
 
-from skillet._internal.sdk import query_assistant_text
+from skillet._internal.sdk import query_structured
 from skillet._internal.text import summarize_failure_for_eval
 from skillet.prompts import load_prompt
+
+from .models import Summary
 
 SUMMARIZE_PROMPT = Path(__file__).parent / "summarize.txt"
 
@@ -18,4 +20,5 @@ async def summarize_responses(results: list[dict]) -> str:
 
     prompt = load_prompt(SUMMARIZE_PROMPT, responses_yaml=responses_yaml)
 
-    return await query_assistant_text(prompt, max_turns=1, allowed_tools=[])
+    result = await query_structured(prompt, Summary, max_turns=1, allowed_tools=[])
+    return "\n".join(f"- {bullet}" for bullet in result.bullets)

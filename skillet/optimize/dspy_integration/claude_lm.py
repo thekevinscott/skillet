@@ -10,10 +10,10 @@ from typing import Any
 from dspy.clients.base_lm import BaseLM
 
 from skillet._internal.async_utils import run_sync
-from skillet._internal.sdk import query_assistant_text
 
 from .dataclasses import Choice, CompletionResponse, Message
 from .extract_prompt import extract_prompt
+from .query_text import query_assistant_text
 
 
 class ClaudeAgentLM(BaseLM):
