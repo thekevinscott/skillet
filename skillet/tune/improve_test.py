@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from skillet.skill.models import SkillContent
 from skillet.tune.improve import TUNE_TIPS, get_skill_file, improve_skill
 
 
@@ -51,16 +52,15 @@ def describe_get_skill_file():
 def describe_improve_skill():
     """Tests for improve_skill function."""
 
-    @pytest.mark.asyncio
-    async def it_reads_current_skill_content():
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch(
-                "skillet.tune.improve.query_assistant_text", new_callable=AsyncMock
-            ) as mock_query,
-        ):
-            mock_query.return_value = "# Improved Skill"
+    @pytest.fixture(autouse=True)
+    def mock_query_structured():
+        with patch("skillet.tune.improve.query_structured", new_callable=AsyncMock) as mock:
+            mock.return_value = SkillContent(content="# Improved Skill")
+            yield mock
 
+    @pytest.mark.asyncio
+    async def it_reads_current_skill_content(mock_query_structured):
+        with tempfile.TemporaryDirectory() as tmpdir:
             skill_path = Path(tmpdir) / "SKILL.md"
             skill_path.write_text("# Original Skill")
 
@@ -69,20 +69,15 @@ def describe_improve_skill():
 
             assert result == "# Improved Skill"
             # Check original content was included in prompt
-            call_args = mock_query.call_args
+            call_args = mock_query_structured.call_args
             prompt = call_args[0][0]
             assert "# Original Skill" in prompt
 
     @pytest.mark.asyncio
-    async def it_includes_failures_in_prompt():
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch(
-                "skillet.tune.improve.query_assistant_text", new_callable=AsyncMock
-            ) as mock_query,
-        ):
-            mock_query.return_value = "# Better Skill"
+    async def it_includes_failures_in_prompt(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Better Skill")
 
+        with tempfile.TemporaryDirectory() as tmpdir:
             skill_path = Path(tmpdir) / "SKILL.md"
             skill_path.write_text("# Skill")
 
@@ -96,41 +91,31 @@ def describe_improve_skill():
             ]
             await improve_skill(skill_path, failures)
 
-            call_args = mock_query.call_args
+            call_args = mock_query_structured.call_args
             prompt = call_args[0][0]
             assert "Say hello" in prompt
             assert "Greeting" in prompt
 
     @pytest.mark.asyncio
-    async def it_includes_tip_when_provided():
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch(
-                "skillet.tune.improve.query_assistant_text", new_callable=AsyncMock
-            ) as mock_query,
-        ):
-            mock_query.return_value = "# Terse Skill"
+    async def it_includes_tip_when_provided(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Terse Skill")
 
+        with tempfile.TemporaryDirectory() as tmpdir:
             skill_path = Path(tmpdir) / "SKILL.md"
             skill_path.write_text("# Skill")
 
             failures = [{"prompt": "p", "expected": "e", "judgment": {"reasoning": "r"}}]
             await improve_skill(skill_path, failures, tip="Be extremely terse")
 
-            call_args = mock_query.call_args
+            call_args = mock_query_structured.call_args
             prompt = call_args[0][0]
             assert "Be extremely terse" in prompt
 
     @pytest.mark.asyncio
-    async def it_strips_markdown_from_response():
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch(
-                "skillet.tune.improve.query_assistant_text", new_callable=AsyncMock
-            ) as mock_query,
-        ):
-            mock_query.return_value = "```markdown\n# Clean Skill\n```"
+    async def it_extracts_content_from_structured_output(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Clean Skill")
 
+        with tempfile.TemporaryDirectory() as tmpdir:
             skill_path = Path(tmpdir) / "SKILL.md"
             skill_path.write_text("# Old")
 
@@ -138,39 +123,12 @@ def describe_improve_skill():
             result = await improve_skill(skill_path, failures)
 
             assert result == "# Clean Skill"
-            assert "```" not in result
 
     @pytest.mark.asyncio
-    async def it_truncates_result_if_too_long():
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch(
-                "skillet.tune.improve.query_assistant_text", new_callable=AsyncMock
-            ) as mock_query,
-            patch("skillet.tune.improve.MAX_SKILL_LINES", 5),
-        ):
-            # Return a skill with more lines than allowed
-            mock_query.return_value = "line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8"
+    async def it_handles_skill_directory_input(mock_query_structured):
+        mock_query_structured.return_value = SkillContent(content="# Result")
 
-            skill_path = Path(tmpdir) / "SKILL.md"
-            skill_path.write_text("# Short")
-
-            failures = [{"prompt": "p", "expected": "e", "judgment": {"reasoning": "r"}}]
-            result = await improve_skill(skill_path, failures)
-
-            lines = result.split("\n")
-            assert len(lines) == 5
-
-    @pytest.mark.asyncio
-    async def it_handles_skill_directory_input():
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch(
-                "skillet.tune.improve.query_assistant_text", new_callable=AsyncMock
-            ) as mock_query,
-        ):
-            mock_query.return_value = "# Result"
-
+        with tempfile.TemporaryDirectory() as tmpdir:
             skill_dir = Path(tmpdir)
             (skill_dir / "SKILL.md").write_text("# Directory Skill")
 
@@ -178,6 +136,6 @@ def describe_improve_skill():
             result = await improve_skill(skill_dir, failures)
 
             assert result == "# Result"
-            call_args = mock_query.call_args
+            call_args = mock_query_structured.call_args
             prompt = call_args[0][0]
             assert "# Directory Skill" in prompt

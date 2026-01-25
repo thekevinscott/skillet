@@ -3,29 +3,10 @@
 import pytest
 
 from skillet._internal.text import (
-    strip_markdown,
     summarize_failure_for_eval,
     summarize_failure_for_tuning,
     truncate_response,
 )
-
-
-def describe_strip_markdown():
-    """Tests for strip_markdown function."""
-
-    @pytest.mark.parametrize(
-        "input_text,expected",
-        [
-            ("hello world", "hello world"),
-            ("```markdown\nhello world", "hello world"),
-            ("```\nhello world", "hello world"),
-            ("hello world\n```", "hello world"),
-            ("```markdown\nhello world\n```", "hello world"),
-            ("  ```markdown\nhello\n```  ", "hello"),
-        ],
-    )
-    def it_strips_markdown_fences(input_text, expected):
-        assert strip_markdown(input_text) == expected
 
 
 def describe_truncate_response():

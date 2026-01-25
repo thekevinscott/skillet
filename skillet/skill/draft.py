@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from skillet._internal.sdk import query_assistant_text
-from skillet._internal.text import strip_markdown
+from skillet._internal.sdk import query_structured
 from skillet.prompts import load_prompt
+from skillet.skill.models import SkillContent
 
 DRAFT_PROMPT = Path(__file__).parent / "draft.txt"
 
@@ -42,5 +42,5 @@ async def draft_skill(
         extra_section=extra_section,
     )
 
-    result = await query_assistant_text(prompt, max_turns=1, allowed_tools=[])
-    return strip_markdown(result)
+    result = await query_structured(prompt, SkillContent, max_turns=1, allowed_tools=[])
+    return result.content

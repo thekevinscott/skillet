@@ -28,6 +28,7 @@ git worktree add .worktrees/my-feature -b feat/my-feature
 
 # Work in the worktree - ALWAYS run these setup steps:
 cd .worktrees/my-feature
+uv sync --all-extras                          # Install all dependencies including dev tools
 uv run python scripts/build_claude_config.py  # Build .claude/commands/
 
 # When done, remove the worktree
@@ -35,7 +36,7 @@ cd ../..
 git worktree remove .worktrees/my-feature
 ```
 
-**Never give the user commands to run - execute them yourself.** The `.claude/commands/` directory is gitignored and must be rebuilt in each worktree.
+**Never give the user commands to run - execute them yourself.** Each worktree has its own `.venv` that needs dependencies installed. The `.claude/commands/` directory is gitignored and must be rebuilt in each worktree.
 
 ## Project Structure
 - `.claude-template/` - Source templates with `{{SKILLET_DIR}}` placeholders

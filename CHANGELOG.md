@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - E2E test for `create` command (was still using old `new` command name)
 - Add `SlashCommand` to `DEFAULT_SKILL_TOOLS` so eval prompts with `/command` syntax work
 - Judge uses SDK structured output to guarantee clean JSON (removes need for backtick stripping)
+- Skill draft and improve functions now use structured output (removes backtick stripping)
 - Resource leaks: use `TemporaryDirectory` context manager instead of manual cleanup
 - File operations now have proper error handling with `SkillError` exceptions
 - Judge now uses structured JSON output instead of text parsing for reliable pass/fail detection
