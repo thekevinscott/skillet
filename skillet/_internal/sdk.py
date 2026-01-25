@@ -4,13 +4,13 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any
 
+import claude_agent_sdk
 from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
     ResultMessage,
     TextBlock,
     ToolUseBlock,
-    query,
 )
 from pydantic import BaseModel
 
@@ -53,7 +53,7 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
         **options,
     )
 
-    async for message in query(prompt=prompt, options=opts):
+    async for message in claude_agent_sdk.query(prompt=prompt, options=opts):
         if isinstance(message, ResultMessage):
             if message.structured_output is not None:
                 return model.model_validate(message.structured_output)
@@ -94,7 +94,7 @@ async def query_multiturn(  # noqa: C901 - complexity from SDK protocol handling
         if session_id:
             opts.resume = session_id
 
-        async for message in query(prompt=p, options=opts):
+        async for message in claude_agent_sdk.query(prompt=p, options=opts):
             # Capture session ID from init message
             if hasattr(message, "subtype") and message.subtype == "init":
                 if hasattr(message, "session_id"):
