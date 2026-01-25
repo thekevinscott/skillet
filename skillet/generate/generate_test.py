@@ -15,26 +15,50 @@ from skillet.generate.generate import (
 from skillet.generate.types import CandidateEval
 
 
+@pytest.mark.parametrize(
+    ("candidates", "max_per_category", "expected_positive", "expected_negative"),
+    [
+        (
+            [
+                CandidateEval("p1", "e1", "n1", "positive", "s1", 0.8, "r1"),
+                CandidateEval("p2", "e2", "n2", "positive", "s2", 0.8, "r2"),
+                CandidateEval("p3", "e3", "n3", "positive", "s3", 0.8, "r3"),
+                CandidateEval("p4", "e4", "n4", "negative", "s4", 0.8, "r4"),
+                CandidateEval("p5", "e5", "n5", "negative", "s5", 0.8, "r5"),
+            ],
+            2,
+            2,
+            2,
+        ),
+        (
+            [
+                CandidateEval("p1", "e1", "n1", "positive", "s1", 0.8, "r1"),
+            ],
+            5,
+            1,
+            0,
+        ),
+    ],
+    ids=["limits-per-category", "fewer-than-limit"],
+)
+def test_limit_by_category(
+    candidates: list[CandidateEval],
+    max_per_category: int,
+    expected_positive: int,
+    expected_negative: int,
+):
+    """Applies limit per category, not globally."""
+    result = _limit_by_category(candidates, max_per_category)
+
+    positive_count = sum(1 for c in result if c.category == "positive")
+    negative_count = sum(1 for c in result if c.category == "negative")
+
+    assert positive_count == expected_positive
+    assert negative_count == expected_negative
+
+
 def describe_limit_by_category():
     """Tests for _limit_by_category."""
-
-    def it_limits_each_category_separately():
-        """Applies limit per category, not globally."""
-        candidates = [
-            CandidateEval("p1", "e1", "n1", "positive", "s1", 0.8, "r1"),
-            CandidateEval("p2", "e2", "n2", "positive", "s2", 0.8, "r2"),
-            CandidateEval("p3", "e3", "n3", "positive", "s3", 0.8, "r3"),
-            CandidateEval("p4", "e4", "n4", "negative", "s4", 0.8, "r4"),
-            CandidateEval("p5", "e5", "n5", "negative", "s5", 0.8, "r5"),
-        ]
-
-        result = _limit_by_category(candidates, max_per_category=2)
-
-        positive_count = sum(1 for c in result if c.category == "positive")
-        negative_count = sum(1 for c in result if c.category == "negative")
-
-        assert positive_count == 2
-        assert negative_count == 2
 
     def it_preserves_order():
         """Keeps candidates in original order within limit."""

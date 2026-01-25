@@ -9,29 +9,13 @@ def describe_extract_examples():
     """Tests for extract_examples function."""
 
     def it_extracts_single_code_block():
-        body = """
-## Example
-
-```python
-print("hello")
-```
-"""
+        body = '\n## Example\n\n```python\nprint("hello")\n```\n'
         examples = extract_examples(body)
 
         assert examples == ['print("hello")\n']
 
     def it_extracts_multiple_code_blocks():
-        body = """
-```python
-code1()
-```
-
-Some text
-
-```bash
-code2
-```
-"""
+        body = "\n```python\ncode1()\n```\n\nSome text\n\n```bash\ncode2\n```\n"
         examples = extract_examples(body)
 
         assert len(examples) == 2
@@ -39,11 +23,7 @@ code2
         assert "code2" in examples[1]
 
     def it_handles_code_block_without_language():
-        body = """
-```
-plain code
-```
-"""
+        body = "\n```\nplain code\n```\n"
         examples = extract_examples(body)
 
         assert examples == ["plain code\n"]
@@ -55,13 +35,7 @@ plain code
         assert examples == []
 
     def it_handles_multiline_code_blocks():
-        body = """
-```python
-def foo():
-    bar()
-    baz()
-```
-"""
+        body = "\n```python\ndef foo():\n    bar()\n    baz()\n```\n"
         examples = extract_examples(body)
 
         assert len(examples) == 1
@@ -70,12 +44,7 @@ def foo():
         assert "baz()" in examples[0]
 
     def it_preserves_whitespace_in_code():
-        body = """
-```
-  indented
-    more indented
-```
-"""
+        body = "\n```\n  indented\n    more indented\n```\n"
         examples = extract_examples(body)
 
         assert "  indented" in examples[0]

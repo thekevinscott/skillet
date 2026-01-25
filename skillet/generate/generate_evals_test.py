@@ -15,13 +15,7 @@ def describe_generate_evals():
     @pytest.mark.asyncio
     async def it_returns_generate_result(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""---
-name: test-skill
----
-## Goals
-
-1. Do something useful
-""")
+        skill_file.write_text("---\nname: test-skill\n---\n## Goals\n\n1. Do something useful\n")
 
         mock_candidates = [
             CandidateEval(
@@ -127,23 +121,24 @@ name: test-skill
     @pytest.mark.asyncio
     async def it_includes_analysis_summary(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""---
-name: my-skill
-description: Test skill
----
-## Goals
-
-1. Goal one
-2. Goal two
-
-## Prohibitions
-
-- Don't do bad things
-
-```python
-example()
-```
-""")
+        skill_file.write_text(
+            "---\n"
+            "name: my-skill\n"
+            "description: Test skill\n"
+            "---\n"
+            "## Goals\n"
+            "\n"
+            "1. Goal one\n"
+            "2. Goal two\n"
+            "\n"
+            "## Prohibitions\n"
+            "\n"
+            "- Don't do bad things\n"
+            "\n"
+            "```python\n"
+            "example()\n"
+            "```\n"
+        )
 
         with patch(
             "skillet.generate.generate_evals.generate_candidates",

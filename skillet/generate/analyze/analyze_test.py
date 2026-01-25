@@ -19,12 +19,7 @@ def describe_analyze_skill():
 
     def it_extracts_name_from_frontmatter(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""---
-name: my-skill
-description: A test skill
----
-# Body
-""")
+        skill_file.write_text("---\nname: my-skill\ndescription: A test skill\n---\n# Body\n")
 
         result = analyze_skill(skill_file)
 
@@ -33,14 +28,7 @@ description: A test skill
 
     def it_extracts_goals(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""---
-name: skill
----
-## Goals
-
-1. First goal
-2. Second goal
-""")
+        skill_file.write_text("---\nname: skill\n---\n## Goals\n\n1. First goal\n2. Second goal\n")
 
         result = analyze_skill(skill_file)
 
@@ -48,11 +36,7 @@ name: skill
 
     def it_extracts_prohibitions(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""## Prohibitions
-
-- Don't do bad things
-- Avoid mistakes
-""")
+        skill_file.write_text("## Prohibitions\n\n- Don't do bad things\n- Avoid mistakes\n")
 
         result = analyze_skill(skill_file)
 
@@ -60,12 +44,7 @@ name: skill
 
     def it_extracts_code_examples(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""## Examples
-
-```python
-print("hello")
-```
-""")
+        skill_file.write_text('## Examples\n\n```python\nprint("hello")\n```\n')
 
         result = analyze_skill(skill_file)
 
@@ -74,12 +53,7 @@ print("hello")
 
     def it_handles_skill_without_frontmatter(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""# Just a heading
-
-## Goals
-
-1. Do something
-""")
+        skill_file.write_text("# Just a heading\n\n## Goals\n\n1. Do something\n")
 
         result = analyze_skill(skill_file)
 
@@ -89,13 +63,7 @@ print("hello")
 
     def it_stores_body_content(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("""---
-name: test
----
-# Body Content
-
-This is the body.
-""")
+        skill_file.write_text("---\nname: test\n---\n# Body Content\n\nThis is the body.\n")
 
         result = analyze_skill(skill_file)
 

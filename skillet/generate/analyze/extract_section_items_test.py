@@ -9,103 +9,55 @@ def describe_extract_section_items():
     """Tests for extract_section_items function."""
 
     def it_extracts_numbered_items():
-        body = """
-## Goals
-
-1. First goal
-2. Second goal
-3. Third goal
-
-## Next Section
-"""
+        body = "\n## Goals\n\n1. First goal\n2. Second goal\n3. Third goal\n\n## Next Section\n"
         items = extract_section_items(body, "goals")
 
         assert items == ["First goal", "Second goal", "Third goal"]
 
     def it_extracts_bulleted_items_with_dashes():
-        body = """
-## Prohibitions
-
-- Don't do this
-- Don't do that
-"""
+        body = "\n## Prohibitions\n\n- Don't do this\n- Don't do that\n"
         items = extract_section_items(body, "prohibitions")
 
         assert items == ["Don't do this", "Don't do that"]
 
     def it_extracts_bulleted_items_with_asterisks():
-        body = """
-## Notes
-
-* Note one
-* Note two
-"""
+        body = "\n## Notes\n\n* Note one\n* Note two\n"
         items = extract_section_items(body, "notes")
 
         assert items == ["Note one", "Note two"]
 
     def it_is_case_insensitive():
-        body = """
-## GOALS
-
-1. My goal
-"""
+        body = "\n## GOALS\n\n1. My goal\n"
         items = extract_section_items(body, "goals")
 
         assert items == ["My goal"]
 
     def it_returns_empty_for_missing_section():
-        body = """
-## Other Section
-
-1. Item
-"""
+        body = "\n## Other Section\n\n1. Item\n"
         items = extract_section_items(body, "goals")
 
         assert items == []
 
     def it_stops_at_next_section():
-        body = """
-## Goals
-
-1. Goal one
-2. Goal two
-
-## Prohibitions
-
-1. Prohibition one
-"""
+        body = "\n## Goals\n\n1. Goal one\n2. Goal two\n\n## Prohibitions\n\n1. Prohibition one\n"
         items = extract_section_items(body, "goals")
 
         assert items == ["Goal one", "Goal two"]
 
     def it_handles_section_at_end_of_document():
-        body = """
-## Goals
-
-1. Final goal
-"""
+        body = "\n## Goals\n\n1. Final goal\n"
         items = extract_section_items(body, "goals")
 
         assert items == ["Final goal"]
 
     def it_prefers_numbered_over_bulleted():
-        body = """
-## Goals
-
-1. Numbered item
-- Bulleted item
-"""
+        body = "\n## Goals\n\n1. Numbered item\n- Bulleted item\n"
         items = extract_section_items(body, "goals")
 
         assert items == ["Numbered item"]
 
     def it_handles_empty_section():
-        body = """
-## Goals
-
-## Next Section
-"""
+        body = "\n## Goals\n\n## Next Section\n"
         items = extract_section_items(body, "goals")
 
         assert items == []
