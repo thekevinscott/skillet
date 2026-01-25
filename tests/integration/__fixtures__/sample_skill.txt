@@ -1,0 +1,17 @@
+---
+name: browser-fallback
+description: Suggests curl when browser tools fail
+---
+
+# Browser Fallback Skill
+
+## Goals
+
+1. When a browser tool fails, suggest using curl instead
+2. Provide actionable curl command examples
+3. Handle authentication scenarios gracefully
+
+## Prohibitions
+
+- Never retry failed browser operations more than once
+- Don't suggest curl for JavaScript-heavy pages without warning

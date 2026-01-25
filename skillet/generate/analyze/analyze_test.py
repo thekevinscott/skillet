@@ -1,6 +1,7 @@
 """Tests for analyze_skill function."""
 
 from pathlib import Path
+from textwrap import dedent
 
 from .analyze import SkillAnalysis, analyze_skill
 
@@ -19,7 +20,15 @@ def describe_analyze_skill():
 
     def it_extracts_name_from_frontmatter(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("---\nname: my-skill\ndescription: A test skill\n---\n# Body\n")
+        skill_file.write_text(
+            dedent("""\
+            ---
+            name: my-skill
+            description: A test skill
+            ---
+            # Body
+            """)
+        )
 
         result = analyze_skill(skill_file)
 
@@ -28,7 +37,17 @@ def describe_analyze_skill():
 
     def it_extracts_goals(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("---\nname: skill\n---\n## Goals\n\n1. First goal\n2. Second goal\n")
+        skill_file.write_text(
+            dedent("""\
+            ---
+            name: skill
+            ---
+            ## Goals
+
+            1. First goal
+            2. Second goal
+            """)
+        )
 
         result = analyze_skill(skill_file)
 
@@ -36,7 +55,14 @@ def describe_analyze_skill():
 
     def it_extracts_prohibitions(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("## Prohibitions\n\n- Don't do bad things\n- Avoid mistakes\n")
+        skill_file.write_text(
+            dedent("""\
+            ## Prohibitions
+
+            - Don't do bad things
+            - Avoid mistakes
+            """)
+        )
 
         result = analyze_skill(skill_file)
 
@@ -44,7 +70,15 @@ def describe_analyze_skill():
 
     def it_extracts_code_examples(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text('## Examples\n\n```python\nprint("hello")\n```\n')
+        skill_file.write_text(
+            dedent("""\
+            ## Examples
+
+            ```python
+            print("hello")
+            ```
+            """)
+        )
 
         result = analyze_skill(skill_file)
 
@@ -53,7 +87,15 @@ def describe_analyze_skill():
 
     def it_handles_skill_without_frontmatter(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("# Just a heading\n\n## Goals\n\n1. Do something\n")
+        skill_file.write_text(
+            dedent("""\
+            # Just a heading
+
+            ## Goals
+
+            1. Do something
+            """)
+        )
 
         result = analyze_skill(skill_file)
 
@@ -63,7 +105,16 @@ def describe_analyze_skill():
 
     def it_stores_body_content(tmp_path: Path):
         skill_file = tmp_path / "SKILL.md"
-        skill_file.write_text("---\nname: test\n---\n# Body Content\n\nThis is the body.\n")
+        skill_file.write_text(
+            dedent("""\
+            ---
+            name: test
+            ---
+            # Body Content
+
+            This is the body.
+            """)
+        )
 
         result = analyze_skill(skill_file)
 
