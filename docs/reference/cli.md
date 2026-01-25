@@ -159,6 +159,79 @@ skillet create browser-fallback -d /path/to/project
 skillet create browser-fallback -p "Be concise, max 20 lines"
 ```
 
+## generate-evals
+
+Generate candidate eval files from a SKILL.md.
+
+```bash
+skillet generate-evals <skill> [options]
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `skill` | Yes | Path to skill directory or SKILL.md file |
+
+### Options
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--output` | `-o` | path | auto | Output directory for candidate files |
+| `--no-lint` | | bool | false | Skip lint-based eval generation |
+| `--max` | `-m` | int | 5 | Max evals per category |
+| `--dry-run` | `-n` | bool | false | Show what would be generated |
+
+### How It Works
+
+1. Parses the SKILL.md to extract goals, prohibitions, and examples
+2. Optionally runs linter to find vague language and weak spots
+3. Uses LLM to generate test cases for each category
+4. Writes candidate YAML files to output directory
+
+Candidates are marked with metadata and should be reviewed before use.
+
+### Categories
+
+- **positive**: Happy-path prompts that SHOULD trigger the skill
+- **negative**: Prompts that should NOT trigger the skill (tests prohibitions)
+- **ambiguity**: Tests targeting vague language identified by linter
+
+### Examples
+
+```bash
+# Generate from skill directory
+skillet generate-evals ~/.claude/skills/browser-fallback
+
+# Dry run to preview candidates
+skillet generate-evals skill/ --dry-run
+
+# Custom output location
+skillet generate-evals skill/ -o ./my-evals/
+
+# Limit to 3 per category
+skillet generate-evals skill/ -m 3
+
+# Skip lint-based generation
+skillet generate-evals skill/ --no-lint
+```
+
+## compare
+
+Compare baseline vs skill results from cache.
+
+```bash
+skillet compare <name> <skill>
+```
+
+Shows cached results from previous `skillet eval` runs. Run eval with and without a skill first.
+
+### Examples
+
+```bash
+skillet compare browser-fallback ~/.claude/skills/browser-fallback
+```
+
 ## Exit Codes
 
 | Code | Meaning |

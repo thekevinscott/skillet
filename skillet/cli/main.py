@@ -148,6 +148,42 @@ async def create(
     await create_command(name, output_dir=output_dir, extra_prompt=prompt)
 
 
+@app.command(name="generate-evals")
+async def generate_evals(
+    skill: Path,
+    *,
+    output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
+    no_lint: Annotated[bool, Parameter(name=["--no-lint"])] = False,
+    max_per_category: Annotated[int, Parameter(name=["--max", "-m"])] = 5,
+    dry_run: Annotated[bool, Parameter(name=["--dry-run", "-n"])] = False,
+):
+    """Generate candidate evals from a SKILL.md.
+
+    Analyzes the skill to extract goals, prohibitions, and examples,
+    then uses an LLM to generate test cases. Candidates are written
+    as YAML files for review before use in evaluations.
+
+    SKILL can be:
+    - A path to a skill directory containing SKILL.md
+    - A path to a SKILL.md file directly
+
+    Examples:
+        skillet generate-evals ~/.claude/skills/browser-fallback
+        skillet generate-evals skill/ --dry-run
+        skillet generate-evals skill/ -o ./my-evals/
+        skillet generate-evals skill/ -m 3
+    """
+    from skillet.cli.commands.generate_evals import generate_evals_command
+
+    await generate_evals_command(
+        skill,
+        output_dir=output,
+        use_lint=not no_lint,
+        max_per_category=max_per_category,
+        dry_run=dry_run,
+    )
+
+
 def main():
     """Entry point for the CLI."""
     app()
