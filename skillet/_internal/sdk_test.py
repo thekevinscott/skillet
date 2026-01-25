@@ -68,14 +68,11 @@ def describe_query_multiturn():
         """Test session_id extraction from data dict."""
         from claude_agent_sdk import AssistantMessage, TextBlock
 
-        # Create init message with session_id in data dict
         init_message = MagicMock()
         init_message.subtype = "init"
         init_message.data = {"session_id": "sess-123"}
-        # Remove session_id attribute to force data dict path
         del init_message.session_id
 
-        # Create assistant message
         mock_text = MagicMock(spec=TextBlock)
         mock_text.text = "response"
         assistant_message = MagicMock(spec=AssistantMessage)
@@ -85,7 +82,7 @@ def describe_query_multiturn():
             yield init_message
             yield assistant_message
 
-        with patch("skillet._internal.sdk.query", mock_query_gen):
+        with patch("claude_agent_sdk.query", mock_query_gen):
             result = await query_multiturn(["prompt1"])
 
             assert result.text == "response"
@@ -95,7 +92,6 @@ def describe_query_multiturn():
         """Test handling of init message with no session_id."""
         from claude_agent_sdk import AssistantMessage, TextBlock
 
-        # Create init message without session_id
         init_message = MagicMock()
         init_message.subtype = "init"
         init_message.data = {}  # No session_id
@@ -110,7 +106,7 @@ def describe_query_multiturn():
             yield init_message
             yield assistant_message
 
-        with patch("skillet._internal.sdk.query", mock_query_gen):
+        with patch("claude_agent_sdk.query", mock_query_gen):
             result = await query_multiturn(["prompt"])
 
             assert result.text == "response"
@@ -126,10 +122,8 @@ def describe_query_multiturn():
         async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
             nonlocal call_count
             call_count += 1
-            # Capture the resume value at the time of call
             resume_values.append(getattr(options, "resume", None))
 
-            # First call: init message with session_id
             if call_count == 1:
                 init_message = MagicMock()
                 init_message.subtype = "init"
@@ -142,14 +136,12 @@ def describe_query_multiturn():
             assistant_message.content = [mock_text]
             yield assistant_message
 
-        with patch("skillet._internal.sdk.query", mock_query_gen):
+        with patch("claude_agent_sdk.query", mock_query_gen):
             result = await query_multiturn(["prompt1", "prompt2"])
 
-            # First call should not have resume, second should
             assert len(resume_values) == 2
             assert resume_values[0] is None
             assert resume_values[1] == "sess-abc"
-            # Result should be from last prompt
             assert result.text == "response 2"
 
     @pytest.mark.asyncio
@@ -169,7 +161,7 @@ def describe_query_multiturn():
         async def mock_query_gen(*_args, **_kwargs):
             yield assistant_message
 
-        with patch("skillet._internal.sdk.query", mock_query_gen):
+        with patch("claude_agent_sdk.query", mock_query_gen):
             result = await query_multiturn(["prompt"])
 
             assert len(result.tool_calls) == 1
@@ -189,11 +181,32 @@ def describe_StructuredOutputError():
         assert issubclass(StructuredOutputError, Exception)
 
 
+class MockQuery:
+    """Helper class for mock query fixtures."""
+
+    def __init__(self):
+        self.messages: list = []
+        self.captured: dict = {"options": None}
+
+
 def describe_query_structured():
     """Tests for query_structured function."""
 
+    @pytest.fixture(autouse=True)
+    def mock_query():
+        """Mock claude_agent_sdk.query for all tests in this block."""
+        state = MockQuery()
+
+        async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
+            state.captured["options"] = options
+            for msg in state.messages:
+                yield msg
+
+        with patch("claude_agent_sdk.query", mock_query_gen):
+            yield state
+
     @pytest.mark.asyncio
-    async def it_returns_validated_pydantic_model():
+    async def it_returns_validated_pydantic_model(mock_query):
         """Test that structured output is validated into a Pydantic model."""
         from claude_agent_sdk import ResultMessage
         from pydantic import BaseModel
@@ -205,19 +218,16 @@ def describe_query_structured():
         mock_result = MagicMock(spec=ResultMessage)
         mock_result.structured_output = {"name": "test", "value": 42}
         mock_result.result = None
+        mock_query.messages.append(mock_result)
 
-        async def mock_query_gen(*_args, **_kwargs):
-            yield mock_result
+        result = await query_structured("test prompt", TestModel)
 
-        with patch("skillet._internal.sdk.query", mock_query_gen):
-            result = await query_structured("test prompt", TestModel)
-
-            assert isinstance(result, TestModel)
-            assert result.name == "test"
-            assert result.value == 42
+        assert isinstance(result, TestModel)
+        assert result.name == "test"
+        assert result.value == 42
 
     @pytest.mark.asyncio
-    async def it_passes_json_schema_output_format():
+    async def it_passes_json_schema_output_format(mock_query):
         """Test that output_format with json_schema type is passed."""
         from claude_agent_sdk import ResultMessage
         from pydantic import BaseModel
@@ -228,23 +238,16 @@ def describe_query_structured():
         mock_result = MagicMock(spec=ResultMessage)
         mock_result.structured_output = {"data": "test"}
         mock_result.result = None
+        mock_query.messages.append(mock_result)
 
-        captured_options = None
+        await query_structured("test", TestModel)
 
-        async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
-            nonlocal captured_options
-            captured_options = options
-            yield mock_result
-
-        with patch("skillet._internal.sdk.query", mock_query_gen):
-            await query_structured("test", TestModel)
-
-            assert captured_options is not None
-            assert captured_options.output_format["type"] == "json_schema"
-            assert "schema" in captured_options.output_format
+        assert mock_query.captured["options"] is not None
+        assert mock_query.captured["options"].output_format["type"] == "json_schema"
+        assert "schema" in mock_query.captured["options"].output_format
 
     @pytest.mark.asyncio
-    async def it_raises_on_backticks_in_result():
+    async def it_raises_on_backticks_in_result(mock_query):
         """Test that StructuredOutputError is raised when backticks detected."""
         from claude_agent_sdk import ResultMessage
         from pydantic import BaseModel
@@ -255,18 +258,15 @@ def describe_query_structured():
         mock_result = MagicMock(spec=ResultMessage)
         mock_result.structured_output = None
         mock_result.result = '```json\n{"data": "test"}\n```'
+        mock_query.messages.append(mock_result)
 
-        async def mock_query_gen(*_args, **_kwargs):
-            yield mock_result
+        with pytest.raises(StructuredOutputError) as exc_info:
+            await query_structured("test", TestModel)
 
-        with patch("skillet._internal.sdk.query", mock_query_gen):
-            with pytest.raises(StructuredOutputError) as exc_info:
-                await query_structured("test", TestModel)
-
-            assert "markdown code fences" in str(exc_info.value)
+        assert "markdown code fences" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def it_raises_value_error_when_no_structured_output():
+    async def it_raises_value_error_when_no_structured_output(mock_query):
         """Test that ValueError is raised when no structured output returned."""
         from claude_agent_sdk import AssistantMessage, TextBlock
         from pydantic import BaseModel
@@ -274,20 +274,16 @@ def describe_query_structured():
         class TestModel(BaseModel):
             data: str
 
-        # Return an AssistantMessage instead of ResultMessage
         mock_text = MagicMock(spec=TextBlock)
         mock_text.text = "plain text"
         mock_message = MagicMock(spec=AssistantMessage)
         mock_message.content = [mock_text]
+        mock_query.messages.append(mock_message)
 
-        async def mock_query_gen(*_args, **_kwargs):
-            yield mock_message
+        with pytest.raises(ValueError) as exc_info:
+            await query_structured("test", TestModel)
 
-        with patch("skillet._internal.sdk.query", mock_query_gen):
-            with pytest.raises(ValueError) as exc_info:
-                await query_structured("test", TestModel)
-
-            assert "No structured output" in str(exc_info.value)
+        assert "No structured output" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def it_raises_type_error_for_non_pydantic_model():
@@ -302,7 +298,7 @@ def describe_query_structured():
         assert "Pydantic BaseModel" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def it_passes_through_additional_options():
+    async def it_passes_through_additional_options(mock_query):
         """Test that additional options are passed to ClaudeAgentOptions."""
         from claude_agent_sdk import ResultMessage
         from pydantic import BaseModel
@@ -313,17 +309,10 @@ def describe_query_structured():
         mock_result = MagicMock(spec=ResultMessage)
         mock_result.structured_output = {"data": "test"}
         mock_result.result = None
+        mock_query.messages.append(mock_result)
 
-        captured_options = None
+        await query_structured("test", TestModel, max_turns=5, allowed_tools=["Read"])
 
-        async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
-            nonlocal captured_options
-            captured_options = options
-            yield mock_result
-
-        with patch("skillet._internal.sdk.query", mock_query_gen):
-            await query_structured("test", TestModel, max_turns=5, allowed_tools=["Read"])
-
-            assert captured_options is not None
-            assert captured_options.max_turns == 5
-            assert captured_options.allowed_tools == ["Read"]
+        assert mock_query.captured["options"] is not None
+        assert mock_query.captured["options"].max_turns == 5
+        assert mock_query.captured["options"].allowed_tools == ["Read"]

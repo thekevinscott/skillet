@@ -19,7 +19,7 @@ def mock_claude_query():
         def test_structured(mock_claude_query):
             mock_claude_query.set_structured_response({"pass": True, "reasoning": "OK"})
     """
-    with patch("skillet._internal.sdk.query") as mock:
+    with patch("claude_agent_sdk.query") as mock:
 
         def set_response(response_text: str):
             """Configure the mock to return a specific text response.
