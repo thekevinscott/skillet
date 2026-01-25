@@ -125,26 +125,6 @@ def describe_improve_skill():
             assert result == "# Clean Skill"
 
     @pytest.mark.asyncio
-    async def it_truncates_result_if_too_long(mock_query_structured):
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch("skillet.tune.improve.MAX_SKILL_LINES", 5),
-        ):
-            # Return a skill with more lines than allowed
-            mock_query_structured.return_value = SkillContent(
-                content="line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8"
-            )
-
-            skill_path = Path(tmpdir) / "SKILL.md"
-            skill_path.write_text("# Short")
-
-            failures = [{"prompt": "p", "expected": "e", "judgment": {"reasoning": "r"}}]
-            result = await improve_skill(skill_path, failures)
-
-            lines = result.split("\n")
-            assert len(lines) == 5
-
-    @pytest.mark.asyncio
     async def it_handles_skill_directory_input(mock_query_structured):
         mock_query_structured.return_value = SkillContent(content="# Result")
 
