@@ -18,6 +18,7 @@ Revise the SKILL.md to fix these failures. Common issues:
 - Missing "do NOT ask" or "IMMEDIATELY" language for automatic behaviors
 
 IMPORTANT CONSTRAINTS:
+- Keep the SKILL.md under 500 lines (Anthropic's recommended limit)
 - Be concise - shorter is better
 - Replace verbose instructions with terse, direct ones
 - Do NOT keep adding more text - rewrite to be minimal
