@@ -1,0 +1,63 @@
+You are generating evaluation test cases for a Claude Code skill.
+
+# Skill Information
+
+Name: ${skill_name}
+Description: ${skill_description}
+
+## Goals
+${goals}
+
+## Prohibitions
+${prohibitions}
+
+## Examples
+${examples}
+
+## Lint Findings (issues to target)
+${lint_findings}
+
+# Task
+
+Generate candidate eval test cases for this skill. Create up to ${max_per_category} evals for each category: ${categories}.
+
+For each eval, provide:
+- **prompt**: A realistic user prompt that would trigger (or should NOT trigger) the skill
+- **expected**: What behavior the skill should exhibit
+- **name**: A short identifier (lowercase, hyphens)
+- **category**: "positive", "negative", or "ambiguity"
+- **source**: What goal/prohibition/lint finding this tests (e.g., "goal:1", "prohibition:2", "lint:vague-language:5")
+- **confidence**: How confident you are this is a good test (0.0-1.0)
+- **rationale**: Why this test case is valuable
+
+# Guidelines
+
+**Positive evals**: Prompts that SHOULD trigger the skill and test its core functionality.
+- Test each goal explicitly
+- Include edge cases within the skill's scope
+
+**Negative evals**: Prompts that should NOT trigger the skill or test prohibition compliance.
+- Similar but out-of-scope prompts
+- Prompts that might incorrectly trigger the skill
+- Scenarios where prohibitions should prevent action
+
+**Ambiguity evals** (if lint findings provided): Target vague language or weak spots.
+- Create prompts that expose ambiguous instructions
+- Test scenarios where the skill's behavior is unclear
+
+# Output Format
+
+Return ONLY valid JSON in this exact format:
+{
+  "candidates": [
+    {
+      "prompt": "User prompt here",
+      "expected": "Expected skill behavior",
+      "name": "short-identifier",
+      "category": "positive",
+      "source": "goal:1",
+      "confidence": 0.85,
+      "rationale": "Why this is a good test"
+    }
+  ]
+}

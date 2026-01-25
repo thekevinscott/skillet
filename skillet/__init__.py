@@ -13,6 +13,7 @@ from skillet.errors import (
 )
 from skillet.eval import evaluate
 from skillet.evals import load_evals
+from skillet.generate import generate_evals
 from skillet.skill import create_skill
 from skillet.tune import tune
 
@@ -25,6 +26,7 @@ __all__ = [
     "compare",
     "create_skill",
     "evaluate",
+    "generate_evals",
     "load_evals",
     "tune",
 ]
