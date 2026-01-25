@@ -14,19 +14,60 @@ def mock_claude_query():
         def test_something(mock_claude_query):
             mock_claude_query.set_response("Generated content here")
             # ... run code that calls the SDK
+
+        # For structured output with custom data:
+        def test_structured(mock_claude_query):
+            mock_claude_query.set_structured_response({"pass": True, "reasoning": "OK"})
     """
     with patch("skillet._internal.sdk.query") as mock:
 
         def set_response(response_text: str):
-            """Configure the mock to return a specific response."""
-            from claude_agent_sdk import AssistantMessage, TextBlock
+            """Configure the mock to return a specific text response.
+
+            Yields both AssistantMessage (for query_assistant_text) and
+            ResultMessage with structured_output (for query_structured with SkillContent).
+            """
+            from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
 
             async def mock_generator() -> AsyncGenerator:
-                msg = AssistantMessage(
+                # Yield AssistantMessage for query_assistant_text
+                yield AssistantMessage(
                     content=[TextBlock(text=response_text)],
                     model="claude-sonnet-4-20250514",
                 )
-                yield msg
+                # Yield ResultMessage with structured_output for query_structured
+                # Uses {"content": text} format compatible with SkillContent model
+                yield ResultMessage(
+                    subtype="result",
+                    duration_ms=100,
+                    duration_api_ms=100,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result=response_text,
+                    structured_output={"content": response_text},
+                )
+
+            mock.return_value = mock_generator()
+
+        def set_structured_response(data: dict):
+            """Configure the mock to return a structured output response.
+
+            Use this for query_structured with custom models (e.g., Judgment).
+            """
+            from claude_agent_sdk import ResultMessage
+
+            async def mock_generator() -> AsyncGenerator:
+                yield ResultMessage(
+                    subtype="result",
+                    duration_ms=100,
+                    duration_api_ms=100,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result="",
+                    structured_output=data,
+                )
 
             mock.return_value = mock_generator()
 
@@ -40,6 +81,7 @@ def mock_claude_query():
             mock.return_value = error_generator()
 
         mock.set_response = set_response
+        mock.set_structured_response = set_structured_response
         mock.set_error = set_error
 
         # Default response
