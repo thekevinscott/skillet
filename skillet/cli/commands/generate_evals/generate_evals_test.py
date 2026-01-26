@@ -32,7 +32,6 @@ def _make_result(skill_path: Path) -> GenerateResult:
 
 
 def describe_generate_evals_command():
-
     @pytest.mark.asyncio
     async def it_defaults_output_to_candidates_subdir(tmp_path: Path):
         skill_path = tmp_path / "SKILL.md"
