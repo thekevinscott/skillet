@@ -24,3 +24,14 @@ def test_generate_evals_fails_for_nonexistent_path():
     )
     assert result.returncode != 0
     assert "not found" in result.stderr.lower() or "does not exist" in result.stderr.lower()
+
+
+def test_generate_evals_fails_for_missing_skill_md(tmp_path):
+    """CLI fails when directory lacks SKILL.md."""
+    result = subprocess.run(
+        ["skillet", "generate-evals", str(tmp_path)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "skill.md" in result.stderr.lower()

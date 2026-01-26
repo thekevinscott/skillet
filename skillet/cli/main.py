@@ -153,13 +153,20 @@ async def generate_evals_cmd(
     skill: Path,
     *,
     output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
+    no_lint: Annotated[bool, Parameter(name=["--no-lint"])] = False,
+    max_per_category: Annotated[int, Parameter(name=["--max", "-m"])] = 5,
     dry_run: Annotated[bool, Parameter(name=["--dry-run", "-n"])] = False,
 ):
     """Generate candidate evals from a SKILL.md."""
     from skillet.generate import generate_evals
 
     output_dir = None if dry_run else output
-    await generate_evals(skill, output_dir=output_dir)
+    await generate_evals(
+        skill,
+        output_dir=output_dir,
+        use_lint=not no_lint,
+        max_per_category=max_per_category,
+    )
 
 
 def main():
