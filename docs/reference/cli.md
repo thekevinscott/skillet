@@ -159,6 +159,40 @@ skillet create browser-fallback -d /path/to/project
 skillet create browser-fallback -p "Be concise, max 20 lines"
 ```
 
+## generate-evals
+
+Generate candidate eval files from a SKILL.md.
+
+```bash
+skillet generate-evals <skill> [options]
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `skill` | Yes | Path to skill directory or SKILL.md file |
+
+### Options
+
+| Flag | Short | Type | Default | Description |
+|------|-------|------|---------|-------------|
+| `--output` | `-o` | path | auto | Output directory for candidate files |
+| `--max` | `-m` | int | 5 | Max evals per category |
+
+### Examples
+
+```bash
+# Generate from skill directory
+skillet generate-evals ~/.claude/skills/browser-fallback
+
+# Custom output location
+skillet generate-evals skill/ -o ./my-evals/
+
+# Limit to 3 per category
+skillet generate-evals skill/ -m 3
+```
+
 ## Exit Codes
 
 | Code | Meaning |

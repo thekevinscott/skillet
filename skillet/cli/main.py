@@ -148,6 +148,23 @@ async def create(
     await create_command(name, output_dir=output_dir, extra_prompt=prompt)
 
 
+@app.command(name="generate-evals")
+async def generate_evals_cmd(
+    skill: Path,
+    *,
+    output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
+    max_per_category: Annotated[int, Parameter(name=["--max", "-m"])] = 5,
+):
+    """Generate candidate evals from a SKILL.md."""
+    from skillet.cli.commands.generate_evals import generate_evals_command
+
+    await generate_evals_command(
+        skill,
+        output_dir=output,
+        max_per_category=max_per_category,
+    )
+
+
 def main():
     """Entry point for the CLI."""
     app()

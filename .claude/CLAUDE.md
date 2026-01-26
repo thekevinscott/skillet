@@ -52,6 +52,7 @@ git worktree remove .worktrees/my-feature
 - Commands in subdirs get namespaced: `skillet/add.md` -> `/skillet:add`
 - Use `@pytest.mark.parametrize` when testing multiple inputs/outputs for the same logic
 - Mock external dependencies (like `get_rate_color`) to isolate unit tests
+- **Always prefer `pytest.fixture` over inline `with patch(...)`** — use `autouse=True` when the mock applies to all tests in scope
 
 ### Mocking with pytest-describe
 
@@ -71,8 +72,6 @@ def describe_my_function():
         result = await my_function()
         assert result == expected
 ```
-
-Prefer `autouse=True` fixtures over inline `with patch(...)` when multiple tests share the same mock setup.
 
 ## Key Commands
 
