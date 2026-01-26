@@ -42,13 +42,10 @@ async def generate_evals_command(
     console.print(f"  Examples: {analysis.get('example_count', 0)}")
     # Display candidates table
     console.print()
-    if not result.candidates:
-        console.print("[yellow]No candidates generated.[/yellow]")
-    else:
-        table = Table(title=f"Generated {len(result.candidates)} Candidates")
-        table.add_column("Name", style="cyan")
-        table.add_column("Category", style="green")
-        table.add_column("Source")
-        for c in result.candidates:
-            table.add_row(c.name, c.category, c.source)
-        console.print(table)
+    table = Table(title=f"Generated {len(result.candidates)} Candidates")
+    table.add_column("Name", style="cyan")
+    table.add_column("Category", style="green")
+    table.add_column("Source")
+    for c in result.candidates:
+        table.add_row(c.name, c.category, c.source)
+    console.print(table)
