@@ -18,6 +18,11 @@ async def generate_evals_command(
     """Run generate-evals with progress spinner."""
     skill_path = Path(skill_path).expanduser().resolve()
 
+    # Default output alongside the skill
+    if output_dir is None:
+        parent = skill_path.parent if skill_path.is_file() else skill_path
+        output_dir = parent / "candidates"
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
