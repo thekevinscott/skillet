@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 from skillet.cli import console
 from skillet.generate import generate_evals
@@ -39,5 +40,15 @@ async def generate_evals_command(
     console.print(f"  Goals: {len(analysis.get('goals', []))}")
     console.print(f"  Prohibitions: {len(analysis.get('prohibitions', []))}")
     console.print(f"  Examples: {analysis.get('example_count', 0)}")
+    # Display candidates table
     console.print()
-    console.print(f"Generated {len(result.candidates)} candidates")
+    if not result.candidates:
+        console.print("[yellow]No candidates generated.[/yellow]")
+    else:
+        table = Table(title=f"Generated {len(result.candidates)} Candidates")
+        table.add_column("Name", style="cyan")
+        table.add_column("Category", style="green")
+        table.add_column("Source")
+        for c in result.candidates:
+            table.add_row(c.name, c.category, c.source)
+        console.print(table)
