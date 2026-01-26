@@ -32,20 +32,26 @@ def _make_result(skill_path: Path) -> GenerateResult:
 
 
 def describe_generate_evals_command():
+    @pytest.fixture(autouse=True)
+    def mock_generate(tmp_path):
+        skill_path = tmp_path / "SKILL.md"
+        with patch(
+            f"{_MODULE}.generate_evals",
+            new_callable=AsyncMock,
+            return_value=_make_result(skill_path),
+        ) as mock:
+            yield mock
+
+    @pytest.fixture(autouse=True)
+    def mock_console():
+        with patch(f"{_MODULE}.console", Console(file=Path("/dev/null").open("w"))):
+            yield
+
     @pytest.mark.asyncio
-    async def it_defaults_output_to_candidates_subdir(tmp_path: Path):
+    async def it_defaults_output_to_candidates_subdir(tmp_path: Path, mock_generate):
         skill_path = tmp_path / "SKILL.md"
         skill_path.write_text("# Skill")
 
-        mock_result = _make_result(skill_path)
-        with (
-            patch(
-                f"{_MODULE}.generate_evals",
-                new_callable=AsyncMock,
-                return_value=mock_result,
-            ) as mock_gen,
-            patch(f"{_MODULE}.console", Console(file=Path("/dev/null").open("w"))),
-        ):
-            await generate_evals_command(skill_path)
+        await generate_evals_command(skill_path)
 
-        assert mock_gen.call_args.kwargs["output_dir"] == tmp_path / "candidates"
+        assert mock_generate.call_args.kwargs["output_dir"] == tmp_path / "candidates"
