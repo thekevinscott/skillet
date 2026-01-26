@@ -31,4 +31,13 @@ async def generate_evals_command(
             max_per_category=max_per_category,
         )
 
+    # Display analysis summary
+    analysis = result.analysis
+    console.print()
+    console.print("[bold]Skill Analysis:[/bold]")
+    console.print(f"  Name: [cyan]{analysis.get('name', 'unnamed')}[/cyan]")
+    console.print(f"  Goals: {len(analysis.get('goals', []))}")
+    console.print(f"  Prohibitions: {len(analysis.get('prohibitions', []))}")
+    console.print(f"  Examples: {analysis.get('example_count', 0)}")
+    console.print()
     console.print(f"Generated {len(result.candidates)} candidates")
