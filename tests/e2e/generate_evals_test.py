@@ -13,3 +13,14 @@ def test_generate_evals_shows_help():
     assert result.returncode == 0
     assert "generate" in result.stdout.lower()
     assert "--dry-run" in result.stdout or "--output" in result.stdout
+
+
+def test_generate_evals_fails_for_nonexistent_path():
+    """CLI fails gracefully for nonexistent skill path."""
+    result = subprocess.run(
+        ["skillet", "generate-evals", "/nonexistent/path"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "not found" in result.stderr.lower() or "does not exist" in result.stderr.lower()

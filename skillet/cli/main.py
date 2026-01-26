@@ -149,14 +149,17 @@ async def create(
 
 
 @app.command(name="generate-evals")
-async def generate_evals(
+async def generate_evals_cmd(
     skill: Path,
     *,
     output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
     dry_run: Annotated[bool, Parameter(name=["--dry-run", "-n"])] = False,
 ):
     """Generate candidate evals from a SKILL.md."""
-    pass
+    from skillet.generate import generate_evals
+
+    output_dir = None if dry_run else output
+    await generate_evals(skill, output_dir=output_dir)
 
 
 def main():
