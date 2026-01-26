@@ -49,3 +49,10 @@ async def generate_evals_command(
     for c in result.candidates:
         table.add_row(c.name, c.category, c.source)
     console.print(table)
+
+    # Show dry-run or output info
+    console.print()
+    if dry_run:
+        console.print("[dim]Dry run - no files written.[/dim]")
+    elif output_dir:
+        console.print(f"Written to [cyan]{output_dir}/[/cyan]")
