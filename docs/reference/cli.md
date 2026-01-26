@@ -179,16 +179,12 @@ skillet generate-evals <skill> [options]
 |------|-------|------|---------|-------------|
 | `--output` | `-o` | path | auto | Output directory for candidate files |
 | `--max` | `-m` | int | 5 | Max evals per category |
-| `--dry-run` | `-n` | bool | false | Show what would be generated |
 
 ### Examples
 
 ```bash
 # Generate from skill directory
 skillet generate-evals ~/.claude/skills/browser-fallback
-
-# Dry run to preview
-skillet generate-evals skill/ --dry-run
 
 # Custom output location
 skillet generate-evals skill/ -o ./my-evals/

@@ -12,7 +12,7 @@ def test_generate_evals_shows_help():
     )
     assert result.returncode == 0
     assert "generate" in result.stdout.lower()
-    assert "--dry-run" in result.stdout or "--output" in result.stdout
+    assert "--output" in result.stdout
 
 
 def test_generate_evals_fails_for_nonexistent_path():

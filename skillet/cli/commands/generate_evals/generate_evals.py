@@ -14,11 +14,9 @@ async def generate_evals_command(
     *,
     output_dir: Path | None = None,
     max_per_category: int = 5,
-    dry_run: bool = False,
 ) -> None:
     """Run generate-evals with progress spinner."""
     skill_path = Path(skill_path).expanduser().resolve()
-    final_output = None if dry_run else output_dir
 
     with Progress(
         SpinnerColumn(),
@@ -28,7 +26,7 @@ async def generate_evals_command(
         progress.add_task(f"Generating evals from {skill_path.name}...", total=None)
         result = await generate_evals(
             skill_path,
-            output_dir=final_output,
+            output_dir=output_dir,
             max_per_category=max_per_category,
         )
 
@@ -50,9 +48,7 @@ async def generate_evals_command(
         table.add_row(c.name, c.category, c.source)
     console.print(table)
 
-    # Show dry-run or output info
-    console.print()
-    if dry_run:
-        console.print("[dim]Dry run - no files written.[/dim]")
-    elif output_dir:
+    # Show output location
+    if output_dir:
+        console.print()
         console.print(f"Written to [cyan]{output_dir}/[/cyan]")
