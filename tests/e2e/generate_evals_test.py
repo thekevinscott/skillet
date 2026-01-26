@@ -1,13 +1,12 @@
 """E2E tests for generate-evals CLI command."""
 
 import subprocess
-import sys
 
 
 def test_generate_evals_shows_help():
     """CLI command exists and shows help."""
     result = subprocess.run(
-        [sys.executable, "-m", "skillet.cli.main", "generate-evals", "--help"],
+        ["skillet", "generate-evals", "--help"],
         capture_output=True,
         text=True,
     )
