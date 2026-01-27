@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
+from skillet.evals.load import REQUIRED_EVAL_FIELDS, load_evals
+
 from .__fixtures__.generate_evals import SAMPLE_GENERATED_EVALS, SAMPLE_SKILL
 
 
@@ -262,3 +264,38 @@ def describe_generate_evals():
         # If this marker appears, we know the mock is being used
         prompts = [c.prompt for c in result.candidates]
         assert unique_marker in prompts, "Mock response not found - real API may have been called!"
+
+    @pytest.mark.asyncio
+    async def it_produces_files_loadable_by_eval_loader(
+        tmp_path: Path, mock_claude_query
+    ):
+        """Round-trip: generate -> write -> load succeeds with valid eval files."""
+        from skillet import generate_evals
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        output_dir = tmp_path / "output"
+        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+
+        result = await generate_evals(skill_dir, output_dir=output_dir)
+
+        # Round-trip: load the written files back through the eval loader
+        loaded = load_evals(str(output_dir))
+
+        assert len(loaded) == len(result.candidates)
+
+        # Every loaded eval must have all required fields
+        for eval_data in loaded:
+            assert set(eval_data.keys()) >= REQUIRED_EVAL_FIELDS
+
+        # Each candidate's name should appear in the loaded evals
+        loaded_names = {e["name"] for e in loaded}
+        candidate_names = {c.name for c in result.candidates}
+        assert loaded_names == candidate_names
+
+        # Prompts should match too
+        loaded_prompts = {e["prompt"] for e in loaded}
+        candidate_prompts = {c.prompt for c in result.candidates}
+        assert loaded_prompts == candidate_prompts

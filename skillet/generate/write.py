@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from .sanitize_filename import get_name_part
 from .types import CandidateEval
 
 
@@ -21,10 +22,8 @@ def write_candidates(
     timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
 
     for i, candidate in enumerate(candidates):
-        # Generate filename
-        name_part = candidate.name or f"candidate-{i + 1}"
-        filename = f"{name_part}.yaml"
-        filepath = output_dir / filename
+        name_part = get_name_part(candidate.name, i)
+        filepath = output_dir / f"{name_part}.yaml"
 
         # Handle name collisions
         if filepath.exists():
@@ -48,19 +47,20 @@ def _candidate_to_dict(candidate: CandidateEval, skill_name: str | None) -> dict
         "timestamp": datetime.now(UTC).isoformat(),
         "prompt": candidate.prompt,
         "expected": candidate.expected,
+        "name": candidate.name,
     }
 
-    if skill_name:
-        data["name"] = skill_name
-
     # Add metadata as comments (stored in _meta for reference)
-    data["_meta"] = {
+    meta = {
         "category": candidate.category,
         "source": candidate.source,
         "confidence": candidate.confidence,
         "rationale": candidate.rationale,
         "generated": True,
     }
+    if skill_name:
+        meta["skill_name"] = skill_name
+    data["_meta"] = meta
 
     return data
 
