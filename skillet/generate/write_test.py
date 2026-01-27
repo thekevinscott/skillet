@@ -82,9 +82,7 @@ def describe_format_yaml_with_comments():
     def it_produces_parseable_yaml_body():
         data = _candidate_to_dict(_make_candidate(), None)
         output = _format_yaml_with_comments(data, _make_candidate())
-        body = "\n".join(
-            line for line in output.split("\n") if line and not line.startswith("#")
-        )
+        body = "\n".join(line for line in output.split("\n") if line and not line.startswith("#"))
         parsed = yaml.safe_load(body)
         assert parsed["prompt"] == "What is 2+2?"
         assert parsed["expected"] == "4"
@@ -92,9 +90,7 @@ def describe_format_yaml_with_comments():
     def it_excludes_meta_from_yaml_body():
         data = _candidate_to_dict(_make_candidate(), None)
         output = _format_yaml_with_comments(data, _make_candidate())
-        body = "\n".join(
-            line for line in output.split("\n") if line and not line.startswith("#")
-        )
+        body = "\n".join(line for line in output.split("\n") if line and not line.startswith("#"))
         parsed = yaml.safe_load(body)
         assert "_meta" not in parsed
 
@@ -124,9 +120,7 @@ def describe_write_candidates():
     def it_writes_valid_yaml(tmp_path: Path):
         paths = write_candidates([_make_candidate()], tmp_path)
         body = "\n".join(
-            line
-            for line in paths[0].read_text().split("\n")
-            if line and not line.startswith("#")
+            line for line in paths[0].read_text().split("\n") if line and not line.startswith("#")
         )
         parsed = yaml.safe_load(body)
         assert parsed["prompt"] == "What is 2+2?"

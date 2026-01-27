@@ -266,9 +266,7 @@ def describe_generate_evals():
         assert unique_marker in prompts, "Mock response not found - real API may have been called!"
 
     @pytest.mark.asyncio
-    async def it_produces_files_loadable_by_eval_loader(
-        tmp_path: Path, mock_claude_query
-    ):
+    async def it_produces_files_loadable_by_eval_loader(tmp_path: Path, mock_claude_query):
         """Round-trip: generate -> write -> load succeeds with valid eval files."""
         from skillet import generate_evals
 

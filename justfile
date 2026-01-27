@@ -95,13 +95,17 @@ test-integration:
 test-e2e:
     uv run pytest tests/e2e/
 
-# Run full local CI (same checks as remote CI)
+# Run local CI checks (fast, no e2e)
 ci:
     just lint
     just format-check
     just typecheck
     just test-unit
     just test-integration
+
+# Run full local CI including e2e (slow, hits real LLMs)
+ci-full:
+    just ci
     just test-e2e
 
 # Watch unit tests only
