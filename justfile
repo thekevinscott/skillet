@@ -31,9 +31,15 @@ clean:
 build: clean
     uv build
 
-# Install pre-commit hooks
+# Install git hooks (pre-commit and pre-push)
 hooks:
+    #!/usr/bin/env bash
+    set -euo pipefail
     uv run pre-commit install
+    hooks_dir="$(git rev-parse --git-common-dir)/hooks"
+    cp scripts/hooks/pre-push "$hooks_dir/pre-push"
+    chmod +x "$hooks_dir/pre-push"
+    echo "Installed pre-push hook"
 
 # Check changelog was updated (for CI)
 # Skip if only docs/ files changed
@@ -88,6 +94,19 @@ test-integration:
 # Run e2e tests
 test-e2e:
     uv run pytest tests/e2e/
+
+# Run local CI checks (fast, no e2e)
+ci:
+    just lint
+    just format-check
+    just typecheck
+    just test-unit
+    just test-integration
+
+# Run full local CI including e2e (slow, hits real LLMs)
+ci-full:
+    just ci
+    just test-e2e
 
 # Watch unit tests only
 test-unit-watch *args:
