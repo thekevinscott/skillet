@@ -73,6 +73,34 @@ def describe_my_function():
         assert result == expected
 ```
 
+### Test Fixtures for File Content
+
+Use readable multi-line strings for file content. Either module-level constants or inline `dedent()` — never escaped `\n` strings:
+
+```python
+# Good - module-level constant
+VALID_SKILL = """\
+---
+name: test
+---
+"""
+
+def it_does_something(tmp_path):
+    skill.write_text(VALID_SKILL)
+
+# Good - inline dedent
+def it_does_something(tmp_path):
+    skill.write_text(dedent("""\
+        ---
+        name: test
+        ---
+        """))
+
+# Bad - hard to read
+def it_does_something(tmp_path):
+    skill.write_text("---\nname: test\n---\n")
+```
+
 ## Key Commands
 
 `just` is installed via uv as `rust-just`, so run it with `uv run just`:

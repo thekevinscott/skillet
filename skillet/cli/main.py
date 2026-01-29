@@ -148,6 +148,34 @@ async def create(
     await create_command(name, output_dir=output_dir, extra_prompt=prompt)
 
 
+@app.command
+def lint(
+    path: Annotated[Path | None, Parameter(name="path")] = None,
+    *,
+    list_rules: Annotated[bool, Parameter(name=["--list-rules"])] = False,
+):
+    """Lint a SKILL.md file for common issues.
+
+    Examples:
+        skillet lint path/to/SKILL.md
+        skillet lint --list-rules
+    """
+    from skillet.cli.commands.lint import lint_command
+    from skillet.cli.commands.lint.print_rules import print_rules
+
+    if list_rules:
+        print_rules()
+        return
+
+    if path is None:
+        from skillet.cli import console
+
+        console.print("[red]Error:[/red] path is required unless --list-rules is specified")
+        raise SystemExit(2)
+
+    lint_command(path)
+
+
 @app.command(name="generate-evals")
 async def generate_evals_cmd(
     skill: Path,
