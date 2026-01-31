@@ -347,6 +347,14 @@ def save_results(
             json.dump(unique_items, f, indent=2)
         print(f"Saved {len(unique_items)} unique files to {files_path}")
 
+        # Write URLs to text file (one per line)
+        urls_path = output_dir / "skill_urls.txt"
+        with open(urls_path, "w") as f:
+            for item in unique_items:
+                if item.get("html_url"):
+                    f.write(item["html_url"] + "\n")
+        print(f"Saved URLs to {urls_path}")
+
 
 def process_range_dry_run(size_range: SizeRange) -> ShardResult:
     """Process a range in dry-run mode (count only)."""
