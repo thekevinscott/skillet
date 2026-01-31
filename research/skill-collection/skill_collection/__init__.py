@@ -529,6 +529,38 @@ def cmd_fetch_content(args):
     print(f"\n\nDone: {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
 
 
+def cmd_filter_skills(args):
+    """Check which URLs have content on disk."""
+    import signal
+
+    # Handle broken pipe gracefully (e.g., when piping to head)
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+    urls_path = args.output_dir / "skill_urls.txt"
+
+    if not urls_path.exists():
+        raise FileNotFoundError(f"{urls_path} not found. Run 'fetch-files' first.")
+
+    with open(urls_path) as f:
+        urls = [line.strip() for line in f if line.strip()]
+
+    content_dir = args.output_dir / "content"
+
+    for url in urls:
+        parsed = parse_github_url(url)
+        if not parsed:
+            print(f"{url} 0")  # 0 = invalid URL
+            continue
+
+        owner, repo, ref, path = parsed
+        local_path = content_dir / owner / repo / "blob" / ref / path
+
+        if local_path.exists():
+            print(f"{url} 1")  # 1 = content exists
+        else:
+            print(f"{url} 2")  # 2 = content missing
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Collect SKILL.md files from GitHub",
@@ -565,12 +597,20 @@ def main():
         help="Fetch SKILL.md content from collected URLs",
     )
 
+    # filter-skills subcommand
+    subparsers.add_parser(
+        "filter-skills",
+        help="Check which URLs have content on disk (prints URL + 1 if exists, 2 if missing)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "fetch-files":
         cmd_fetch_files(args)
     elif args.command == "fetch-content":
         cmd_fetch_content(args)
+    elif args.command == "filter-skills":
+        cmd_filter_skills(args)
     else:
         parser.print_help()
 
