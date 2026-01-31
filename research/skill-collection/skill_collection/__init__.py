@@ -477,8 +477,6 @@ def cmd_fetch_content(args):
     """Fetch SKILL.md content from URLs and store locally."""
     import base64
 
-    from .github import get_client
-
     urls_path = args.output_dir / "skill_urls.txt"
 
     if not urls_path.exists():
@@ -500,8 +498,10 @@ def cmd_fetch_content(args):
     for i, url in enumerate(urls):
         parsed = parse_github_url(url)
         if not parsed:
-            print(f"[{i + 1}/{len(urls)}] Skip (invalid URL): {url}")
-            cached += 1
+            errors += 1
+            status(
+                f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors"
+            )
             continue
 
         owner, repo, ref, path = parsed
@@ -524,12 +524,7 @@ def cmd_fetch_content(args):
             except Exception:
                 errors += 1
 
-        # Progress update (overwrite same line)
-        print(
-            f"\r[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors   ",
-            end="",
-            flush=True,
-        )
+        status(f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
 
     print(f"\n\nDone: {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
 
