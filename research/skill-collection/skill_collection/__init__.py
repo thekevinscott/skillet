@@ -476,12 +476,11 @@ def cmd_fetch_content(args):
     print()
 
     # Print first N URLs
-    limit = args.limit or 100
-    for url in urls[:limit]:
+    for url in urls[: args.limit]:
         print(url)
 
-    if len(urls) > limit:
-        print(f"\n... and {len(urls) - limit:,} more")
+    if len(urls) > args.limit:
+        print(f"\n... and {len(urls) - args.limit:,} more")
 
 
 def main():
