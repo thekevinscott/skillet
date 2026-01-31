@@ -306,6 +306,15 @@ def write_progress_md(
             f.write(row.format())
 
 
+def append_urls(output_dir: Path, items: list[dict]):
+    """Append URLs to skill_urls.txt incrementally."""
+    urls_path = output_dir / "skill_urls.txt"
+    with open(urls_path, "a") as f:
+        for item in items:
+            if item.get("html_url"):
+                f.write(item["html_url"] + "\n")
+
+
 def print_summary(results: list[ShardResult]):
     """Print collection summary to stdout."""
     total_reported = sum(r.total_count for r in results)
@@ -391,6 +400,10 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Clear/initialize the URLs file for incremental writes
+    if not args.dry_run:
+        (args.output_dir / "skill_urls.txt").write_text("")
+
     # Determine which ranges to collect
     if args.ranges:
         range_indices = [int(i) for i in args.ranges.split(",")]
@@ -444,6 +457,7 @@ def main():
         if not args.dry_run:
             new_items, seen_shas = deduplicate_items(items, seen_shas)
             unique_items.extend(new_items)
+            append_urls(args.output_dir, new_items)
 
         status(
             f"[{len(unique_items):,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({len(completed_results)} shards)"
