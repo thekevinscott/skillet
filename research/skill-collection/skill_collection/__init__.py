@@ -511,22 +511,21 @@ def cmd_fetch_content(args):
         # Skip if already fetched (on-disk cache)
         if local_path.exists():
             skipped += 1
-            continue
-
-        try:
-            data = client.get_file_content(owner, repo, path, ref=ref)
-            if "content" in data:
-                content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
-                local_path.parent.mkdir(parents=True, exist_ok=True)
-                local_path.write_text(content)
-                fetched += 1
-            else:
+        else:
+            try:
+                data = client.get_file_content(owner, repo, path, ref=ref)
+                if "content" in data:
+                    content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                    local_path.parent.mkdir(parents=True, exist_ok=True)
+                    local_path.write_text(content)
+                    fetched += 1
+                else:
+                    errors += 1
+            except Exception:
                 errors += 1
-        except Exception:
-            errors += 1
 
-        # Progress update every 10 fetches
-        if fetched > 0 and fetched % 10 == 0:
+        # Progress update every 10 items
+        if (i + 1) % 10 == 0:
             print(
                 f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {skipped:,} skipped, {errors:,} errors"
             )

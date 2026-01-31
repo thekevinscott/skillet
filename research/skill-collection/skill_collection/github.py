@@ -71,11 +71,7 @@ class RateLimiter:
             elapsed = now - self.last_request_time
             if elapsed < self.min_interval:
                 wait_time = self.min_interval - elapsed
-                # Only log if waiting more than a trivial amount
-                if wait_time > 0.5:
-                    self._wait(wait_time, "throttle")
-                else:
-                    time.sleep(wait_time)
+                time.sleep(wait_time)
 
     def force_wait(self):
         """Force a wait until the rate limit resets (called after hitting a limit).
