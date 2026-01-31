@@ -524,13 +524,14 @@ def cmd_fetch_content(args):
             except Exception:
                 errors += 1
 
-        # Progress update every 10 items
-        if (i + 1) % 10 == 0:
-            print(
-                f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors"
-            )
+        # Progress update (overwrite same line)
+        print(
+            f"\r[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors   ",
+            end="",
+            flush=True,
+        )
 
-    print(f"\nDone: {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
+    print(f"\n\nDone: {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
 
 
 def main():
