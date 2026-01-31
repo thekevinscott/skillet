@@ -511,21 +511,23 @@ def cmd_fetch_content(args):
         # Skip if already fetched (on-disk cache)
         if local_path.exists():
             skipped += 1
+            if skipped % 500 == 0:
+                print(f"[{i + 1}/{len(urls)}] Skipped {skipped:,} (already cached)...")
             continue
 
         try:
+            print(f"[{i + 1}/{len(urls)}] {owner}/{repo}/{path}")
             data = client.get_file_content(owner, repo, path, ref=ref)
             if "content" in data:
                 content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
                 local_path.parent.mkdir(parents=True, exist_ok=True)
                 local_path.write_text(content)
                 fetched += 1
-                if fetched % 100 == 0:
-                    print(f"[{i + 1}/{len(urls)}] Fetched {fetched:,} files...")
             else:
+                print("  -> No content in response")
                 errors += 1
         except Exception as e:
-            print(f"[{i + 1}/{len(urls)}] Error fetching {owner}/{repo}: {e}")
+            print(f"  -> Error: {e}")
             errors += 1
 
     print(f"\nDone: {fetched:,} fetched, {skipped:,} skipped, {errors:,} errors")
