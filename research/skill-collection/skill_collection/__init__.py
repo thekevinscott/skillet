@@ -458,13 +458,21 @@ def cmd_fetch_content(args):
     urls_path = args.output_dir / "skill_urls.txt"
 
     if not urls_path.exists():
-        print(f"Error: {urls_path} not found. Run 'fetch-files' first.")
-        sys.exit(1)
+        raise FileNotFoundError(f"{urls_path} not found. Run 'fetch-files' first.")
 
     with open(urls_path) as f:
         urls = [line.strip() for line in f if line.strip()]
 
-    print(f"Found {len(urls):,} URLs in {urls_path}")
+    # Filter to only SKILL.md files (case-insensitive)
+    filtered_urls = []
+    for url in urls:
+        parts = url.split("/")
+        filename = parts.pop() if parts else ""
+        if filename.lower() == "skill.md":
+            filtered_urls.append(url)
+    urls = filtered_urls
+
+    print(f"Found {len(urls):,} SKILL.md URLs in {urls_path}")
     print()
 
     # Print first N URLs
