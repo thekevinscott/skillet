@@ -210,7 +210,7 @@ def describe_write_progress_md():
 def describe_collect_shard():
     @pytest.fixture
     def mock_client():
-        with patch("skill_collection.get_client") as mock_get:
+        with patch("skill_collection.collect.get_client") as mock_get:
             client = MagicMock()
             mock_get.return_value = client
             yield client
