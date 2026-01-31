@@ -453,8 +453,32 @@ def cmd_fetch_files(args):
     save_results(args.output_dir, results_list, unique_items if not args.dry_run else None)
 
 
+def parse_github_url(url: str) -> tuple[str, str, str, str] | None:
+    """Parse a GitHub blob URL into (owner, repo, ref, path).
+
+    Example: https://github.com/owner/repo/blob/ref/path/to/file.md
+    Returns: ('owner', 'repo', 'ref', 'path/to/file.md')
+    """
+    if not url.startswith("https://github.com/"):
+        return None
+    # Remove https://github.com/
+    rest = url[19:]
+    parts = rest.split("/")
+    if len(parts) < 5 or parts[2] != "blob":
+        return None
+    owner = parts[0]
+    repo = parts[1]
+    ref = parts[3]
+    path = "/".join(parts[4:])
+    return owner, repo, ref, path
+
+
 def cmd_fetch_content(args):
-    """Fetch and print SKILL.md content from URLs."""
+    """Fetch SKILL.md content from URLs and store locally."""
+    import base64
+
+    from .github import get_client
+
     urls_path = args.output_dir / "skill_urls.txt"
 
     if not urls_path.exists():
@@ -463,24 +487,48 @@ def cmd_fetch_content(args):
     with open(urls_path) as f:
         urls = [line.strip() for line in f if line.strip()]
 
-    # Filter to only SKILL.md files (case-insensitive)
-    filtered_urls = []
-    for url in urls:
-        parts = url.split("/")
-        filename = parts.pop() if parts else ""
-        if filename.lower() == "skill.md":
-            filtered_urls.append(url)
-    urls = filtered_urls
+    print(f"Found {len(urls):,} URLs in {urls_path}")
 
-    print(f"Found {len(urls):,} SKILL.md URLs in {urls_path}")
-    print()
+    content_dir = args.output_dir / "content"
+    content_dir.mkdir(parents=True, exist_ok=True)
 
-    # Print first N URLs
-    for url in urls[: args.limit]:
-        print(url)
+    client = get_client()
+    fetched = 0
+    skipped = 0
+    errors = 0
 
-    if len(urls) > args.limit:
-        print(f"\n... and {len(urls) - args.limit:,} more")
+    for i, url in enumerate(urls):
+        parsed = parse_github_url(url)
+        if not parsed:
+            print(f"[{i + 1}/{len(urls)}] Skip (invalid URL): {url}")
+            skipped += 1
+            continue
+
+        owner, repo, ref, path = parsed
+        # Build local path: content/{owner}/{repo}/blob/{ref}/{path}
+        local_path = content_dir / owner / repo / "blob" / ref / path
+
+        # Skip if already fetched (on-disk cache)
+        if local_path.exists():
+            skipped += 1
+            continue
+
+        try:
+            data = client.get_file_content(owner, repo, path, ref=ref)
+            if "content" in data:
+                content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                local_path.parent.mkdir(parents=True, exist_ok=True)
+                local_path.write_text(content)
+                fetched += 1
+                if fetched % 100 == 0:
+                    print(f"[{i + 1}/{len(urls)}] Fetched {fetched:,} files...")
+            else:
+                errors += 1
+        except Exception as e:
+            print(f"[{i + 1}/{len(urls)}] Error fetching {owner}/{repo}: {e}")
+            errors += 1
+
+    print(f"\nDone: {fetched:,} fetched, {skipped:,} skipped, {errors:,} errors")
 
 
 def main():
@@ -514,15 +562,9 @@ def main():
     )
 
     # fetch-content subcommand
-    fetch_content_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "fetch-content",
-        help="Print SKILL.md URLs from collected results",
-    )
-    fetch_content_parser.add_argument(
-        "--limit",
-        type=int,
-        default=100,
-        help="Number of URLs to print (default: 100)",
+        help="Fetch SKILL.md content from collected URLs",
     )
 
     args = parser.parse_args()
