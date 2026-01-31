@@ -5,13 +5,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from . import (
-    SizeRange,
     ShardResult,
-    extract_file_info,
-    write_progress_md,
+    SizeRange,
     collect_shard,
-    needs_subdivision,
     deduplicate_items,
+    extract_file_info,
+    needs_subdivision,
+    write_progress_md,
 )
 
 
@@ -141,8 +141,18 @@ def describe_write_progress_md():
 
     def it_writes_markdown_table_with_page_columns(output_dir):
         results = [
-            ShardResult(SizeRange(0, 99), total_count=416, collected=416, pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16}),
-            ShardResult(SizeRange(100, 199), total_count=312, collected=312, pages={1: 100, 2: 100, 3: 100, 4: 12}),
+            ShardResult(
+                SizeRange(0, 99),
+                total_count=416,
+                collected=416,
+                pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16},
+            ),
+            ShardResult(
+                SizeRange(100, 199),
+                total_count=312,
+                collected=312,
+                pages={1: 100, 2: 100, 3: 100, 4: 12},
+            ),
         ]
 
         write_progress_md(output_dir, results)
@@ -179,7 +189,14 @@ def describe_write_progress_md():
         assert "| 0-99 | 0 |  |  |  |  |  |  |  |  |  |  |" in content
 
     def it_includes_in_progress_shard_with_arrow(output_dir):
-        results = [ShardResult(SizeRange(0, 99), total_count=416, collected=416, pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16})]
+        results = [
+            ShardResult(
+                SizeRange(0, 99),
+                total_count=416,
+                collected=416,
+                pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16},
+            )
+        ]
         in_progress = {"range": "100-199", "collected": 200, "pages": {1: 100, 2: 100}}
 
         write_progress_md(output_dir, results, in_progress)

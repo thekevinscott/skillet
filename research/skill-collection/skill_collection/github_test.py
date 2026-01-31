@@ -115,26 +115,20 @@ def describe_GitHubClient():
             assert result == {"cached": True}
             mock_subprocess.assert_not_called()
 
-        def it_makes_api_call_on_cache_miss(
-            client: GitHubClient, mock_subprocess: MagicMock
-        ):
+        def it_makes_api_call_on_cache_miss(client: GitHubClient, mock_subprocess: MagicMock):
             result = client.api("search/code", {"q": "test"})
 
             assert result == {"total_count": 10, "items": []}
             mock_subprocess.assert_called_once()
 
-        def it_caches_successful_response(
-            client: GitHubClient, mock_subprocess: MagicMock
-        ):
+        def it_caches_successful_response(client: GitHubClient, mock_subprocess: MagicMock):
             client.api("search/code", {"q": "new_query"})
 
             # Should be cached now
             cached = client.cache.get("search/code", {"q": "new_query"})
             assert cached == {"total_count": 10, "items": []}
 
-        def it_skips_cache_when_disabled(
-            client: GitHubClient, mock_subprocess: MagicMock
-        ):
+        def it_skips_cache_when_disabled(client: GitHubClient, mock_subprocess: MagicMock):
             # Pre-populate cache
             client.cache.set("search/code", {"q": "test"}, {"cached": True})
 

@@ -7,13 +7,12 @@ queries by file size, we can collect more results (up to 1000 per size range).
 import argparse
 import json
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
 
 from .github import get_client
-
 
 DEFAULT_CHUNK_SIZE = 100  # Default chunk size for subdivision ranges
 
@@ -290,13 +289,15 @@ def write_progress_md(
             # Parse min_bytes from range string (e.g., "500-599" -> 500, ">100000" -> 100000)
             range_str = in_progress["range"]
             min_bytes = int(range_str.split("-")[0].lstrip(">"))
-            rows.append(ProgressRow(
-                min_bytes=min_bytes,
-                range_str=f"-> {range_str}",  # Arrow indicates in-progress
-                collected=in_progress["collected"],
-                pages=in_progress.get("pages", {}),
-                bold=True,
-            ))
+            rows.append(
+                ProgressRow(
+                    min_bytes=min_bytes,
+                    range_str=f"-> {range_str}",  # Arrow indicates in-progress
+                    collected=in_progress["collected"],
+                    pages=in_progress.get("pages", {}),
+                    bold=True,
+                )
+            )
 
         # Sort by min_bytes descending (largest at top)
         rows.sort(key=lambda r: r.min_bytes, reverse=True)
@@ -411,12 +412,16 @@ def main():
                 in_progress["pages"][page_num] = count
                 in_progress["collected"] = sum(in_progress["pages"].values())
                 current_total = total_files + in_progress["collected"]
-                status(f"[{current_total:,} / {EXPECTED_TOTAL:,}] Fetching {size_range} (page {page_num})...")
+                status(
+                    f"[{current_total:,} / {EXPECTED_TOTAL:,}] Fetching {size_range} (page {page_num})..."
+                )
                 # Don't show in_progress if we hit 1000 (will be subdivided)
                 if in_progress["collected"] >= 1000:
                     write_progress_md(args.output_dir, list(completed_results.values()))
                 else:
-                    write_progress_md(args.output_dir, list(completed_results.values()), in_progress)
+                    write_progress_md(
+                        args.output_dir, list(completed_results.values()), in_progress
+                    )
 
             result, items = collect_shard(size_range, on_page=on_page)
 
@@ -432,7 +437,9 @@ def main():
             new_items, seen_shas = deduplicate_items(items, seen_shas)
             unique_items.extend(new_items)
 
-        status(f"[{len(unique_items):,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({len(completed_results)} shards)")
+        status(
+            f"[{len(unique_items):,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({len(completed_results)} shards)"
+        )
         write_progress_md(args.output_dir, list(completed_results.values()))
 
     print()  # New line after status updates

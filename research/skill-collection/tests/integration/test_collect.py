@@ -2,7 +2,6 @@
 
 import json
 import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -39,6 +38,7 @@ def describe_main():
     def reset_client_and_cache(tmp_path):
         """Reset the global client and use a fresh cache directory."""
         import skill_collection.github as github_module
+
         github_module._client = None
         # Override the default cache directory
         original_default = github_module.DEFAULT_CACHE_DIR
@@ -50,14 +50,16 @@ def describe_main():
     @pytest.fixture
     def mock_gh_cli():
         """Mock the gh CLI subprocess calls and time.sleep for speed."""
-        with patch("subprocess.run") as mock_run, \
-             patch("time.sleep"):  # Don't actually sleep in tests
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("time.sleep"),
+        ):  # Don't actually sleep in tests
             yield mock_run
 
     def it_collects_files_and_writes_output(output_dir, mock_gh_cli):
         # Set up mock responses for a small subset of ranges
         items_range_0 = [make_item(f"sha{i}", f"user/repo{i}") for i in range(50)]
-        items_range_1 = [make_item(f"sha{i+50}", f"user/repo{i+50}") for i in range(30)]
+        items_range_1 = [make_item(f"sha{i + 50}", f"user/repo{i + 50}") for i in range(30)]
 
         def mock_subprocess(*args, **kwargs):
             cmd = args[0] if args else kwargs.get("args", [])
@@ -80,8 +82,11 @@ def describe_main():
         mock_gh_cli.side_effect = mock_subprocess
 
         # Run main with only ranges 0 and 1
-        with patch.object(sys, "argv", ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0,1"]):
+        with patch.object(
+            sys, "argv", ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0,1"]
+        ):
             from skill_collection import main
+
             main()
 
         # Verify output files were created
@@ -139,8 +144,11 @@ def describe_main():
 
         mock_gh_cli.side_effect = mock_subprocess
 
-        with patch.object(sys, "argv", ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0"]):
+        with patch.object(
+            sys, "argv", ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0"]
+        ):
             from skill_collection import main
+
             main()
 
         # Verify the subdivided ranges appear in output, not the original
@@ -156,6 +164,7 @@ def describe_main():
 
     def it_runs_in_dry_run_mode(output_dir, mock_gh_cli):
         """Test that dry run mode only counts without collecting."""
+
         def mock_subprocess(*args, **kwargs):
             result = MagicMock()
             result.returncode = 0
@@ -165,8 +174,13 @@ def describe_main():
 
         mock_gh_cli.side_effect = mock_subprocess
 
-        with patch.object(sys, "argv", ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0", "--dry-run"]):
+        with patch.object(
+            sys,
+            "argv",
+            ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0", "--dry-run"],
+        ):
             from skill_collection import main
+
             main()
 
         # Verify summary exists but skill_files does not
