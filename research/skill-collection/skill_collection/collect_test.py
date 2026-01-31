@@ -11,6 +11,7 @@ from . import (
     deduplicate_items,
     extract_file_info,
     needs_subdivision,
+    parse_github_url,
     write_progress_md,
 )
 
@@ -368,3 +369,17 @@ def describe_deduplicate_items():
         assert len(result2) == 1
         assert result2[0]["sha"] == "def"
         assert seen == {"abc", "def"}
+
+
+def describe_parse_github_url():
+    def it_parses_valid_blob_url():
+        url = "https://github.com/owner/repo/blob/abc123/path/to/file.md"
+        result = parse_github_url(url)
+
+        assert result == ("owner", "repo", "abc123", "path/to/file.md")
+
+    def it_returns_none_for_non_github_url():
+        assert parse_github_url("https://gitlab.com/owner/repo/blob/main/file.md") is None
+
+    def it_returns_none_for_non_blob_url():
+        assert parse_github_url("https://github.com/owner/repo/tree/main/path") is None

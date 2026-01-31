@@ -203,3 +203,106 @@ def describe_main():
             summary = json.load(f)
 
         assert summary["total_collected"] == 0
+
+
+def describe_fetch_content():
+    @pytest.fixture
+    def output_dir(tmp_path):
+        return tmp_path / "output"
+
+    @pytest.fixture(autouse=True)
+    def reset_client_and_cache(tmp_path):
+        """Reset the global client and use a fresh cache directory."""
+        import skill_collection.github as github_module
+
+        github_module._client = None
+        original_default = github_module.DEFAULT_CACHE_DIR
+        github_module.DEFAULT_CACHE_DIR = tmp_path / ".cache"
+        yield
+        github_module._client = None
+        github_module.DEFAULT_CACHE_DIR = original_default
+
+    @pytest.fixture
+    def mock_gh_cli():
+        """Mock the gh CLI subprocess calls and time.sleep for speed."""
+        with (
+            patch("subprocess.run") as mock_run,
+            patch("time.sleep"),
+        ):
+            yield mock_run
+
+    def it_fetches_content_and_stores_on_disk(output_dir, mock_gh_cli):
+        import base64
+
+        # Create skill_urls.txt with test URLs
+        output_dir.mkdir(parents=True)
+        urls_file = output_dir / "skill_urls.txt"
+        urls_file.write_text(
+            "https://github.com/owner/repo/blob/abc123/SKILL.md\n"
+            "https://github.com/other/project/blob/def456/path/SKILL.md\n"
+        )
+
+        # Mock API responses for file content
+        def mock_subprocess(*args, **kwargs):
+            result = MagicMock()
+            result.returncode = 0
+            result.stderr = ""
+
+            content = base64.b64encode(b"# Test Skill\nDescription here").decode()
+            result.stdout = f'X-RateLimit-Remaining: 29\n\n{{"content": "{content}"}}'
+            return result
+
+        mock_gh_cli.side_effect = mock_subprocess
+
+        with patch.object(
+            sys,
+            "argv",
+            ["collect-skills", "--output-dir", str(output_dir), "fetch-content"],
+        ):
+            from skill_collection import main
+
+            main()
+
+        # Verify files were created on disk
+        content_dir = output_dir / "content"
+        assert (content_dir / "owner/repo/blob/abc123/SKILL.md").exists()
+        assert (content_dir / "other/project/blob/def456/path/SKILL.md").exists()
+
+        # Verify content
+        content = (content_dir / "owner/repo/blob/abc123/SKILL.md").read_text()
+        assert "# Test Skill" in content
+
+
+def describe_filter_skills():
+    @pytest.fixture
+    def output_dir(tmp_path):
+        return tmp_path / "output"
+
+    def it_reports_which_files_exist_on_disk(output_dir, capsys):
+        # Create skill_urls.txt with test URLs
+        output_dir.mkdir(parents=True)
+        urls_file = output_dir / "skill_urls.txt"
+        urls_file.write_text(
+            "https://github.com/owner/repo/blob/abc123/SKILL.md\n"
+            "https://github.com/missing/repo/blob/def456/SKILL.md\n"
+        )
+
+        # Create content for first URL only
+        content_dir = output_dir / "content"
+        (content_dir / "owner/repo/blob/abc123").mkdir(parents=True)
+        (content_dir / "owner/repo/blob/abc123/SKILL.md").write_text("# Skill")
+
+        with patch.object(
+            sys,
+            "argv",
+            ["collect-skills", "--output-dir", str(output_dir), "filter-skills"],
+        ):
+            from skill_collection import main
+
+            main()
+
+        captured = capsys.readouterr()
+        lines = captured.out.strip().split("\n")
+
+        assert "owner/repo/blob/abc123/SKILL.md 1" in lines[0]  # exists
+        assert "missing/repo/blob/def456/SKILL.md 2" in lines[1]  # missing
