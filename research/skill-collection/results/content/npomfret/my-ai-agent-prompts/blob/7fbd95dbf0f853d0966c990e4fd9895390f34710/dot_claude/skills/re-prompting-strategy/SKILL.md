@@ -1,0 +1,1 @@
+Guides the user on effective re-prompting strategies to leverage previous interactions and branch from them, avoiding redundant efforts and utilizing knowledge of past failures.

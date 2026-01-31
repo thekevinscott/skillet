@@ -1,0 +1,5 @@
+```
+create table skill (
+	SKILLID char(3) CONSTRAINT UNQ_SKILLID UNIQUE,
+	SKILLNAME varchar(20) CONSTRAINT UNQ_SKILNAME UNIQUE);
+```

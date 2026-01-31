@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file that defines a Claude Code skill for splitting monolithic branches into PR stacks. Has proper frontmatter with description and allowed-tools, clear activation triggers, prerequisites, process steps, and delegation instructions."}

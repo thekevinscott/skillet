@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'create-skill' capability with YAML frontmatter (description and targets), accepts arguments, and provides instructions for creating skills in a specific directory"}

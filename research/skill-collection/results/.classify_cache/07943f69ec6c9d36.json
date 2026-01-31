@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a specific instruction for Claude Code behavior when writing Lua code for Vim - adds debugging print statements per line"}

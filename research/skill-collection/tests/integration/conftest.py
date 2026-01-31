@@ -1,5 +1,6 @@
 """Integration test fixtures."""
 
+import importlib
 import json
 import sys
 from unittest.mock import MagicMock
@@ -44,6 +45,11 @@ def mock_claude_agent_sdk():
 
     # Install mock module before any imports
     sys.modules["claude_agent_sdk"] = mock_sdk
+
+    # Force reload of only the filter module so it picks up the mock
+    # Don't reload skill_collection itself as it causes dataclass identity issues
+    if "skill_collection.filter" in sys.modules:
+        importlib.reload(sys.modules["skill_collection.filter"])
 
     yield mock_sdk
 
