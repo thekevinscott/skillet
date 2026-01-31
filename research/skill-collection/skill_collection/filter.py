@@ -268,26 +268,15 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
         f.write(f"**Not skills:** {len(invalid_skills)}\n")
         f.write(f"**Errors:** {len(errors)}\n\n")
 
-        # Add CSS for responsive table with ellipsis truncation
-        f.write("<style>\n")
-        f.write("table { width: 100%; table-layout: fixed; }\n")
-        f.write("td:first-child { width: 50%; }\n")
-        f.write("td:last-child { word-wrap: break-word; }\n")
-        f.write(".truncate-url { display: block; overflow: hidden; ")
-        f.write("text-overflow: ellipsis; white-space: nowrap; }\n")
-        f.write("</style>\n\n")
-
         # Valid skills table
         f.write("## Valid Skills\n\n")
         if valid_skills:
             f.write("| URL | Symlink | Reason |\n")
             f.write("|-----|:-------:|--------|\n")
             for original_url, resolved_url, is_symlink, reason in valid_skills:
-                # Use resolved_url for the link, show symlink indicator
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f'| <span class="truncate-url" title="{resolved_url}">'
-                    f"[{truncate_url(resolved_url)}]({resolved_url})</span> "
+                    f"| [{truncate_url(resolved_url)}]({resolved_url}) "
                     f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
         else:
@@ -303,8 +292,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
             for original_url, resolved_url, is_symlink, reason in invalid_skills:
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f'| <span class="truncate-url" title="{resolved_url}">'
-                    f"[{truncate_url(resolved_url)}]({resolved_url})</span> "
+                    f"| [{truncate_url(resolved_url)}]({resolved_url}) "
                     f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
         else:
@@ -318,8 +306,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
             for original_url, resolved_url, is_symlink, reason in errors:
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f'| <span class="truncate-url" title="{resolved_url}">'
-                    f"[{truncate_url(resolved_url)}]({resolved_url})</span> "
+                    f"| [{truncate_url(resolved_url)}]({resolved_url}) "
                     f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
 
