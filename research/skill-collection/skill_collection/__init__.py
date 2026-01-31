@@ -494,14 +494,14 @@ def cmd_fetch_content(args):
 
     client = get_client()
     fetched = 0
-    skipped = 0
+    cached = 0
     errors = 0
 
     for i, url in enumerate(urls):
         parsed = parse_github_url(url)
         if not parsed:
             print(f"[{i + 1}/{len(urls)}] Skip (invalid URL): {url}")
-            skipped += 1
+            cached += 1
             continue
 
         owner, repo, ref, path = parsed
@@ -510,7 +510,7 @@ def cmd_fetch_content(args):
 
         # Skip if already fetched (on-disk cache)
         if local_path.exists():
-            skipped += 1
+            cached += 1
         else:
             try:
                 data = client.get_file_content(owner, repo, path, ref=ref)
@@ -527,10 +527,10 @@ def cmd_fetch_content(args):
         # Progress update every 10 items
         if (i + 1) % 10 == 0:
             print(
-                f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {skipped:,} skipped, {errors:,} errors"
+                f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors"
             )
 
-    print(f"\nDone: {fetched:,} fetched, {skipped:,} skipped, {errors:,} errors")
+    print(f"\nDone: {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
 
 
 def main():
