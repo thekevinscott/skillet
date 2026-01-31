@@ -11,12 +11,7 @@ from pathlib import Path
 from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 
 from .github import parse_github_url
-
-
-def status(msg: str):
-    """Print a status message, overwriting the current line."""
-    sys.stdout.write(f"\r\033[K{msg}")
-    sys.stdout.flush()
+from .utils import status
 
 
 def is_symlink_content(content: str) -> bool:
@@ -250,11 +245,21 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
     # Write markdown file to results directory
     output_file = args.output_dir / "classified_skills.md"
 
-    def truncate_url(url: str, max_len: int = 50) -> str:
+    def truncate_url(url: str, max_len: int = 60) -> str:
         """Truncate URL for display, keeping the end visible."""
-        if len(url) <= max_len:
-            return url
-        return url[:20] + "..." + url[-(max_len - 23) :]
+        # Remove github prefix for cleaner display
+        display = url.removeprefix("https://github.com/")
+        if len(display) <= max_len:
+            return display
+        # Keep start and end, add ellipsis in middle
+        keep = (max_len - 3) // 2
+        return display[:keep] + "..." + display[-keep:]
+
+    def truncate_reason(reason: str, max_len: int = 120) -> str:
+        """Truncate reason to roughly two lines."""
+        if len(reason) <= max_len:
+            return reason
+        return reason[: max_len - 3].rsplit(" ", 1)[0] + "..."
 
     with open(output_file, "w") as f:
         f.write("# Skill Classification Results\n\n")
@@ -283,7 +288,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 f.write(
                     f'| <span class="truncate-url" title="{resolved_url}">'
                     f"[{truncate_url(resolved_url)}]({resolved_url})</span> "
-                    f"| {symlink_marker} | {reason} |\n"
+                    f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
         else:
             f.write("*No valid skills found.*\n")
@@ -300,7 +305,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 f.write(
                     f'| <span class="truncate-url" title="{resolved_url}">'
                     f"[{truncate_url(resolved_url)}]({resolved_url})</span> "
-                    f"| {symlink_marker} | {reason} |\n"
+                    f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
         else:
             f.write("*No invalid skills found.*\n")
@@ -315,7 +320,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 f.write(
                     f'| <span class="truncate-url" title="{resolved_url}">'
                     f"[{truncate_url(resolved_url)}]({resolved_url})</span> "
-                    f"| {symlink_marker} | {reason} |\n"
+                    f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
 
     print(f"Results saved to {output_file}", file=sys.stderr)
