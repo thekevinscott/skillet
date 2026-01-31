@@ -237,16 +237,29 @@ def extract_file_info(item: dict) -> dict:
     }
 
 
-def deduplicate_items(items: list[dict]) -> list[dict]:
-    """Deduplicate items by SHA, extracting file info."""
-    seen_shas: set[str] = set()
+def deduplicate_items(
+    items: list[dict],
+    seen_shas: set[str] | None = None,
+) -> tuple[list[dict], set[str]]:
+    """Deduplicate items by SHA, extracting file info.
+
+    Args:
+        items: Raw API response items to deduplicate.
+        seen_shas: Optional set of already-seen SHAs for incremental deduplication.
+
+    Returns:
+        Tuple of (unique items with extracted info, updated seen_shas set).
+    """
+    if seen_shas is None:
+        seen_shas = set()
+
     unique = []
     for item in items:
         sha = item.get("sha")
         if sha and sha not in seen_shas:
             seen_shas.add(sha)
             unique.append(extract_file_info(item))
-    return unique
+    return unique, seen_shas
 
 
 EXPECTED_TOTAL = 113_066  # Approximate based on GitHub search across all size ranges
@@ -292,6 +305,61 @@ def write_progress_md(
             f.write(row.format())
 
 
+def print_summary(results: list[ShardResult]):
+    """Print collection summary to stdout."""
+    total_reported = sum(r.total_count for r in results)
+    total_collected = sum(r.collected for r in results)
+
+    print()
+    print("=" * 60)
+    print(f"Total shards:    {len(results)}")
+    print(f"Total reported:  {total_reported}")
+    print(f"Total collected: {total_collected}")
+    print("=" * 60)
+
+
+def save_results(
+    output_dir: Path,
+    results: list[ShardResult],
+    unique_items: list[dict] | None = None,
+):
+    """Save collection results to JSON files."""
+    total_reported = sum(r.total_count for r in results)
+    total_collected = sum(r.collected for r in results)
+
+    summary = {
+        "timestamp": datetime.now().isoformat(),
+        "total_shards": len(results),
+        "total_reported": total_reported,
+        "total_collected": total_collected,
+        "shards": [r.to_dict() for r in results],
+    }
+
+    summary_path = output_dir / "summary.json"
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"\nSaved summary to {summary_path}")
+
+    if unique_items is not None:
+        files_path = output_dir / "skill_files.json"
+        with open(files_path, "w") as f:
+            json.dump(unique_items, f, indent=2)
+        print(f"Saved {len(unique_items)} unique files to {files_path}")
+
+
+def process_range_dry_run(size_range: SizeRange) -> ShardResult:
+    """Process a range in dry-run mode (count only)."""
+    client = get_client()
+    query = size_range.to_search_query()
+    response = client.search_code(query, per_page=1, page=1)
+    return ShardResult(
+        range=size_range,
+        total_count=response.get("total_count", 0),
+        collected=0,
+        pages={},
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Collect SKILL.md files from GitHub")
     parser.add_argument(
@@ -321,31 +389,19 @@ def main():
     else:
         ranges_to_collect = SIZE_RANGES
 
-    # Incremental deduplication for memory efficiency
+    # Collection state
     seen_shas: set[str] = set()
     unique_items: list[dict] = []
-    # Use dict to prevent duplicate ranges (keyed by range string)
     completed_results: dict[str, ShardResult] = {}
-
-    total_files = 0
     pending_ranges = list(ranges_to_collect)
-    completed_shards = 0
 
     while pending_ranges:
         size_range = pending_ranges.pop(0)
+        total_files = len(unique_items)
         status(f"[{total_files:,} / {EXPECTED_TOTAL:,}] Fetching {size_range}...")
 
         if args.dry_run:
-            client = get_client()
-            query = size_range.to_search_query()
-            response = client.search_code(query, per_page=1, page=1)
-            total_count = response.get("total_count", 0)
-            result = ShardResult(
-                range=size_range,
-                total_count=total_count,
-                collected=0,
-                pages={},
-            )
+            result = process_range_dry_run(size_range)
             items: list[dict] = []
         else:
             # Track in-progress state for live updates
@@ -365,61 +421,25 @@ def main():
             result, items = collect_shard(size_range, on_page=on_page)
 
         if needs_subdivision(result):
-            # Range is too large - subdivide and DON'T add to completed_results
             first_half, next_range = size_range.subdivide()
             pending_ranges = [first_half, next_range] + pending_ranges
             continue
 
-        # Range is OK, keep the results (dict prevents duplicates)
+        # Range complete - record results
         completed_results[str(result.range)] = result
-        completed_shards += 1
+
         if not args.dry_run:
-            # Deduplicate incrementally to save memory
-            for item in items:
-                sha = item.get("sha")
-                if sha and sha not in seen_shas:
-                    seen_shas.add(sha)
-                    unique_items.append(extract_file_info(item))
-            total_files = len(unique_items)
+            new_items, seen_shas = deduplicate_items(items, seen_shas)
+            unique_items.extend(new_items)
 
-        status(f"[{total_files:,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({completed_shards} shards)")
-
-        # Update progress file after each completed shard
+        status(f"[{len(unique_items):,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({len(completed_results)} shards)")
         write_progress_md(args.output_dir, list(completed_results.values()))
 
     print()  # New line after status updates
 
-    # Summary
     results_list = list(completed_results.values())
-    total_reported = sum(r.total_count for r in results_list)
-    total_collected = sum(r.collected for r in results_list)
-
-    print()
-    print("=" * 60)
-    print(f"Total shards:    {len(results_list)}")
-    print(f"Total reported:  {total_reported}")
-    print(f"Total collected: {total_collected}")
-    print("=" * 60)
-
-    # Save results
-    summary = {
-        "timestamp": datetime.now().isoformat(),
-        "total_shards": len(results_list),
-        "total_reported": total_reported,
-        "total_collected": total_collected,
-        "shards": [r.to_dict() for r in results_list],
-    }
-
-    summary_path = args.output_dir / "summary.json"
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=2)
-    print(f"\nSaved summary to {summary_path}")
-
-    if not args.dry_run:
-        files_path = args.output_dir / "skill_files.json"
-        with open(files_path, "w") as f:
-            json.dump(unique_items, f, indent=2)
-        print(f"Saved {len(unique_items)} unique files to {files_path}")
+    print_summary(results_list)
+    save_results(args.output_dir, results_list, unique_items if not args.dry_run else None)
 
 
 if __name__ == "__main__":

@@ -295,12 +295,13 @@ def describe_deduplicate_items():
             {"sha": "abc", "name": "duplicate"},
         ]
 
-        result = deduplicate_items(items)
+        result, seen = deduplicate_items(items)
 
         assert len(result) == 2
         shas = [item["sha"] for item in result]
         assert "abc" in shas
         assert "def" in shas
+        assert seen == {"abc", "def"}
 
     def it_skips_items_without_sha():
         items = [
@@ -309,7 +310,7 @@ def describe_deduplicate_items():
             {"sha": None, "name": "null sha"},
         ]
 
-        result = deduplicate_items(items)
+        result, seen = deduplicate_items(items)
 
         assert len(result) == 1
         assert result[0]["sha"] == "abc"
@@ -330,8 +331,23 @@ def describe_deduplicate_items():
             }
         ]
 
-        result = deduplicate_items(items)
+        result, _ = deduplicate_items(items)
 
         assert result[0]["name"] == "SKILL.md"
         assert result[0]["path"] == "docs/SKILL.md"
         assert "extra" not in result[0]
+
+    def it_supports_incremental_deduplication():
+        # First batch
+        batch1 = [{"sha": "abc", "name": "first"}]
+        result1, seen = deduplicate_items(batch1)
+        assert len(result1) == 1
+
+        # Second batch with overlapping SHA
+        batch2 = [{"sha": "abc", "name": "dupe"}, {"sha": "def", "name": "new"}]
+        result2, seen = deduplicate_items(batch2, seen)
+
+        # Only the new item should be added
+        assert len(result2) == 1
+        assert result2[0]["sha"] == "def"
+        assert seen == {"abc", "def"}
