@@ -15,6 +15,9 @@ from typing import Callable
 from .github import get_client
 
 
+DEFAULT_CHUNK_SIZE = 100  # Default chunk size for subdivision ranges
+
+
 def status(msg: str):
     """Print a status message, overwriting the current line."""
     sys.stdout.write(f"\r\033[K{msg}")
@@ -45,13 +48,21 @@ class SizeRange:
         """Build a GitHub code search query for this range."""
         return f"filename:{filename}+{self.to_query_param()}"
 
-    def subdivide(self) -> tuple["SizeRange", "SizeRange"]:
-        """Split into first half and a same-width range starting at midpoint.
+    def subdivide(self, chunk_size: int = DEFAULT_CHUNK_SIZE) -> tuple["SizeRange", "SizeRange"]:
+        """Split into first half and a chunk_size range starting at midpoint.
+
+        For bounded ranges: after multiple subdivisions, the next range always
+        uses chunk_size to maintain consistent chunking (rather than progressively
+        smaller ranges).
+
+        For unbounded ranges: doubles the starting point (exponential exploration
+        for very large files).
 
         Returns:
-            Tuple of (first_half, next_range_with_original_width)
+            Tuple of (first_half, next_range)
         """
         if self.max_bytes is None:
+            # Unbounded: use exponential doubling for large files
             mid = self.min_bytes * 2
             return (
                 SizeRange(self.min_bytes, mid - 1),
@@ -61,7 +72,7 @@ class SizeRange:
         mid = self.min_bytes + self.width // 2
         return (
             SizeRange(self.min_bytes, mid),
-            SizeRange(mid + 1, mid + 1 + self.width),
+            SizeRange(mid + 1, mid + chunk_size),
         )
 
     def __str__(self) -> str:

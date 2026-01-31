@@ -70,14 +70,34 @@ def describe_SizeRange_subdivide():
         assert next_range.min_bytes == 200000
         assert next_range.max_bytes is None
 
-    def it_maintains_original_width_in_next_range():
+    def it_uses_chunk_size_for_next_range():
         original = SizeRange(200, 299)
         first_half, next_range = original.subdivide()
 
         # First half is 200-249
         assert first_half == SizeRange(200, 249)
-        # Next range is 250-349 (same width as original: 99)
+        # Next range is 250-349 (100 bytes using DEFAULT_CHUNK_SIZE)
         assert next_range == SizeRange(250, 349)
+
+    def it_allows_custom_chunk_size():
+        original = SizeRange(200, 299)
+        first_half, next_range = original.subdivide(chunk_size=50)
+
+        assert first_half == SizeRange(200, 249)
+        # Next range uses custom chunk_size=50 (covers 50 bytes: 250-299)
+        assert next_range == SizeRange(250, 299)
+
+    def it_maintains_chunk_size_after_multiple_subdivisions():
+        # Start with a narrow range (like one that was already subdivided)
+        narrow_range = SizeRange(0, 49)  # width=49, already subdivided from 0-99
+        first_half, next_range = narrow_range.subdivide()
+
+        # First half is 0-24
+        assert first_half == SizeRange(0, 24)
+        # Next range should use chunk_size=100, NOT the narrow width=49
+        # This ensures consistent 100-byte chunks after subdivision
+        assert next_range == SizeRange(25, 124)  # 100 bytes starting at 25
+        assert next_range.width == 99  # 100 bytes = width of 99
 
 
 def describe_extract_file_info():
