@@ -240,6 +240,6 @@ _client: GitHubClient | None = None
 def get_client(cache_dir: Path | None = None) -> GitHubClient:
     """Get or create the default GitHub client."""
     global _client
-    if _client is None or (cache_dir and _client.cache_dir != cache_dir):
+    if _client is None or (cache_dir and _client.cache.cache_dir != cache_dir):
         _client = GitHubClient(cache_dir)
     return _client
