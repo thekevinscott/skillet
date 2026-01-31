@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "This is a well-structured SKILL.md file that defines a 'git and GitHub repository status' skill for Claude Code. It has proper frontmatter with description, allowed-tools, and user-invocable fields, followed by detailed instructions for gathering git/GitHub status, formatting output, and offering contextual suggestions and cleanup actions."}

@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file that defines a Claude Code skill for generating Excalidraw architecture diagrams. It has proper frontmatter with description, allowed-tools, and model settings, along with clear instructions for when to activate, implementation rules, and workflow steps."}

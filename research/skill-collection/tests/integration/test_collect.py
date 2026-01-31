@@ -278,7 +278,7 @@ def describe_filter_skills():
     def output_dir(tmp_path):
         return tmp_path / "output"
 
-    def it_classifies_files_using_claude_sdk(output_dir, mock_claude_agent_sdk, capsys):
+    def it_classifies_files_using_claude_sdk(output_dir, mock_claude_agent_sdk):
         # Create skill_urls.txt with test URLs
         output_dir.mkdir(parents=True)
         urls_file = output_dir / "skill_urls.txt"
@@ -303,23 +303,24 @@ def describe_filter_skills():
 
             main()
 
-        captured = capsys.readouterr()
-        lines = captured.out.strip().split("\n")
+        # Results are now written to a markdown file
+        results_file = output_dir / "classified_skills.md"
+        assert results_file.exists()
 
-        # Find the result lines (skip status messages)
-        result_lines = [line for line in lines if "github.com" in line]
+        content = results_file.read_text()
 
-        # Table format: URL | Status | Reason
-        # Skip header and separator lines
-        data_lines = [line for line in result_lines if " | skill" in line or " | not_skill" in line]
-        assert len(data_lines) == 2
-        assert "owner/repo/blob/abc123/SKILL.md" in data_lines[0] and "| skill" in data_lines[0]
-        assert "other/repo/blob/def456/SKILL.md" in data_lines[1] and "| not_skill" in data_lines[1]
+        # Valid skills section should have the first URL
+        assert "## Valid Skills" in content
+        assert "owner/repo/blob/abc123/SKILL.md" in content
+
+        # Invalid skills section should have the second URL
+        assert "## Not Skills" in content
+        assert "other/repo/blob/def456/SKILL.md" in content
 
         # Verify SDK was called twice (once per file)
         assert mock_claude_agent_sdk.query.call_count == 2
 
-    def it_skips_files_without_content(output_dir, mock_claude_agent_sdk, capsys):
+    def it_skips_files_without_content(output_dir, mock_claude_agent_sdk):
         # Reset the call count for this test
         mock_claude_agent_sdk._call_count[0] = 0
 
@@ -345,15 +346,15 @@ def describe_filter_skills():
 
             main()
 
-        captured = capsys.readouterr()
-        lines = captured.out.strip().split("\n")
+        # Results are now written to a markdown file
+        results_file = output_dir / "classified_skills.md"
+        assert results_file.exists()
 
-        # Find the result lines (skip status messages)
-        result_lines = [line for line in lines if "github.com" in line]
+        content = results_file.read_text()
 
-        # Table format: URL | Status | Reason
-        # Skip header and separator lines
-        data_lines = [line for line in result_lines if " | skill" in line]
-        assert len(data_lines) == 1
-        assert "owner/repo/blob/abc123/SKILL.md" in data_lines[0] and "| skill" in data_lines[0]
+        # Only the file with content should appear (as a valid skill)
+        assert "owner/repo/blob/abc123/SKILL.md" in content
+        # The missing file should NOT appear (it has no content on disk)
+        assert "missing/repo/blob/def456/SKILL.md" not in content
+        # Only one API call since only one file has content
         assert mock_claude_agent_sdk.query.call_count == 1

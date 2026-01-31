@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file that defines a 'PR Issue Resolver' skill with clear frontmatter (description, allowed-tools, model), activation triggers, structured workflow for fixing PR issues and CI failures, and specific instructions for Claude Code to follow."}

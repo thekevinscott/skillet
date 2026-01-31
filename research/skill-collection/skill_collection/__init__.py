@@ -688,31 +688,88 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
 
     print()  # New line after status
 
-    # Build table rows
-    rows = []
+    # Separate valid and invalid skills
+    valid_skills = []
+    invalid_skills = []
+    errors = []
+
     for url, result, _was_cached in results:
         if result is None:
-            rows.append((url, "error", ""))
+            errors.append((url, "error", "Failed to classify"))
         elif result.get("is_skill_file"):
-            rows.append((url, "skill", result.get("reason", "")))
+            valid_skills.append((url, result.get("reason", "")))
         else:
-            rows.append((url, "not_skill", result.get("reason", "")))
+            invalid_skills.append((url, result.get("reason", "")))
 
-    if rows:
-        # Calculate column widths
-        url_width = max(len("URL"), max(len(r[0]) for r in rows))
-        status_width = max(len("Status"), max(len(r[1]) for r in rows))
+    # Write markdown file to results directory
+    output_file = args.output_dir / "classified_skills.md"
 
-        # Print header
-        print(f"{'URL':<{url_width}} | {'Status':<{status_width}}")
-        print(f"{'-' * url_width}-+-{'-' * status_width}")
+    def truncate_url(url: str, max_len: int = 50) -> str:
+        """Truncate URL for display, keeping the end visible."""
+        if len(url) <= max_len:
+            return url
+        return url[:20] + "..." + url[-(max_len - 23) :]
 
-        # Print rows
-        for url, classification, _reason in rows:
-            print(f"{url:<{url_width}} | {classification:<{status_width}}")
+    with open(output_file, "w") as f:
+        f.write("# Skill Classification Results\n\n")
+        f.write(f"**Total:** {len(results)} files\n")
+        f.write(f"**Valid skills:** {len(valid_skills)}\n")
+        f.write(f"**Not skills:** {len(invalid_skills)}\n")
+        f.write(f"**Errors:** {len(errors)}\n\n")
 
+        # Add CSS for responsive table with ellipsis truncation
+        f.write("<style>\n")
+        f.write("table { width: 100%; table-layout: fixed; }\n")
+        f.write("td:first-child { width: 50%; }\n")
+        f.write("td:last-child { word-wrap: break-word; }\n")
+        f.write(".truncate-url { display: block; overflow: hidden; ")
+        f.write("text-overflow: ellipsis; white-space: nowrap; }\n")
+        f.write("</style>\n\n")
+
+        # Valid skills table
+        f.write("## Valid Skills\n\n")
+        if valid_skills:
+            f.write("| URL | Reason |\n")
+            f.write("|-----|--------|\n")
+            for url, reason in valid_skills:
+                # Use span with CSS class for truncation, title shows full URL on hover
+                f.write(
+                    f'| <span class="truncate-url" title="{url}">[{truncate_url(url)}]({url})</span> '
+                    f"| {reason} |\n"
+                )
+        else:
+            f.write("*No valid skills found.*\n")
+
+        f.write("\n")
+
+        # Invalid skills table
+        f.write("## Not Skills\n\n")
+        if invalid_skills:
+            f.write("| URL | Reason |\n")
+            f.write("|-----|--------|\n")
+            for url, reason in invalid_skills:
+                f.write(
+                    f'| <span class="truncate-url" title="{url}">[{truncate_url(url)}]({url})</span> '
+                    f"| {reason} |\n"
+                )
+        else:
+            f.write("*No invalid skills found.*\n")
+
+        # Errors table (if any)
+        if errors:
+            f.write("\n## Errors\n\n")
+            f.write("| URL | Error |\n")
+            f.write("|-----|-------|\n")
+            for url, _, reason in errors:
+                f.write(
+                    f'| <span class="truncate-url" title="{url}">[{truncate_url(url)}]({url})</span> '
+                    f"| {reason} |\n"
+                )
+
+    print(f"Results saved to {output_file}", file=sys.stderr)
     print(
-        f"\nTotal: {len(results)}, Cached: {progress['cached']}, API calls: {progress['api_calls']}",
+        f"Total: {len(results)}, Valid: {len(valid_skills)}, Invalid: {len(invalid_skills)}, "
+        f"Errors: {len(errors)}, Cached: {progress['cached']}, API calls: {progress['api_calls']}",
         file=sys.stderr,
     )
 

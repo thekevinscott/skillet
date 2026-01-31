@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'review' skill with YAML frontmatter (name, description) and a clear instruction to use a code-reviewer agent with arguments"}
