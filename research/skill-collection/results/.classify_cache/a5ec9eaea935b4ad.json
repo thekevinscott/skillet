@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file that defines a 'codebase-analyzer' skill with clear frontmatter (name, description, tools, model), specific instructions for analyzing code implementations, detailed output format guidelines, and explicit behavioral constraints. It's a well-structured skill definition, not a generic README."}

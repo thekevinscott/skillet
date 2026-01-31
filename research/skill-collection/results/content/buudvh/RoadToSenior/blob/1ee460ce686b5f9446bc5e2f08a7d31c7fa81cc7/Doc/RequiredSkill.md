@@ -1,0 +1,1 @@
+![Kỹ năng cần thiết](image.png)

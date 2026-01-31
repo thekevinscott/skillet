@@ -278,7 +278,51 @@ def describe_filter_skills():
     def output_dir(tmp_path):
         return tmp_path / "output"
 
-    def it_reports_which_files_exist_on_disk(output_dir, capsys):
+    def it_classifies_files_using_claude_sdk(output_dir, mock_claude_agent_sdk, capsys):
+        # Create skill_urls.txt with test URLs
+        output_dir.mkdir(parents=True)
+        urls_file = output_dir / "skill_urls.txt"
+        urls_file.write_text(
+            "https://github.com/owner/repo/blob/abc123/SKILL.md\n"
+            "https://github.com/other/repo/blob/def456/SKILL.md\n"
+        )
+
+        # Create content for both URLs
+        content_dir = output_dir / "content"
+        (content_dir / "owner/repo/blob/abc123").mkdir(parents=True)
+        (content_dir / "owner/repo/blob/abc123/SKILL.md").write_text("# Valid Skill")
+        (content_dir / "other/repo/blob/def456").mkdir(parents=True)
+        (content_dir / "other/repo/blob/def456/SKILL.md").write_text("# Not a skill")
+
+        with patch.object(
+            sys,
+            "argv",
+            ["collect-skills", "--output-dir", str(output_dir), "filter-skills"],
+        ):
+            from skill_collection import main
+
+            main()
+
+        captured = capsys.readouterr()
+        lines = captured.out.strip().split("\n")
+
+        # Find the result lines (skip status messages)
+        result_lines = [line for line in lines if "github.com" in line]
+
+        # Table format: URL | Status | Reason
+        # Skip header and separator lines
+        data_lines = [line for line in result_lines if " | skill" in line or " | not_skill" in line]
+        assert len(data_lines) == 2
+        assert "owner/repo/blob/abc123/SKILL.md" in data_lines[0] and "| skill" in data_lines[0]
+        assert "other/repo/blob/def456/SKILL.md" in data_lines[1] and "| not_skill" in data_lines[1]
+
+        # Verify SDK was called twice (once per file)
+        assert mock_claude_agent_sdk.query.call_count == 2
+
+    def it_skips_files_without_content(output_dir, mock_claude_agent_sdk, capsys):
+        # Reset the call count for this test
+        mock_claude_agent_sdk._call_count[0] = 0
+
         # Create skill_urls.txt with test URLs
         output_dir.mkdir(parents=True)
         urls_file = output_dir / "skill_urls.txt"
@@ -304,5 +348,12 @@ def describe_filter_skills():
         captured = capsys.readouterr()
         lines = captured.out.strip().split("\n")
 
-        assert "owner/repo/blob/abc123/SKILL.md 1" in lines[0]  # exists
-        assert "missing/repo/blob/def456/SKILL.md 2" in lines[1]  # missing
+        # Find the result lines (skip status messages)
+        result_lines = [line for line in lines if "github.com" in line]
+
+        # Table format: URL | Status | Reason
+        # Skip header and separator lines
+        data_lines = [line for line in result_lines if " | skill" in line]
+        assert len(data_lines) == 1
+        assert "owner/repo/blob/abc123/SKILL.md" in data_lines[0] and "| skill" in data_lines[0]
+        assert mock_claude_agent_sdk.query.call_count == 1

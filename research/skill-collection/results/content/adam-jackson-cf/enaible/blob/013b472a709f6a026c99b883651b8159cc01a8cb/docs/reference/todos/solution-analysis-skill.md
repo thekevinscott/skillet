@@ -1,0 +1,2 @@
+- use the solution prompt with 3 outcomes
+- possibly add the prototype build

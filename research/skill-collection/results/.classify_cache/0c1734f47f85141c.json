@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "This is a well-structured skill file that defines a 'refine-skill' capability for implementing user skill change requests. It has YAML frontmatter with name, description, and argument-hint, followed by detailed instructions including a 9-perspective optimization framework, execution flow, decision criteria checklist, and concrete examples."}

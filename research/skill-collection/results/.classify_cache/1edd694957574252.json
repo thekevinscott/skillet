@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with proper frontmatter (name, description), clear 'When to Use' triggers, detailed conversion rules for ALPS to OpenAPI transformation, a defined workflow, and concrete examples. This defines a specific capability for Claude Code to convert ALPS profiles to OpenAPI specifications."}

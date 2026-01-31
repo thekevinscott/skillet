@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "This is a valid SKILL.md file that defines the 'auto-spec' command for autonomous spec-driven development. It has clear YAML frontmatter with description, argument-hint, and allowed-tools, followed by detailed instructions for a multi-phase workflow with inputs, tasks, outputs, and usage examples."}

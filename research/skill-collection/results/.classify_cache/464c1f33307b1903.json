@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'verify' skill with a clear purpose (check proofs against expectations) and specific output format (PASS/FAIL only)"}

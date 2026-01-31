@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "This is a Hugo template shortcode for rendering tabs content, not a Claude Code skill definition. It contains Go template syntax ({{- -}}) for processing inner content, which is web templating functionality unrelated to Claude Code capabilities."}

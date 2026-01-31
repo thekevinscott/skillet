@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with proper frontmatter (description, allowed-tools, model), clear trigger phrases for activation, structured instructions for viem/blockchain integration, code examples, and decision guides. It defines a specific capability for Claude Code to help users integrate EVM blockchains."}

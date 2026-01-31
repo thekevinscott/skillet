@@ -11,9 +11,9 @@ from . import (
     deduplicate_items,
     extract_file_info,
     needs_subdivision,
-    parse_github_url,
     write_progress_md,
 )
+from .github import parse_github_url
 
 
 def describe_SizeRange():

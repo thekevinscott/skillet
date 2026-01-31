@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with YAML frontmatter (description, user-invocable, allowed-tools), clear instructions for updating CHANGELOG.md following Keep a Changelog format, specific process steps, and actionable guidelines for Claude Code to follow."}
