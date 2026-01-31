@@ -1,0 +1,317 @@
+"""Unit tests for collection logic."""
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from . import (
+    SizeRange,
+    ShardResult,
+    extract_file_info,
+    write_progress_md,
+    collect_shard,
+    needs_subdivision,
+    deduplicate_items,
+)
+
+
+def describe_SizeRange():
+    def describe_width():
+        def it_returns_difference_for_bounded_range():
+            r = SizeRange(100, 199)
+            assert r.width == 99
+
+        def it_returns_min_bytes_for_unbounded_range():
+            r = SizeRange(50000, None)
+            assert r.width == 50000
+
+    def describe_to_query_param():
+        def it_formats_bounded_range():
+            r = SizeRange(100, 199)
+            assert r.to_query_param() == "size:100..199"
+
+        def it_formats_unbounded_range():
+            r = SizeRange(50000, None)
+            assert r.to_query_param() == "size:>=50000"
+
+    def describe_str():
+        def it_formats_bounded_range():
+            r = SizeRange(100, 199)
+            assert str(r) == "100-199"
+
+        def it_formats_unbounded_range():
+            r = SizeRange(50000, None)
+            assert str(r) == ">50000"
+
+
+def describe_SizeRange_subdivide():
+    def it_splits_bounded_range_in_half():
+        r = SizeRange(200, 299)
+        first_half, next_range = r.subdivide()
+
+        assert first_half.min_bytes == 200
+        assert first_half.max_bytes == 249
+        assert next_range.min_bytes == 250
+
+    def it_handles_odd_width():
+        r = SizeRange(0, 100)  # width 101
+        first_half, next_range = r.subdivide()
+
+        assert first_half.min_bytes == 0
+        assert first_half.max_bytes == 50
+        assert next_range.min_bytes == 51
+
+    def it_handles_unbounded_range():
+        r = SizeRange(100000, None)
+        first_half, next_range = r.subdivide()
+
+        assert first_half.min_bytes == 100000
+        assert first_half.max_bytes == 199999
+        assert next_range.min_bytes == 200000
+        assert next_range.max_bytes is None
+
+    def it_maintains_original_width_in_next_range():
+        original = SizeRange(200, 299)
+        first_half, next_range = original.subdivide()
+
+        # First half is 200-249
+        assert first_half == SizeRange(200, 249)
+        # Next range is 250-349 (same width as original: 99)
+        assert next_range == SizeRange(250, 349)
+
+
+def describe_extract_file_info():
+    def it_extracts_relevant_fields():
+        item = {
+            "name": "SKILL.md",
+            "path": "docs/SKILL.md",
+            "sha": "abc123",
+            "html_url": "https://github.com/user/repo/blob/main/docs/SKILL.md",
+            "repository": {
+                "full_name": "user/repo",
+                "html_url": "https://github.com/user/repo",
+                "description": "A cool project",
+            },
+            "extra_field": "ignored",
+        }
+
+        result = extract_file_info(item)
+
+        assert result["name"] == "SKILL.md"
+        assert result["path"] == "docs/SKILL.md"
+        assert result["sha"] == "abc123"
+        assert result["html_url"] == "https://github.com/user/repo/blob/main/docs/SKILL.md"
+        assert result["repository"]["full_name"] == "user/repo"
+        assert "extra_field" not in result
+
+    def it_handles_missing_fields():
+        item = {"name": "SKILL.md"}
+
+        result = extract_file_info(item)
+
+        assert result["name"] == "SKILL.md"
+        assert result["path"] is None
+        assert result["sha"] is None
+
+
+def describe_write_progress_md():
+    @pytest.fixture
+    def output_dir(tmp_path):
+        return tmp_path
+
+    def it_writes_markdown_table_with_page_columns(output_dir):
+        results = [
+            ShardResult(SizeRange(0, 99), total_count=416, collected=416, pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16}),
+            ShardResult(SizeRange(100, 199), total_count=312, collected=312, pages={1: 100, 2: 100, 3: 100, 4: 12}),
+        ]
+
+        write_progress_md(output_dir, results)
+
+        content = (output_dir / "progress.md").read_text()
+        assert "**Total collected:** 728 / 113,066" in content
+        assert "| 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |" in content
+        assert "| 0-99 | 416 | 100 | 100 | 100 | 100 | 16 |" in content
+        assert "| 100-199 | 312 | 100 | 100 | 100 | 12 |" in content
+
+    def it_sorts_results_by_range_descending(output_dir):
+        # Results collected out of order (due to subdivision)
+        results = [
+            ShardResult(SizeRange(0, 99), total_count=100, collected=100, pages={1: 100}),
+            ShardResult(SizeRange(500, 599), total_count=50, collected=50, pages={1: 50}),
+            ShardResult(SizeRange(200, 299), total_count=75, collected=75, pages={1: 75}),
+        ]
+
+        write_progress_md(output_dir, results)
+
+        content = (output_dir / "progress.md").read_text()
+        # Should be sorted: 500-599, 200-299, 0-99 (largest to smallest)
+        assert content.index("500-599") < content.index("200-299") < content.index("0-99")
+
+    def it_handles_empty_pages(output_dir):
+        results = [
+            ShardResult(SizeRange(0, 99), total_count=0, collected=0, pages={}),
+        ]
+
+        write_progress_md(output_dir, results)
+
+        content = (output_dir / "progress.md").read_text()
+        # All page columns should be empty
+        assert "| 0-99 | 0 |  |  |  |  |  |  |  |  |  |  |" in content
+
+    def it_includes_in_progress_shard_with_arrow(output_dir):
+        results = [ShardResult(SizeRange(0, 99), total_count=416, collected=416, pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16})]
+        in_progress = {"range": "100-199", "collected": 200, "pages": {1: 100, 2: 100}}
+
+        write_progress_md(output_dir, results, in_progress)
+
+        content = (output_dir / "progress.md").read_text()
+        # In-progress rows are bold with arrow indicator
+        assert "| **-> 100-199** | 200 | 100 | 100 |" in content
+
+
+def describe_collect_shard():
+    @pytest.fixture
+    def mock_client():
+        with patch("skill_collection.get_client") as mock_get:
+            client = MagicMock()
+            mock_get.return_value = client
+            yield client
+
+    def it_returns_shard_result_and_items(mock_client):
+        mock_client.search_code.side_effect = [
+            {"total_count": 250, "items": [{"id": i} for i in range(100)]},
+            {"total_count": 250, "items": [{"id": i} for i in range(100, 200)]},
+            {"total_count": 250, "items": [{"id": i} for i in range(200, 250)]},
+        ]
+
+        result, items = collect_shard(SizeRange(0, 99))
+
+        assert result.total_count == 250
+        assert result.collected == 250
+        assert len(items) == 250
+        assert result.pages == {1: 100, 2: 100, 3: 50}
+
+    def it_stops_at_partial_page(mock_client):
+        mock_client.search_code.side_effect = [
+            {"total_count": 50, "items": [{"id": i} for i in range(50)]},
+        ]
+
+        result, items = collect_shard(SizeRange(0, 99))
+
+        assert len(items) == 50
+        assert result.pages == {1: 50}
+        assert mock_client.search_code.call_count == 1
+
+    def it_stops_at_page_10(mock_client):
+        # Return full pages forever
+        mock_client.search_code.return_value = {
+            "total_count": 2000,
+            "items": [{"id": i} for i in range(100)],
+        }
+
+        result, items = collect_shard(SizeRange(0, 99))
+
+        assert len(items) == 1000
+        assert len(result.pages) == 10
+        assert mock_client.search_code.call_count == 10
+
+    def it_calls_on_page_callback(mock_client):
+        mock_client.search_code.side_effect = [
+            {"total_count": 150, "items": [{"id": i} for i in range(100)]},
+            {"total_count": 150, "items": [{"id": i} for i in range(100, 150)]},
+        ]
+        callback = MagicMock()
+
+        collect_shard(SizeRange(0, 99), on_page=callback)
+
+        assert callback.call_count == 2
+        callback.assert_any_call(1, 100)
+        callback.assert_any_call(2, 50)
+
+    def it_handles_empty_first_page(mock_client):
+        mock_client.search_code.return_value = {"total_count": 0, "items": []}
+
+        result, items = collect_shard(SizeRange(0, 99))
+
+        assert result.total_count == 0
+        assert len(items) == 0
+        assert result.pages == {}
+
+
+def describe_needs_subdivision():
+    def it_returns_true_when_at_limit_with_more_available():
+        result = ShardResult(
+            range=SizeRange(0, 99),
+            total_count=1500,
+            collected=1000,
+            pages={},
+        )
+        assert needs_subdivision(result) is True
+
+    def it_returns_false_when_below_limit():
+        result = ShardResult(
+            range=SizeRange(0, 99),
+            total_count=500,
+            collected=500,
+            pages={},
+        )
+        assert needs_subdivision(result) is False
+
+    def it_returns_false_when_at_limit_but_total_equals_collected():
+        result = ShardResult(
+            range=SizeRange(0, 99),
+            total_count=1000,
+            collected=1000,
+            pages={},
+        )
+        assert needs_subdivision(result) is False
+
+
+def describe_deduplicate_items():
+    def it_removes_duplicates_by_sha():
+        items = [
+            {"sha": "abc", "name": "first"},
+            {"sha": "def", "name": "second"},
+            {"sha": "abc", "name": "duplicate"},
+        ]
+
+        result = deduplicate_items(items)
+
+        assert len(result) == 2
+        shas = [item["sha"] for item in result]
+        assert "abc" in shas
+        assert "def" in shas
+
+    def it_skips_items_without_sha():
+        items = [
+            {"sha": "abc", "name": "first"},
+            {"name": "no sha"},
+            {"sha": None, "name": "null sha"},
+        ]
+
+        result = deduplicate_items(items)
+
+        assert len(result) == 1
+        assert result[0]["sha"] == "abc"
+
+    def it_extracts_file_info():
+        items = [
+            {
+                "sha": "abc",
+                "name": "SKILL.md",
+                "path": "docs/SKILL.md",
+                "html_url": "https://github.com/user/repo/blob/main/docs/SKILL.md",
+                "repository": {
+                    "full_name": "user/repo",
+                    "html_url": "https://github.com/user/repo",
+                    "description": "A project",
+                },
+                "extra": "ignored",
+            }
+        ]
+
+        result = deduplicate_items(items)
+
+        assert result[0]["name"] == "SKILL.md"
+        assert result[0]["path"] == "docs/SKILL.md"
+        assert "extra" not in result[0]

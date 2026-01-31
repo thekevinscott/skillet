@@ -1,0 +1,24 @@
+[project]
+name = "skill-collection"
+version = "0.1.0"
+description = "Collect SKILL.md files from GitHub"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-describe>=2.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+collect-skills = "skill_collection:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["skill_collection", "tests"]
+python_files = ["*_test.py", "test_*.py"]
