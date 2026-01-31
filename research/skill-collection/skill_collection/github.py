@@ -145,43 +145,6 @@ class GitHubClient:
         self.cache = Cache(cache_dir or DEFAULT_CACHE_DIR)
         self.rate_limiter = RateLimiter()
 
-    @property
-    def cache_dir(self) -> Path:
-        """For backwards compatibility."""
-        return self.cache.cache_dir
-
-    # Backwards compatibility methods
-    def _cache_key(self, endpoint: str, params: dict) -> str:
-        return self.cache._key(endpoint, params)
-
-    def _get_cached(self, endpoint: str, params: dict) -> dict | None:
-        return self.cache.get(endpoint, params)
-
-    def _set_cached(self, endpoint: str, params: dict, data: dict):
-        return self.cache.set(endpoint, params, data)
-
-    def _update_rate_limit(self, headers: str):
-        return self.rate_limiter.update_from_headers(headers)
-
-    def _wait_if_needed(self):
-        return self.rate_limiter.wait_if_needed()
-
-    @property
-    def remaining(self) -> int:
-        return self.rate_limiter.remaining
-
-    @remaining.setter
-    def remaining(self, value: int):
-        self.rate_limiter.remaining = value
-
-    @property
-    def reset_time(self) -> int:
-        return self.rate_limiter.reset_time
-
-    @reset_time.setter
-    def reset_time(self, value: int):
-        self.rate_limiter.reset_time = value
-
     def api(
         self,
         endpoint: str,

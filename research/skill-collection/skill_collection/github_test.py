@@ -1,6 +1,5 @@
 """Unit tests for GitHub client."""
 
-import json
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -17,7 +16,7 @@ def describe_GitHubClient():
 
     def describe_cache():
         def it_returns_none_on_cache_miss(client: GitHubClient):
-            result = client._get_cached("search/code", {"q": "test"})
+            result = client.cache.get("search/code", {"q": "test"})
             assert result is None
 
         def it_caches_and_retrieves(client: GitHubClient):
@@ -25,73 +24,73 @@ def describe_GitHubClient():
             params = {"q": "test", "page": 1}
             data = {"total_count": 5, "items": [{"id": 1}]}
 
-            client._set_cached(endpoint, params, data)
-            result = client._get_cached(endpoint, params)
+            client.cache.set(endpoint, params, data)
+            result = client.cache.get(endpoint, params)
 
             assert result == data
 
         def it_creates_cache_dir_if_missing(client: GitHubClient):
-            assert not client.cache_dir.exists()
+            assert not client.cache.cache_dir.exists()
 
-            client._set_cached("test", {}, {"data": 1})
+            client.cache.set("test", {}, {"data": 1})
 
-            assert client.cache_dir.exists()
+            assert client.cache.cache_dir.exists()
 
         def it_generates_different_keys_for_different_params(client: GitHubClient):
-            key1 = client._cache_key("search/code", {"q": "foo"})
-            key2 = client._cache_key("search/code", {"q": "bar"})
+            key1 = client.cache._key("search/code", {"q": "foo"})
+            key2 = client.cache._key("search/code", {"q": "bar"})
 
             assert key1 != key2
 
         def it_generates_same_key_regardless_of_param_order(client: GitHubClient):
-            key1 = client._cache_key("search/code", {"a": 1, "b": 2})
-            key2 = client._cache_key("search/code", {"b": 2, "a": 1})
+            key1 = client.cache._key("search/code", {"a": 1, "b": 2})
+            key2 = client.cache._key("search/code", {"b": 2, "a": 1})
 
             assert key1 == key2
 
     def describe_rate_limiting():
         def it_initializes_with_conservative_limit(client: GitHubClient):
             # Start under the 10/min limit to avoid hitting it
-            assert client.remaining == 8
+            assert client.rate_limiter.remaining == 8
 
         def it_updates_from_headers(client: GitHubClient):
             headers = "X-RateLimit-Remaining: 15\nX-RateLimit-Reset: 1234567890"
 
-            client._update_rate_limit(headers)
+            client.rate_limiter.update_from_headers(headers)
 
-            assert client.remaining == 15
-            assert client.reset_time == 1234567890
+            assert client.rate_limiter.remaining == 15
+            assert client.rate_limiter.reset_time == 1234567890
 
         def it_handles_case_insensitive_headers(client: GitHubClient):
             headers = "x-ratelimit-remaining: 10\nx-ratelimit-reset: 9999"
 
-            client._update_rate_limit(headers)
+            client.rate_limiter.update_from_headers(headers)
 
-            assert client.remaining == 10
+            assert client.rate_limiter.remaining == 10
 
         def it_does_not_wait_when_remaining_above_threshold(client: GitHubClient):
-            client.remaining = 10
+            client.rate_limiter.remaining = 10
             # Set last_request_time far in the past to avoid throttle wait
             client.rate_limiter.last_request_time = 0
 
             with patch("time.sleep") as mock_sleep:
-                client._wait_if_needed()
+                client.rate_limiter.wait_if_needed()
                 mock_sleep.assert_not_called()
 
         def it_waits_when_remaining_is_zero(client: GitHubClient):
-            client.remaining = 0
-            client.reset_time = int(time.time()) + 10  # 10 seconds in future
+            client.rate_limiter.remaining = 0
+            client.rate_limiter.reset_time = int(time.time()) + 10  # 10 seconds in future
 
             with patch("time.sleep") as mock_sleep:
-                client._wait_if_needed()
+                client.rate_limiter.wait_if_needed()
                 mock_sleep.assert_called_once()
 
         def it_prints_status_when_waiting(client: GitHubClient):
-            client.remaining = 0
-            client.reset_time = int(time.time()) + 10
+            client.rate_limiter.remaining = 0
+            client.rate_limiter.reset_time = int(time.time()) + 10
 
             with patch("time.sleep"), patch("builtins.print") as mock_print:
-                client._wait_if_needed()
+                client.rate_limiter.wait_if_needed()
                 mock_print.assert_called_once()
 
     def describe_api():
@@ -109,7 +108,7 @@ def describe_GitHubClient():
             client: GitHubClient, mock_subprocess: MagicMock
         ):
             # Pre-populate cache
-            client._set_cached("search/code", {"q": "test"}, {"cached": True})
+            client.cache.set("search/code", {"q": "test"}, {"cached": True})
 
             result = client.api("search/code", {"q": "test"})
 
@@ -130,14 +129,14 @@ def describe_GitHubClient():
             client.api("search/code", {"q": "new_query"})
 
             # Should be cached now
-            cached = client._get_cached("search/code", {"q": "new_query"})
+            cached = client.cache.get("search/code", {"q": "new_query"})
             assert cached == {"total_count": 10, "items": []}
 
         def it_skips_cache_when_disabled(
             client: GitHubClient, mock_subprocess: MagicMock
         ):
             # Pre-populate cache
-            client._set_cached("search/code", {"q": "test"}, {"cached": True})
+            client.cache.set("search/code", {"q": "test"}, {"cached": True})
 
             result = client.api("search/code", {"q": "test"}, use_cache=False)
 
@@ -189,8 +188,8 @@ def describe_GitHubClient():
                     stderr="",
                 ),
             ]
-            client.remaining = 0
-            client.reset_time = 0
+            client.rate_limiter.remaining = 0
+            client.rate_limiter.reset_time = 0
 
             with patch("time.sleep"):
                 result = client.api("test", use_cache=False)
