@@ -83,7 +83,9 @@ def describe_main():
 
         # Run main with only ranges 0 and 1
         with patch.object(
-            sys, "argv", ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0,1"]
+            sys,
+            "argv",
+            ["collect-skills", "--output-dir", str(output_dir), "fetch-files", "--ranges", "0,1"],
         ):
             from skill_collection import main
 
@@ -145,7 +147,9 @@ def describe_main():
         mock_gh_cli.side_effect = mock_subprocess
 
         with patch.object(
-            sys, "argv", ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0"]
+            sys,
+            "argv",
+            ["collect-skills", "--output-dir", str(output_dir), "fetch-files", "--ranges", "0"],
         ):
             from skill_collection import main
 
@@ -177,7 +181,15 @@ def describe_main():
         with patch.object(
             sys,
             "argv",
-            ["collect-skills", "--output-dir", str(output_dir), "--ranges", "0", "--dry-run"],
+            [
+                "collect-skills",
+                "--output-dir",
+                str(output_dir),
+                "fetch-files",
+                "--ranges",
+                "0",
+                "--dry-run",
+            ],
         ):
             from skill_collection import main
 

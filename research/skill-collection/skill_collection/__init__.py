@@ -378,26 +378,8 @@ def process_range_dry_run(size_range: SizeRange) -> ShardResult:
     )
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Collect SKILL.md files from GitHub")
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path(__file__).parent.parent / "results",
-        help="Output directory for results",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Only count results, don't collect",
-    )
-    parser.add_argument(
-        "--ranges",
-        type=str,
-        help="Comma-separated list of range indices to collect (e.g., '0,1,2')",
-    )
-    args = parser.parse_args()
-
+def cmd_fetch_files(args):
+    """Fetch SKILL.md file URLs from GitHub."""
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     # Clear/initialize the URLs file for incremental writes
@@ -469,6 +451,81 @@ def main():
     results_list = list(completed_results.values())
     print_summary(results_list)
     save_results(args.output_dir, results_list, unique_items if not args.dry_run else None)
+
+
+def cmd_fetch_content(args):
+    """Fetch and print SKILL.md content from URLs."""
+    urls_path = args.output_dir / "skill_urls.txt"
+
+    if not urls_path.exists():
+        print(f"Error: {urls_path} not found. Run 'fetch-files' first.")
+        sys.exit(1)
+
+    with open(urls_path) as f:
+        urls = [line.strip() for line in f if line.strip()]
+
+    print(f"Found {len(urls):,} URLs in {urls_path}")
+    print()
+
+    # Print first N URLs
+    limit = args.limit or 100
+    for url in urls[:limit]:
+        print(url)
+
+    if len(urls) > limit:
+        print(f"\n... and {len(urls) - limit:,} more")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Collect SKILL.md files from GitHub",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path(__file__).parent.parent / "results",
+        help="Output directory for results",
+    )
+
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # fetch-files subcommand
+    fetch_files_parser = subparsers.add_parser(
+        "fetch-files",
+        help="Fetch SKILL.md file URLs from GitHub",
+    )
+    fetch_files_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only count results, don't collect",
+    )
+    fetch_files_parser.add_argument(
+        "--ranges",
+        type=str,
+        help="Comma-separated list of range indices to collect (e.g., '0,1,2')",
+    )
+
+    # fetch-content subcommand
+    fetch_content_parser = subparsers.add_parser(
+        "fetch-content",
+        help="Print SKILL.md URLs from collected results",
+    )
+    fetch_content_parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Number of URLs to print (default: 100)",
+    )
+
+    args = parser.parse_args()
+
+    if args.command == "fetch-files":
+        cmd_fetch_files(args)
+    elif args.command == "fetch-content":
+        cmd_fetch_content(args)
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
