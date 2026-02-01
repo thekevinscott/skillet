@@ -13,7 +13,7 @@ from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
-from .utils import status, truncate_text, truncate_url
+from .utils import escape_html, escape_table_cell, status, truncate_text, truncate_url
 
 
 def is_symlink_content(content: str) -> bool:
@@ -63,22 +63,6 @@ def resolve_symlink_url(original_url: str, symlink_target: str) -> str:
 
     resolved_path = "/".join(dir_parts)
     return f"https://github.com/{owner}/{repo}/blob/{ref}/{resolved_path}"
-
-
-def escape_html(text: str) -> str:
-    """Escape HTML special characters."""
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
-
-
-def escape_table_cell(text: str) -> str:
-    """Escape text for use in markdown table cell."""
-    # Escape HTML entities first, then pipe characters which break table structure
-    return escape_html(text).replace("|", "&#124;")
 
 
 @dataclass

@@ -5,11 +5,10 @@ import pytest
 from .filter import (
     ClassificationProgress,
     SkillFileClassifier,
-    escape_html,
-    escape_table_cell,
     is_symlink_content,
     resolve_symlink_url,
 )
+from .utils import escape_html, escape_table_cell
 
 
 def describe_escape_html():

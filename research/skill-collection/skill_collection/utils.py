@@ -23,3 +23,19 @@ def truncate_text(text: str, max_len: int = 120) -> str:
     if len(text) <= max_len:
         return text
     return text[: max_len - 3].rsplit(" ", 1)[0] + "..."
+
+
+def escape_html(text: str) -> str:
+    """Escape HTML special characters."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def escape_table_cell(text: str) -> str:
+    """Escape text for use in markdown table cell."""
+    # Escape HTML entities first, then pipe characters which break table structure
+    return escape_html(text).replace("|", "&#124;")
