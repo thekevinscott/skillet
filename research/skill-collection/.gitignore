@@ -1,2 +1,6 @@
 .cache/
 results/
+__pycache__/
+*.pyc
+notebooks/__marimo__/
+notebooks/*.ipynb
