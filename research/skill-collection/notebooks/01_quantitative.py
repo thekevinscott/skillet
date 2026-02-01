@@ -36,8 +36,12 @@ def _():
 @app.cell
 def _(mo):
     mo.md("""
-    ## A1. Basic Statistics
-    """)
+## A1. Basic Statistics
+
+The 45x gap between Anthropic's skills and the median is the headline here. Either the
+community is doing it wrong, or Anthropic's document-processing skills are outliers.
+Worth investigating: do the longer community skills (p95+) actually perform better?
+""")
     return
 
 
@@ -140,8 +144,12 @@ or Anthropic's examples are overengineered for document processing specifically.
 @app.cell
 def _(mo):
     mo.md("""
-    ## A2. Frontmatter Schema Analysis
-    """)
+## A2. Frontmatter Schema Analysis
+
+People know they need frontmatter (76%) but aren't using the advanced features. Only 28%
+are slash-command invocable, only 50% have triggers. Most skills are passive context that
+Claude *might* pick up, not active tools. This is a UX problem - triggers are confusing.
+""")
     return
 
 
@@ -186,8 +194,12 @@ def _(df):
 @app.cell
 def _(mo):
     mo.md("""
-    ## A3. Content Structure Analysis
-    """)
+## A3. Content Structure Analysis
+
+Only 34% have examples - this is the biggest missed opportunity. Examples are how you
+actually teach Claude behavior. The "has_examples" detection might be too strict though;
+worth spot-checking if skills have inline examples that aren't in code blocks.
+""")
     return
 
 
@@ -229,8 +241,12 @@ def _(df):
 @app.cell
 def _(mo):
     mo.md("""
-    ## Repository Analysis
-    """)
+## Repository Analysis
+
+Look for power users in the top 20 - these are people who've invested heavily in skills
+and might have best practices worth studying. Also check if high-skill-count repos are
+"skill libraries" vs monorepos that happen to have many skills.
+""")
     return
 
 
@@ -253,8 +269,12 @@ def _(df):
 @app.cell
 def _(mo):
     mo.md("""
-    ## Quality Indicators
-    """)
+## Quality Indicators
+
+The bimodal distribution is interesting - people either dash off a quick note or invest
+heavily. No middle ground. The scoring formula is rough (just counting booleans); a
+better version would weight examples more heavily since they're the highest-signal feature.
+""")
     return
 
 
@@ -311,10 +331,12 @@ def _(content_dir):
 @app.cell
 def _(mo):
     mo.md("""
-    ## Skill Excerpts
+## Skill Excerpts
 
-    Let's look at actual content from skills at different quality levels.
-    """)
+Ground truth check. Do the high-quality skills actually look good? Do the minimal ones
+look useless or are they legitimately concise? The scoring might be penalizing
+well-written short skills.
+""")
     return
 
 
