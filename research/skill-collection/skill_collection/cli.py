@@ -16,9 +16,9 @@ from .collect import (
     write_progress_md,
 )
 from .filter import cmd_filter_skills as _cmd_filter_skills
-from .github import get_client, parse_github_url
+from .github import get_client
 from .models import EXPECTED_TOTAL, SIZE_RANGES, ShardResult
-from .utils import resolve_content_path, status
+from .utils import parse_github_url, resolve_content_path, status
 
 
 def load_skill_urls(output_dir: Path) -> list[str]:

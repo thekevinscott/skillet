@@ -9,9 +9,14 @@ from pathlib import Path
 
 from .agent import query_json
 from .analyze import parse_valid_md
-from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
-from .utils import resolve_content_path, setup_sigpipe_handler, status, truncate_for_analysis
+from .utils import (
+    parse_github_url,
+    resolve_content_path,
+    setup_sigpipe_handler,
+    status,
+    truncate_for_analysis,
+)
 
 
 def _print_distribution(results: list[dict], field: str, label: str):

@@ -7,8 +7,7 @@ from pathlib import Path
 import frontmatter
 import polars as pl
 
-from .github import parse_github_url
-from .utils import resolve_content_path
+from .utils import parse_github_url, resolve_content_path
 
 
 @dataclass

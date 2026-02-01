@@ -55,3 +55,23 @@ def truncate_for_analysis(content: str, max_length: int) -> str:
 def resolve_content_path(content_dir: "Path", owner: str, repo: str, ref: str, path: str) -> "Path":
     """Build local content path from GitHub URL components."""
     return content_dir / owner / repo / "blob" / ref / path
+
+
+def parse_github_url(url: str) -> tuple[str, str, str, str] | None:
+    """Parse a GitHub blob URL into (owner, repo, ref, path).
+
+    Example: https://github.com/owner/repo/blob/ref/path/to/file.md
+    Returns: ('owner', 'repo', 'ref', 'path/to/file.md')
+    """
+    if not url.startswith("https://github.com/"):
+        return None
+    # Remove https://github.com/
+    rest = url[19:]
+    parts = rest.split("/")
+    if len(parts) < 5 or parts[2] != "blob":
+        return None
+    owner = parts[0]
+    repo = parts[1]
+    ref = parts[3]
+    path = "/".join(parts[4:])
+    return owner, repo, ref, path

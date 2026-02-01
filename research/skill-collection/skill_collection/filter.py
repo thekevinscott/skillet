@@ -7,11 +7,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .agent import query_json
-from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
 from .utils import (
     escape_html,
     escape_table_cell,
+    parse_github_url,
     resolve_content_path,
     setup_sigpipe_handler,
     status,

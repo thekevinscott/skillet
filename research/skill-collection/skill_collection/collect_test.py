@@ -13,7 +13,7 @@ from . import (
     needs_subdivision,
     write_progress_md,
 )
-from .github import parse_github_url
+from .utils import parse_github_url
 
 
 def describe_SizeRange():
