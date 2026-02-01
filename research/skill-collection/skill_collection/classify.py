@@ -5,6 +5,7 @@ import contextlib
 import json
 import signal
 import sys
+from collections import Counter
 from pathlib import Path
 
 from .agent import query_json
@@ -12,6 +13,14 @@ from .analyze import parse_valid_md
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
 from .utils import resolve_content_path, status, truncate_for_analysis
+
+
+def _print_distribution(results: list[dict], field: str, label: str):
+    """Print a sorted distribution of field values."""
+    counts = Counter(r.get(field, "unknown") for r in results)
+    print(f"\n{label}:", file=sys.stderr)
+    for value, count in counts.most_common():
+        print(f"  {value}: {count}", file=sys.stderr)
 
 CLASSIFICATION_SCHEMA = """{
   "summary": "1-sentence description of what this skill enables",
@@ -212,30 +221,6 @@ def cmd_classify(args):
     # Print summary stats
     if results:
         print("\n=== Classification Summary ===", file=sys.stderr)
-
-        # Primary purpose distribution
-        purposes = {}
-        for r in results:
-            p = r.get("primary_purpose", "unknown")
-            purposes[p] = purposes.get(p, 0) + 1
-        print("\nPrimary Purpose:", file=sys.stderr)
-        for p, count in sorted(purposes.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {p}: {count}", file=sys.stderr)
-
-        # Knowledge domain distribution
-        domains = {}
-        for r in results:
-            d = r.get("knowledge_domain", "unknown")
-            domains[d] = domains.get(d, 0) + 1
-        print("\nKnowledge Domain:", file=sys.stderr)
-        for d, count in sorted(domains.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {d}: {count}", file=sys.stderr)
-
-        # Sophistication distribution
-        sophistication = {}
-        for r in results:
-            s = r.get("sophistication", "unknown")
-            sophistication[s] = sophistication.get(s, 0) + 1
-        print("\nSophistication:", file=sys.stderr)
-        for s, count in sorted(sophistication.items(), key=lambda x: x[1], reverse=True):
-            print(f"  {s}: {count}", file=sys.stderr)
+        _print_distribution(results, "primary_purpose", "Primary Purpose")
+        _print_distribution(results, "knowledge_domain", "Knowledge Domain")
+        _print_distribution(results, "sophistication", "Sophistication")
