@@ -143,6 +143,9 @@ def cmd_fetch_files(args):
 
 def cmd_fetch_content(args):
     """Fetch SKILL.md content from URLs and store locally."""
+    import threading
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     urls = load_skill_urls(args.output_dir)
     print(f"Found {len(urls):,} URLs")
 
@@ -150,41 +153,60 @@ def cmd_fetch_content(args):
     content_dir.mkdir(parents=True, exist_ok=True)
 
     client = get_client()
-    fetched = 0
-    cached = 0
-    errors = 0
+    counters = {"fetched": 0, "cached": 0, "errors": 0, "processed": 0}
+    lock = threading.Lock()
 
-    for i, url in enumerate(urls):
+    def fetch_one(url: str) -> None:
         parsed = parse_github_url(url)
         if not parsed:
-            errors += 1
-            status(
-                f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors"
-            )
-            continue
+            with lock:
+                counters["errors"] += 1
+                counters["processed"] += 1
+            return
 
         owner, repo, ref, path = parsed
         local_path = resolve_content_path(content_dir, owner, repo, ref, path)
 
         # Skip if already fetched (on-disk cache)
         if local_path.exists():
-            cached += 1
-        else:
-            try:
-                data = client.get_file_content(owner, repo, path, ref=ref)
-                if "content" in data:
-                    content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
-                    local_path.parent.mkdir(parents=True, exist_ok=True)
-                    local_path.write_text(content)
-                    fetched += 1
-                else:
-                    errors += 1
-            except Exception:
-                errors += 1
+            with lock:
+                counters["cached"] += 1
+                counters["processed"] += 1
+            return
 
-        status(f"[{i + 1}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
+        try:
+            data = client.get_file_content(owner, repo, path, ref=ref)
+            if "content" in data:
+                content = base64.b64decode(data["content"]).decode("utf-8", errors="replace")
+                local_path.parent.mkdir(parents=True, exist_ok=True)
+                local_path.write_text(content)
+                with lock:
+                    counters["fetched"] += 1
+            else:
+                with lock:
+                    counters["errors"] += 1
+        except Exception:
+            with lock:
+                counters["errors"] += 1
 
-    print(f"\n\nDone: {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
+        with lock:
+            counters["processed"] += 1
+
+    # Use 10 workers - rate limiter handles actual API throttling
+    concurrency = getattr(args, "concurrency", 10)
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        futures = {executor.submit(fetch_one, url): url for url in urls}
+
+        for future in as_completed(futures):
+            future.result()  # Propagate exceptions
+            with lock:
+                processed = counters["processed"]
+                fetched = counters["fetched"]
+                cached = counters["cached"]
+                errors = counters["errors"]
+            status(f"[{processed}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
+
+    print(f"\n\nDone: {counters['fetched']:,} fetched, {counters['cached']:,} cached, {counters['errors']:,} errors")
 
 
 def cmd_filter_skills(args):
@@ -238,9 +260,15 @@ def main():
     )
 
     # fetch-content subcommand
-    subparsers.add_parser(
+    fetch_content_parser = subparsers.add_parser(
         "fetch-content",
         help="Fetch SKILL.md content from collected URLs",
+    )
+    fetch_content_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=10,
+        help="Number of concurrent fetches (default: 10)",
     )
 
     # filter-skills subcommand
