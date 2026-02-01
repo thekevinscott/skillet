@@ -6,6 +6,13 @@ DEFAULT_CHUNK_SIZE = 100  # Default chunk size for subdivision ranges
 EXPECTED_TOTAL = 113_066  # Approximate based on GitHub search across all size ranges
 
 
+def calc_range_width(min_bytes: int, max_bytes: int | None) -> int:
+    """Calculate width of a byte range."""
+    if max_bytes is None:
+        return min_bytes  # Use min as width for unbounded
+    return max_bytes - min_bytes
+
+
 @dataclass
 class SizeRange:
     """A file size range for sharding queries."""
@@ -16,9 +23,7 @@ class SizeRange:
     @property
     def width(self) -> int:
         """Width of the range in bytes."""
-        if self.max_bytes is None:
-            return self.min_bytes  # Use min as width for unbounded
-        return self.max_bytes - self.min_bytes
+        return calc_range_width(self.min_bytes, self.max_bytes)
 
     def to_query_param(self) -> str:
         """Convert to GitHub size qualifier."""
@@ -74,9 +79,7 @@ class ProgressRow:
     @property
     def width(self) -> int:
         """Width of the range in bytes."""
-        if self.max_bytes is None:
-            return self.min_bytes  # Use min as width for unbounded
-        return self.max_bytes - self.min_bytes
+        return calc_range_width(self.min_bytes, self.max_bytes)
 
     def format(self) -> str:
         """Format as markdown table row."""
