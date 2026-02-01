@@ -5,6 +5,8 @@ description = "Collect SKILL.md files from GitHub"
 requires-python = ">=3.12"
 dependencies = [
     "claude-agent-sdk>=0.1.0",
+    "python-frontmatter>=1.1.0",
+    "polars>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -13,6 +15,12 @@ dev = [
     "pytest-describe>=2.0.0",
     "pytest-cov>=4.0.0",
     "ruff>=0.8.0",
+]
+notebooks = [
+    "marimo>=0.10.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "altair>=5.0.0",
 ]
 
 [project.scripts]
