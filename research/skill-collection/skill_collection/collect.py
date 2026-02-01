@@ -37,6 +37,11 @@ def collect_shard(
         if on_page is not None:
             on_page(page, len(new_items))
 
+        # Early exit: if total_count > 1000, this range needs subdivision.
+        # No point fetching more pages - we'll discard and re-query with smaller ranges.
+        if total_count > 1000:
+            break
+
         # Stop if we got fewer than requested (last page)
         if len(new_items) < per_page:
             break
@@ -57,7 +62,7 @@ def collect_shard(
 
 def needs_subdivision(result: ShardResult) -> bool:
     """Check if a shard result indicates the range needs subdivision."""
-    return result.collected >= 1000 and result.total_count > result.collected
+    return result.total_count > 1000
 
 
 def extract_file_info(item: dict) -> dict:

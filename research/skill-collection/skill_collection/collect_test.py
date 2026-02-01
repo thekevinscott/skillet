@@ -240,10 +240,25 @@ def describe_collect_shard():
         assert result.pages == {1: 50}
         assert mock_client.search_code.call_count == 1
 
-    def it_stops_at_page_10(mock_client):
-        # Return full pages forever
+    def it_stops_early_when_total_count_exceeds_1000(mock_client):
+        # total_count > 1000 triggers early exit after page 1
         mock_client.search_code.return_value = {
             "total_count": 2000,
+            "items": [{"id": i} for i in range(100)],
+        }
+
+        result, items = collect_shard(SizeRange(0, 99))
+
+        # Should stop after page 1 since total_count > 1000
+        assert len(items) == 100
+        assert len(result.pages) == 1
+        assert mock_client.search_code.call_count == 1
+        assert result.total_count == 2000
+
+    def it_stops_at_page_10_when_under_limit(mock_client):
+        # total_count exactly 1000 - fetch all pages
+        mock_client.search_code.return_value = {
+            "total_count": 1000,
             "items": [{"id": i} for i in range(100)],
         }
 
@@ -277,16 +292,16 @@ def describe_collect_shard():
 
 
 def describe_needs_subdivision():
-    def it_returns_true_when_at_limit_with_more_available():
+    def it_returns_true_when_total_count_exceeds_1000():
         result = ShardResult(
             range=SizeRange(0, 99),
             total_count=1500,
-            collected=1000,
-            pages={},
+            collected=100,  # Only fetched page 1 before early exit
+            pages={1: 100},
         )
         assert needs_subdivision(result) is True
 
-    def it_returns_false_when_below_limit():
+    def it_returns_false_when_total_count_at_or_below_1000():
         result = ShardResult(
             range=SizeRange(0, 99),
             total_count=500,
@@ -295,7 +310,7 @@ def describe_needs_subdivision():
         )
         assert needs_subdivision(result) is False
 
-    def it_returns_false_when_at_limit_but_total_equals_collected():
+    def it_returns_false_when_total_count_exactly_1000():
         result = ShardResult(
             range=SizeRange(0, 99),
             total_count=1000,
