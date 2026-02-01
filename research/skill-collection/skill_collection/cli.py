@@ -222,7 +222,7 @@ def main():
         "--output",
         type=Path,
         default=None,
-        help="Output path for classified_skills.md (default: <output-dir>/classified_skills.md)",
+        help="Output directory for valid.md/invalid.md (default: <output-dir>/classified-skills/)",
     )
     filter_skills_parser.add_argument(
         "--limit",
@@ -233,8 +233,8 @@ def main():
     filter_skills_parser.add_argument(
         "--concurrency",
         type=int,
-        default=10,
-        help="Maximum concurrent API calls (default: 10)",
+        default=1,
+        help="Maximum concurrent API calls (default: 1)",
     )
     filter_skills_parser.add_argument(
         "--verbose",

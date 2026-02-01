@@ -242,8 +242,9 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 (original_url, resolved_url, is_symlink, result.get("reason", ""))
             )
 
-    # Write markdown file to results directory or custom output path
-    output_file = args.output if args.output else args.output_dir / "classified_skills.md"
+    # Write separate markdown files for valid and invalid skills
+    output_dir = args.output if args.output else args.output_dir / "classified-skills"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     def escape_html(text: str) -> str:
         """Escape HTML special characters."""
@@ -254,49 +255,35 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
             .replace('"', "&quot;")
         )
 
-    with open(output_file, "w") as f:
-        f.write("# Skill Classification Results\n\n")
-        f.write(f"**Total:** {len(results)} files\n")
-        f.write(f"**Valid skills:** {len(valid_skills)}\n")
-        f.write(f"**Not skills:** {len(invalid_skills)}\n")
-        f.write(f"**Errors:** {len(errors)}\n\n")
+    def make_link(url: str) -> str:
+        """Create HTML link with target=_blank."""
+        display = escape_html(truncate_url(url))
+        return f'<a href="{url}" target="_blank">{display}</a>'
 
-        def make_link(url: str) -> str:
-            """Create HTML link with target=_blank."""
-            display = escape_html(truncate_url(url))
-            return f'<a href="{url}" target="_blank">{display}</a>'
-
-        # Valid skills table
-        f.write("## Valid Skills\n\n")
-        if valid_skills:
+    def write_table(f, items: list[tuple[str, str, bool, str]], title: str, empty_msg: str):
+        """Write a markdown table of classified items."""
+        f.write(f"# {title}\n\n")
+        f.write(f"**Count:** {len(items)}\n\n")
+        if items:
             f.write("| URL | Symlink | Reason |\n")
             f.write("|-----|:-------:|--------|\n")
-            for _original_url, resolved_url, is_symlink, reason in valid_skills:
+            for _original_url, resolved_url, is_symlink, reason in items:
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f"| {make_link(resolved_url)} "
-                    f"| {symlink_marker} | {truncate_text(reason)} |\n"
+                    f"| {make_link(resolved_url)} | {symlink_marker} | {truncate_text(reason)} |\n"
                 )
         else:
-            f.write("*No valid skills found.*\n")
+            f.write(f"*{empty_msg}*\n")
 
-        f.write("\n")
+    # Write valid.md
+    valid_path = output_dir / "valid.md"
+    with open(valid_path, "w") as f:
+        write_table(f, valid_skills, "Valid Skills", "No valid skills found.")
 
-        # Invalid skills table
-        f.write("## Not Skills\n\n")
-        if invalid_skills:
-            f.write("| URL | Symlink | Reason |\n")
-            f.write("|-----|:-------:|--------|\n")
-            for _original_url, resolved_url, is_symlink, reason in invalid_skills:
-                symlink_marker = "→" if is_symlink else ""
-                f.write(
-                    f"| {make_link(resolved_url)} "
-                    f"| {symlink_marker} | {truncate_text(reason)} |\n"
-                )
-        else:
-            f.write("*No invalid skills found.*\n")
-
-        # Errors table (if any)
+    # Write invalid.md
+    invalid_path = output_dir / "invalid.md"
+    with open(invalid_path, "w") as f:
+        write_table(f, invalid_skills, "Not Skills", "No invalid skills found.")
         if errors:
             f.write("\n## Errors\n\n")
             f.write("| URL | Symlink | Error |\n")
@@ -304,11 +291,10 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
             for _original_url, resolved_url, is_symlink, reason in errors:
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f"| {make_link(resolved_url)} "
-                    f"| {symlink_marker} | {truncate_text(reason)} |\n"
+                    f"| {make_link(resolved_url)} | {symlink_marker} | {truncate_text(reason)} |\n"
                 )
 
-    print(f"Results saved to {output_file}", file=sys.stderr)
+    print(f"Results saved to {output_dir}/", file=sys.stderr)
     print(
         f"Total: {len(results)}, Valid: {len(valid_skills)}, Invalid: {len(invalid_skills)}, "
         f"Errors: {len(errors)}, Cached: {progress['cached']}, API calls: {progress['api_calls']}",
