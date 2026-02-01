@@ -136,7 +136,11 @@ def write_progress_md(
 
     Only completed shards are included in the total and table.
     In-progress work is shown separately at the top.
+    Uses atomic write (write to temp file, then rename) to avoid empty file reads.
     """
+    import os
+    import tempfile
+
     # Use unique_count if provided (deduplicated), otherwise sum raw collected
     # Note: in_progress is NOT included in the total - only completed shards count
     if unique_count is not None:
@@ -145,35 +149,51 @@ def write_progress_md(
         total_collected = sum(r.collected for r in results)
 
     md_path = output_dir / "progress.md"
-    with open(md_path, "w") as f:
-        f.write("# SKILL.md Collection Progress\n\n")
-        pct = (total_collected / EXPECTED_TOTAL * 100) if EXPECTED_TOTAL else 0
-        f.write(f"**Total collected:** {total_collected:,} / {EXPECTED_TOTAL:,} ({pct:.1f}%)\n\n")
 
-        # Show in-progress shard at the top, separate from the completed table
-        if in_progress:
-            range_str = in_progress["range"]
-            collected = in_progress.get("collected", 0)
-            total_count = in_progress.get("total_count", 0)
-            pages = in_progress.get("pages", {})
-            page_count = len(pages)
-            f.write(f"**Currently fetching:** {range_str} ")
-            f.write(f"(page {page_count}, {collected:,} items")
-            if total_count > 0:
-                f.write(f" / {total_count:,} reported")
-            f.write(")\n\n")
+    # Build content in memory first
+    lines = []
+    lines.append("# SKILL.md Collection Progress\n\n")
+    pct = (total_collected / EXPECTED_TOTAL * 100) if EXPECTED_TOTAL else 0
+    lines.append(f"**Total collected:** {total_collected:,} / {EXPECTED_TOTAL:,} ({pct:.1f}%)\n\n")
 
-        f.write("| Range | total_count | # |\n")
-        f.write("|-------|------------:|--:|\n")
+    # Show in-progress shard at the top, separate from the completed table
+    if in_progress:
+        range_str = in_progress["range"]
+        collected = in_progress.get("collected", 0)
+        total_count = in_progress.get("total_count", 0)
+        pages = in_progress.get("pages", {})
+        page_count = len(pages)
+        line = f"**Currently fetching:** {range_str} (page {page_count}, {collected:,} items"
+        if total_count > 0:
+            line += f" / {total_count:,} reported"
+        line += ")\n\n"
+        lines.append(line)
 
-        # Only include completed shards in the table
-        rows: list[ProgressRow] = [result.to_progress_row() for result in results]
+    lines.append("| Range | total_count | # |\n")
+    lines.append("|-------|------------:|--:|\n")
 
-        # Sort by min_bytes descending (largest at top)
-        rows.sort(key=lambda r: r.min_bytes, reverse=True)
+    # Only include completed shards in the table
+    rows: list[ProgressRow] = [result.to_progress_row() for result in results]
 
-        for row in rows:
-            f.write(row.format())
+    # Sort by min_bytes descending (largest at top)
+    rows.sort(key=lambda r: r.min_bytes, reverse=True)
+
+    for row in rows:
+        lines.append(row.format())
+
+    content = "".join(lines)
+
+    # Atomic write: write to temp file, then rename
+    fd, tmp_path = tempfile.mkstemp(dir=output_dir, suffix=".md.tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.replace(tmp_path, md_path)
+    except Exception:
+        # Clean up temp file on error
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
 
 
 def append_urls(output_dir: Path, items: list[dict]):
