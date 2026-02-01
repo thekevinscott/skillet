@@ -149,7 +149,6 @@ def write_progress_md(
                     range_str=f"-> {range_str}",  # Arrow indicates in-progress
                     total_count=in_progress.get("total_count", 0),
                     collected=in_progress["collected"],
-                    pages=in_progress.get("pages", {}),
                     bold=True,
                 )
             )

@@ -25,9 +25,7 @@ def is_symlink_content(content: str) -> bool:
     if "/" not in content and not content.startswith(".."):
         return False
     # Should not look like markdown or code
-    if content.startswith("#") or content.startswith("```"):
-        return False
-    return True
+    return not (content.startswith("#") or content.startswith("```"))
 
 
 def resolve_symlink_url(original_url: str, symlink_target: str) -> str:
@@ -240,20 +238,20 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
         elif result.get("is_skill_file"):
             valid_skills.append((original_url, resolved_url, is_symlink, result.get("reason", "")))
         else:
-            invalid_skills.append((original_url, resolved_url, is_symlink, result.get("reason", "")))
+            invalid_skills.append(
+                (original_url, resolved_url, is_symlink, result.get("reason", ""))
+            )
 
-    # Write markdown file to results directory
-    output_file = args.output_dir / "classified_skills.md"
+    # Write markdown file to results directory or custom output path
+    output_file = args.output if args.output else args.output_dir / "classified_skills.md"
 
-    def escape_url_for_markdown(url: str) -> str:
-        """Escape special characters in URL for markdown links."""
-        # Percent-encode characters that break markdown link syntax
-        return (url
-            .replace(" ", "%20")
-            .replace("(", "%28")
-            .replace(")", "%29")
-            .replace("{", "%7B")
-            .replace("}", "%7D")
+    def escape_html(text: str) -> str:
+        """Escape HTML special characters."""
+        return (
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
         )
 
     def truncate_url(url: str, max_len: int = 60) -> str:
@@ -279,15 +277,20 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
         f.write(f"**Not skills:** {len(invalid_skills)}\n")
         f.write(f"**Errors:** {len(errors)}\n\n")
 
+        def make_link(url: str) -> str:
+            """Create HTML link with target=_blank."""
+            display = escape_html(truncate_url(url))
+            return f'<a href="{url}" target="_blank">{display}</a>'
+
         # Valid skills table
         f.write("## Valid Skills\n\n")
         if valid_skills:
             f.write("| URL | Symlink | Reason |\n")
             f.write("|-----|:-------:|--------|\n")
-            for original_url, resolved_url, is_symlink, reason in valid_skills:
+            for _original_url, resolved_url, is_symlink, reason in valid_skills:
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f"| [{truncate_url(resolved_url)}]({escape_url_for_markdown(resolved_url)}) "
+                    f"| {make_link(resolved_url)} "
                     f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
         else:
@@ -300,10 +303,10 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
         if invalid_skills:
             f.write("| URL | Symlink | Reason |\n")
             f.write("|-----|:-------:|--------|\n")
-            for original_url, resolved_url, is_symlink, reason in invalid_skills:
+            for _original_url, resolved_url, is_symlink, reason in invalid_skills:
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f"| [{truncate_url(resolved_url)}]({escape_url_for_markdown(resolved_url)}) "
+                    f"| {make_link(resolved_url)} "
                     f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
         else:
@@ -314,10 +317,10 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
             f.write("\n## Errors\n\n")
             f.write("| URL | Symlink | Error |\n")
             f.write("|-----|:-------:|-------|\n")
-            for original_url, resolved_url, is_symlink, reason in errors:
+            for _original_url, resolved_url, is_symlink, reason in errors:
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
-                    f"| [{truncate_url(resolved_url)}]({escape_url_for_markdown(resolved_url)}) "
+                    f"| {make_link(resolved_url)} "
                     f"| {symlink_marker} | {truncate_reason(reason)} |\n"
                 )
 

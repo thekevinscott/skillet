@@ -69,7 +69,6 @@ class ProgressRow:
     range_str: str
     total_count: int
     collected: int
-    pages: dict[int, int]
     bold: bool = False
 
     @property
@@ -113,7 +112,6 @@ class ShardResult:
             range_str=str(self.range),
             total_count=self.total_count,
             collected=self.collected,
-            pages=self.pages,
             bold=bold,
         )
 

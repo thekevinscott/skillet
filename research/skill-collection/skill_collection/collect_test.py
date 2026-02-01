@@ -198,7 +198,7 @@ def describe_write_progress_md():
                 pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16},
             )
         ]
-        in_progress = {"range": "100-199", "collected": 200, "pages": {1: 100, 2: 100}}
+        in_progress = {"range": "100-199", "collected": 200}
 
         write_progress_md(output_dir, results, in_progress)
 

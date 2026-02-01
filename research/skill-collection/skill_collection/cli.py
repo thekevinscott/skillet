@@ -74,10 +74,14 @@ def cmd_fetch_files(args):
                 # Note: unique_count only includes completed shards (deduplicated)
                 # The in_progress row shows raw collected, but isn't added to total
                 if in_progress["collected"] >= 1000:
-                    write_progress_md(args.output_dir, list(completed_results.values()), unique_count=total_files)
+                    write_progress_md(
+                        args.output_dir, list(completed_results.values()), unique_count=total_files
+                    )
                 else:
                     write_progress_md(
-                        args.output_dir, list(completed_results.values()), in_progress,
+                        args.output_dir,
+                        list(completed_results.values()),
+                        in_progress,
                         unique_count=total_files,
                     )
 
@@ -99,7 +103,9 @@ def cmd_fetch_files(args):
         status(
             f"[{len(unique_items):,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({len(completed_results)} shards)"
         )
-        write_progress_md(args.output_dir, list(completed_results.values()), unique_count=len(unique_items))
+        write_progress_md(
+            args.output_dir, list(completed_results.values()), unique_count=len(unique_items)
+        )
 
     print()  # New line after status updates
 
@@ -210,6 +216,13 @@ def main():
     filter_skills_parser = subparsers.add_parser(
         "filter-skills",
         help="Classify files using Claude to determine if they are valid SKILL.md files",
+    )
+    filter_skills_parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Output path for classified_skills.md (default: <output-dir>/classified_skills.md)",
     )
     filter_skills_parser.add_argument(
         "--limit",
