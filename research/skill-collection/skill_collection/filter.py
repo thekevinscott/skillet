@@ -2,7 +2,6 @@
 
 import asyncio
 import contextlib
-import signal
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,6 +13,7 @@ from .utils import (
     escape_html,
     escape_table_cell,
     resolve_content_path,
+    setup_sigpipe_handler,
     status,
     truncate_for_analysis,
     truncate_text,
@@ -213,8 +213,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
 
 def cmd_filter_skills(args, load_skill_urls):
     """Classify files as skill files using Claude Agent SDK."""
-    # Handle broken pipe gracefully (e.g., when piping to head)
-    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    setup_sigpipe_handler()
 
     urls = load_skill_urls(args.output_dir)
     content_dir = args.output_dir / "content"

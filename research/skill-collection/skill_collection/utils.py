@@ -1,7 +1,13 @@
 """Shared utilities for skill collection."""
 
+import signal
 import sys
 from pathlib import Path
+
+
+def setup_sigpipe_handler():
+    """Handle broken pipe gracefully (e.g., when piping to head)."""
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 
 def status(msg: str):

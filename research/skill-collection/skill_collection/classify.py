@@ -3,7 +3,6 @@
 import asyncio
 import contextlib
 import json
-import signal
 import sys
 from collections import Counter
 from pathlib import Path
@@ -12,7 +11,7 @@ from .agent import query_json
 from .analyze import parse_valid_md
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
-from .utils import resolve_content_path, status, truncate_for_analysis
+from .utils import resolve_content_path, setup_sigpipe_handler, status, truncate_for_analysis
 
 
 def _print_distribution(results: list[dict], field: str, label: str):
@@ -130,8 +129,7 @@ IMPORTANT: Respond with ONLY the JSON object, no other text."""
 
 def cmd_classify(args):
     """Classify skills using Claude."""
-    # Handle broken pipe gracefully
-    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    setup_sigpipe_handler()
 
     valid_md_path = args.output_dir / "classified-skills" / "valid.md"
     content_dir = args.output_dir / "content"
