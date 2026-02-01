@@ -52,6 +52,11 @@ def cmd_fetch_files(args):
         with open(files_path) as f:
             unique_items = json.load(f)
         seen_shas = {item.get("sha") for item in unique_items if item.get("sha")}
+        # Rebuild skill_urls.txt from the loaded items to avoid duplicates
+        with open(urls_path, "w") as f:
+            for item in unique_items:
+                if item.get("html_url"):
+                    f.write(item["html_url"] + "\n")
         print(f"Resuming: loaded {len(unique_items):,} existing items")
     else:
         # Fresh start
