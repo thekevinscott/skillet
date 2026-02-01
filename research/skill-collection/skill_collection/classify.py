@@ -1,6 +1,5 @@
 """Classify skills using Claude to extract structured taxonomy."""
 
-import argparse
 import asyncio
 import contextlib
 import json
@@ -285,48 +284,3 @@ def cmd_classify(args):
             print(f"  {s}: {count}", file=sys.stderr)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Classify skills using Claude")
-    parser.add_argument(
-        "--output-dir",
-        type=Path,
-        default=Path(__file__).parent.parent / "results",
-        help="Directory containing results (default: ../results)",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        type=Path,
-        default=None,
-        help="Output file for classifications (default: skill_classifications.json)",
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
-        help="Maximum number of skills to classify",
-    )
-    parser.add_argument(
-        "--concurrency",
-        type=int,
-        default=3,
-        help="Maximum concurrent API calls (default: 3)",
-    )
-    parser.add_argument(
-        "--skip-cache",
-        action="store_true",
-        help="Skip reading from cache (still writes to cache)",
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Enable verbose debug output",
-    )
-
-    args = parser.parse_args()
-    cmd_classify(args)
-
-
-if __name__ == "__main__":
-    main()
