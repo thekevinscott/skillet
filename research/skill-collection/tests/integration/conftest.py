@@ -3,9 +3,38 @@
 import importlib
 import json
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+@pytest.fixture
+def output_dir(tmp_path):
+    """Create a temporary output directory for tests."""
+    return tmp_path / "output"
+
+
+@pytest.fixture(autouse=True)
+def reset_client_and_cache(tmp_path):
+    """Reset the global client and use a fresh cache directory."""
+    import skill_collection.github as github_module
+
+    github_module._client = None
+    original_default = github_module.DEFAULT_CACHE_DIR
+    github_module.DEFAULT_CACHE_DIR = tmp_path / ".cache"
+    yield
+    github_module._client = None
+    github_module.DEFAULT_CACHE_DIR = original_default
+
+
+@pytest.fixture
+def mock_gh_cli():
+    """Mock the gh CLI subprocess calls and time.sleep for speed."""
+    with (
+        patch("subprocess.run") as mock_run,
+        patch("time.sleep"),  # Skip rate limit waits
+    ):
+        yield mock_run
 
 
 @pytest.fixture(autouse=True)

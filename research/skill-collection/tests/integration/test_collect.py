@@ -30,31 +30,7 @@ def make_item(sha: str, repo: str = "user/repo", path: str = "SKILL.md") -> dict
 
 
 def describe_main():
-    @pytest.fixture
-    def output_dir(tmp_path):
-        return tmp_path / "output"
-
-    @pytest.fixture(autouse=True)
-    def reset_client_and_cache(tmp_path):
-        """Reset the global client and use a fresh cache directory."""
-        import skill_collection.github as github_module
-
-        github_module._client = None
-        # Override the default cache directory
-        original_default = github_module.DEFAULT_CACHE_DIR
-        github_module.DEFAULT_CACHE_DIR = tmp_path / ".cache"
-        yield
-        github_module._client = None
-        github_module.DEFAULT_CACHE_DIR = original_default
-
-    @pytest.fixture
-    def mock_gh_cli():
-        """Mock the gh CLI subprocess calls and time.sleep for speed."""
-        with (
-            patch("subprocess.run") as mock_run,
-            patch("time.sleep"),
-        ):  # Don't actually sleep in tests
-            yield mock_run
+    # Fixtures output_dir, reset_client_and_cache, mock_gh_cli are in conftest.py
 
     def it_collects_files_and_writes_output(output_dir, mock_gh_cli):
         # Set up mock responses for a small subset of ranges
@@ -112,8 +88,8 @@ def describe_main():
         # Verify progress.md format
         progress = (output_dir / "progress.md").read_text()
         assert "**Total collected:** 80" in progress
-        assert "| 0-99 | 50 |" in progress
-        assert "| 100-199 | 30 |" in progress
+        assert "| 0-99 (99) | 50 | 50 |" in progress
+        assert "| 100-199 (99) | 30 | 30 |" in progress
 
     def it_handles_subdivision_when_hitting_limit(output_dir, mock_gh_cli):
         """Test that ranges hitting 1000 limit are subdivided and not shown."""
@@ -206,30 +182,7 @@ def describe_main():
 
 
 def describe_fetch_content():
-    @pytest.fixture
-    def output_dir(tmp_path):
-        return tmp_path / "output"
-
-    @pytest.fixture(autouse=True)
-    def reset_client_and_cache(tmp_path):
-        """Reset the global client and use a fresh cache directory."""
-        import skill_collection.github as github_module
-
-        github_module._client = None
-        original_default = github_module.DEFAULT_CACHE_DIR
-        github_module.DEFAULT_CACHE_DIR = tmp_path / ".cache"
-        yield
-        github_module._client = None
-        github_module.DEFAULT_CACHE_DIR = original_default
-
-    @pytest.fixture
-    def mock_gh_cli():
-        """Mock the gh CLI subprocess calls and time.sleep for speed."""
-        with (
-            patch("subprocess.run") as mock_run,
-            patch("time.sleep"),
-        ):
-            yield mock_run
+    # Fixtures output_dir, reset_client_and_cache, mock_gh_cli are in conftest.py
 
     def it_fetches_content_and_stores_on_disk(output_dir, mock_gh_cli):
         import base64
@@ -303,19 +256,22 @@ def describe_filter_skills():
 
             main()
 
-        # Results are now written to a markdown file
-        results_file = output_dir / "classified_skills.md"
-        assert results_file.exists()
+        # Results are now written to separate markdown files
+        valid_file = output_dir / "classified-skills/valid.md"
+        invalid_file = output_dir / "classified-skills/invalid.md"
+        assert valid_file.exists()
+        assert invalid_file.exists()
 
-        content = results_file.read_text()
+        valid_content = valid_file.read_text()
+        invalid_content = invalid_file.read_text()
 
-        # Valid skills section should have the first URL
-        assert "## Valid Skills" in content
-        assert "owner/repo/blob/abc123/SKILL.md" in content
+        # Valid skills file should have the first URL
+        assert "# Valid Skills" in valid_content
+        assert "owner/repo/blob/abc123/SKILL.md" in valid_content
 
-        # Invalid skills section should have the second URL
-        assert "## Not Skills" in content
-        assert "other/repo/blob/def456/SKILL.md" in content
+        # Invalid skills file should have the second URL
+        assert "# Not Skills" in invalid_content
+        assert "other/repo/blob/def456/SKILL.md" in invalid_content
 
         # Verify SDK was called twice (once per file)
         assert mock_claude_agent_sdk.query.call_count == 2
@@ -347,7 +303,7 @@ def describe_filter_skills():
             main()
 
         # Results are now written to a markdown file
-        results_file = output_dir / "classified_skills.md"
+        results_file = output_dir / "classified-skills/valid.md"
         assert results_file.exists()
 
         content = results_file.read_text()
