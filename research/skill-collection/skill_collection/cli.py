@@ -34,10 +34,6 @@ def cmd_fetch_files(args):
     """Fetch SKILL.md file URLs from GitHub."""
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Clear/initialize the URLs file for incremental writes
-    if not args.dry_run:
-        (args.output_dir / "skill_urls.txt").write_text("")
-
     # Determine which ranges to collect
     if args.ranges:
         range_indices = [int(i) for i in args.ranges.split(",")]
@@ -45,9 +41,25 @@ def cmd_fetch_files(args):
     else:
         ranges_to_collect = SIZE_RANGES
 
-    # Collection state
-    seen_shas: set[str] = set()
-    unique_items: list[dict] = []
+    # Load existing results to enable resumable collection
+    urls_path = args.output_dir / "skill_urls.txt"
+    files_path = args.output_dir / "skill_files.json"
+
+    if not args.dry_run and files_path.exists():
+        # Resume from previous run: load existing items and SHAs
+        import json
+
+        with open(files_path) as f:
+            unique_items = json.load(f)
+        seen_shas = {item.get("sha") for item in unique_items if item.get("sha")}
+        print(f"Resuming: loaded {len(unique_items):,} existing items")
+    else:
+        # Fresh start
+        seen_shas: set[str] = set()
+        unique_items: list[dict] = []
+        if not args.dry_run:
+            urls_path.write_text("")
+
     completed_results: dict[str, ShardResult] = {}
     pending_ranges = list(ranges_to_collect)
 
