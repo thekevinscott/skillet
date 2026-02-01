@@ -83,7 +83,7 @@ class ProgressRow:
         """Format as markdown table row."""
         range_cell = f"**{self.range_str}**" if self.bold else self.range_str
         page_cells = [str(self.pages.get(i, "")) for i in range(1, 11)]
-        return f"| {range_cell} | {self.total_count:,} | {self.width:,} | {self.collected:,} | " + " | ".join(page_cells) + " |\n"
+        return f"| {range_cell} | {self.total_count:,} | {self.width:,} | " + " | ".join(page_cells) + " |\n"
 
 
 @dataclass
