@@ -65,17 +65,25 @@ class ProgressRow:
     """A row in the progress table, sortable by min_bytes."""
 
     min_bytes: int
+    max_bytes: int | None
     range_str: str
     total_count: int
     collected: int
     pages: dict[int, int]
     bold: bool = False
 
+    @property
+    def width(self) -> int:
+        """Width of the range in bytes."""
+        if self.max_bytes is None:
+            return self.min_bytes  # Use min as width for unbounded
+        return self.max_bytes - self.min_bytes
+
     def format(self) -> str:
         """Format as markdown table row."""
         range_cell = f"**{self.range_str}**" if self.bold else self.range_str
         page_cells = [str(self.pages.get(i, "")) for i in range(1, 11)]
-        return f"| {range_cell} | {self.total_count:,} | {self.collected:,} | " + " | ".join(page_cells) + " |\n"
+        return f"| {range_cell} | {self.total_count:,} | {self.width:,} | {self.collected:,} | " + " | ".join(page_cells) + " |\n"
 
 
 @dataclass
@@ -101,6 +109,7 @@ class ShardResult:
         """Convert to a progress row for display."""
         return ProgressRow(
             min_bytes=self.range.min_bytes,
+            max_bytes=self.range.max_bytes,
             range_str=str(self.range),
             total_count=self.total_count,
             collected=self.collected,

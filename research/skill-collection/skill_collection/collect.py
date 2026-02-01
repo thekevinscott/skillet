@@ -112,19 +112,27 @@ def write_progress_md(
         f.write("# SKILL.md Collection Progress\n\n")
         pct = (total_collected / EXPECTED_TOTAL * 100) if EXPECTED_TOTAL else 0
         f.write(f"**Total collected:** {total_collected:,} / {EXPECTED_TOTAL:,} ({pct:.1f}%)\n\n")
-        f.write("| Range | n | # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |\n")
-        f.write("|-------|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|\n")
+        f.write("| Range | n | w | # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |\n")
+        f.write("|-------|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|\n")
 
         # Build list of all rows (completed + in-progress) for sorting
         rows: list[ProgressRow] = [result.to_progress_row() for result in results]
 
         if in_progress:
-            # Parse min_bytes from range string (e.g., "500-599" -> 500, ">100000" -> 100000)
+            # Parse min/max bytes from range string (e.g., "500-599" -> 500, 599)
             range_str = in_progress["range"]
-            min_bytes = int(range_str.split("-")[0].lstrip(">"))
+            if "-" in range_str:
+                parts = range_str.split("-")
+                min_bytes = int(parts[0])
+                max_bytes = int(parts[1])
+            else:
+                # Unbounded range like ">100000"
+                min_bytes = int(range_str.lstrip(">"))
+                max_bytes = None
             rows.append(
                 ProgressRow(
                     min_bytes=min_bytes,
+                    max_bytes=max_bytes,
                     range_str=f"-> {range_str}",  # Arrow indicates in-progress
                     total_count=in_progress.get("total_count", 0),
                     collected=in_progress["collected"],
