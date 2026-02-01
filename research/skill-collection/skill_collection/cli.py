@@ -112,6 +112,12 @@ def cmd_fetch_files(args):
             unique_items.extend(new_items)
             append_urls(args.output_dir, new_items)
 
+            # Save progress incrementally so Ctrl+C doesn't lose work
+            import json
+
+            with open(files_path, "w") as f:
+                json.dump(unique_items, f)
+
         status(
             f"[{len(unique_items):,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({len(completed_results)} shards)"
         )
