@@ -2,7 +2,6 @@
 
 import asyncio
 import contextlib
-import hashlib
 import json
 import signal
 import sys
@@ -11,6 +10,7 @@ from pathlib import Path
 
 from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 
+from .cache import CacheManager
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
 from .utils import escape_html, escape_table_cell, status, truncate_text, truncate_url
@@ -81,33 +81,14 @@ class ClassificationProgress:
 class SkillFileClassifier:
     """Classifies skill files using Claude and writes results incrementally."""
 
-    cache_dir: Path
+    cache: CacheManager
     valid_path: Path
     invalid_path: Path
-    skip_cache: bool = False
     verbose: bool = False
     concurrency: int = 1
     progress: ClassificationProgress = field(default_factory=ClassificationProgress)
     _progress_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     _file_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-
-    def get_cache_key(self, content: str) -> str:
-        """Generate cache key from content hash."""
-        return hashlib.sha256(content.encode()).hexdigest()[:16]
-
-    def get_cached_result(self, content: str) -> dict | None:
-        """Check if we have a cached classification result."""
-        if self.skip_cache:
-            return None
-        cache_file = self.cache_dir / f"{self.get_cache_key(content)}.json"
-        if cache_file.exists():
-            return json.loads(cache_file.read_text())
-        return None
-
-    def cache_result(self, content: str, result: dict):
-        """Cache a classification result."""
-        cache_file = self.cache_dir / f"{self.get_cache_key(content)}.json"
-        cache_file.write_text(json.dumps(result))
 
     def make_link(self, url: str) -> str:
         """Create HTML link with target=_blank."""
@@ -164,7 +145,7 @@ class SkillFileClassifier:
             content = content[:MAX_FILE_CONTENT_LENGTH] + "\n\n[truncated]"
 
         # Check cache first
-        cached = self.get_cached_result(content)
+        cached = self.cache.get(content)
         if cached is not None:
             is_valid = cached.get("is_skill_file", False)
             await self.write_result(is_valid, resolved_url, is_symlink, cached.get("reason", ""))
@@ -183,7 +164,7 @@ class SkillFileClassifier:
                 await self.write_result(False, resolved_url, is_symlink, "Failed to classify")
                 await self.update_progress(errors=1)
             else:
-                self.cache_result(content, result_data)
+                self.cache.set(content, result_data)
                 is_valid = result_data.get("is_skill_file", False)
                 await self.write_result(is_valid, resolved_url, is_symlink, result_data.get("reason", ""))
                 await self.update_progress(valid=1 if is_valid else 0, invalid=0 if is_valid else 1)
@@ -289,11 +270,11 @@ def cmd_filter_skills(args, load_skill_urls):
     output_dir = args.output if args.output else args.output_dir / "classified-skills"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    cache = CacheManager(cache_dir=cache_dir, skip_cache=args.skip_cache)
     classifier = SkillFileClassifier(
-        cache_dir=cache_dir,
+        cache=cache,
         valid_path=output_dir / "valid.md",
         invalid_path=output_dir / "invalid.md",
-        skip_cache=args.skip_cache,
         verbose=args.verbose,
         concurrency=args.concurrency,
     )

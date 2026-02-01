@@ -3,7 +3,6 @@
 import argparse
 import asyncio
 import contextlib
-import hashlib
 import json
 import signal
 import sys
@@ -12,6 +11,7 @@ from pathlib import Path
 from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 
 from .analyze import parse_valid_md
+from .cache import CacheManager
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
 from .utils import status
@@ -36,35 +36,10 @@ CLASSIFICATION_SCHEMA = """{
 }"""
 
 
-def get_cache_key(content: str) -> str:
-    """Generate cache key from content hash."""
-    return hashlib.sha256(content.encode()).hexdigest()[:16]
-
-
-def get_cached_result(cache_dir: Path, content: str, skip_cache: bool = False) -> dict | None:
-    """Check if we have a cached classification result."""
-    if skip_cache:
-        return None
-    cache_file = cache_dir / f"{get_cache_key(content)}.json"
-    if cache_file.exists():
-        try:
-            return json.loads(cache_file.read_text())
-        except json.JSONDecodeError:
-            return None
-    return None
-
-
-def cache_result(cache_dir: Path, content: str, result: dict):
-    """Cache a classification result."""
-    cache_file = cache_dir / f"{get_cache_key(content)}.json"
-    cache_file.write_text(json.dumps(result, indent=2))
-
-
 async def classify_skill(
     url: str,
     content: str,
-    cache_dir: Path,
-    skip_cache: bool,
+    cache: CacheManager,
     semaphore: asyncio.Semaphore,
     verbose: bool = False,
 ) -> dict | None:
@@ -74,7 +49,7 @@ async def classify_skill(
         content = content[:MAX_FILE_CONTENT_LENGTH] + "\n\n[truncated]"
 
     # Check cache first
-    cached = get_cached_result(cache_dir, content, skip_cache)
+    cached = cache.get(content)
     if cached is not None:
         return {"url": url, "cached": True, **cached}
 
@@ -166,7 +141,7 @@ IMPORTANT: Respond with ONLY the JSON object, no other text."""
                                 result_text = result_text.strip()
 
                             parsed = json.loads(result_text)
-                            cache_result(cache_dir, content, parsed)
+                            cache.set(content, parsed)
                             return {"url": url, "cached": False, **parsed}
                         except json.JSONDecodeError as e:
                             if verbose:
@@ -190,6 +165,7 @@ def cmd_classify(args):
     content_dir = args.output_dir / "content"
     cache_dir = args.output_dir / ".taxonomy_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
+    cache = CacheManager(cache_dir=cache_dir, skip_cache=args.skip_cache)
 
     if not valid_md_path.exists():
         raise FileNotFoundError(f"{valid_md_path} not found. Run 'filter-skills' first.")
@@ -223,9 +199,7 @@ def cmd_classify(args):
     progress_lock = asyncio.Lock()
 
     async def classify_and_collect(url: str, content: str, semaphore: asyncio.Semaphore):
-        result = await classify_skill(
-            url, content, cache_dir, args.skip_cache, semaphore, args.verbose
-        )
+        result = await classify_skill(url, content, cache, semaphore, args.verbose)
 
         async with progress_lock:
             progress["completed"] += 1

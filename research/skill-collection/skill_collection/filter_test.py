@@ -2,6 +2,7 @@
 
 import pytest
 
+from .cache import CacheManager
 from .filter import (
     ClassificationProgress,
     SkillFileClassifier,
@@ -92,52 +93,56 @@ def describe_resolve_symlink_url():
         assert result == url
 
 
+def describe_CacheManager():
+    @pytest.fixture
+    def cache(tmp_path):
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir(parents=True)
+        return CacheManager(cache_dir=cache_dir)
+
+    def it_generates_consistent_cache_keys(cache):
+        content = "test content"
+        key1 = cache.get_cache_key(content)
+        key2 = cache.get_cache_key(content)
+        assert key1 == key2
+        assert len(key1) == 16  # SHA256 truncated to 16 chars
+
+    def it_generates_different_keys_for_different_content(cache):
+        key1 = cache.get_cache_key("content A")
+        key2 = cache.get_cache_key("content B")
+        assert key1 != key2
+
+    def it_returns_none_for_uncached_content(cache):
+        result = cache.get("new content")
+        assert result is None
+
+    def it_caches_and_retrieves_results(cache):
+        content = "test content"
+        expected = {"is_skill_file": True, "reason": "test"}
+        cache.set(content, expected)
+        result = cache.get(content)
+        assert result == expected
+
+    def it_respects_skip_cache_flag(tmp_path):
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir(parents=True)
+        cache = CacheManager(cache_dir=cache_dir, skip_cache=True)
+        cache.set("content", {"is_skill_file": True})
+        result = cache.get("content")
+        assert result is None
+
+
 def describe_SkillFileClassifier():
     @pytest.fixture
     def classifier(tmp_path):
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir(parents=True)
+        cache = CacheManager(cache_dir=cache_dir)
         return SkillFileClassifier(
-            cache_dir=tmp_path / "cache",
+            cache=cache,
             valid_path=tmp_path / "valid.md",
             invalid_path=tmp_path / "invalid.md",
         )
-
-    def describe_cache():
-        def it_generates_consistent_cache_keys(classifier):
-            content = "test content"
-            key1 = classifier.get_cache_key(content)
-            key2 = classifier.get_cache_key(content)
-            assert key1 == key2
-            assert len(key1) == 16  # SHA256 truncated to 16 chars
-
-        def it_generates_different_keys_for_different_content(classifier):
-            key1 = classifier.get_cache_key("content A")
-            key2 = classifier.get_cache_key("content B")
-            assert key1 != key2
-
-        def it_returns_none_for_uncached_content(classifier):
-            classifier.cache_dir.mkdir(parents=True)
-            result = classifier.get_cached_result("new content")
-            assert result is None
-
-        def it_caches_and_retrieves_results(classifier):
-            classifier.cache_dir.mkdir(parents=True)
-            content = "test content"
-            expected = {"is_skill_file": True, "reason": "test"}
-            classifier.cache_result(content, expected)
-            result = classifier.get_cached_result(content)
-            assert result == expected
-
-        def it_respects_skip_cache_flag(tmp_path):
-            classifier = SkillFileClassifier(
-                cache_dir=tmp_path / "cache",
-                valid_path=tmp_path / "valid.md",
-                invalid_path=tmp_path / "invalid.md",
-                skip_cache=True,
-            )
-            classifier.cache_dir.mkdir(parents=True)
-            classifier.cache_result("content", {"is_skill_file": True})
-            result = classifier.get_cached_result("content")
-            assert result is None
 
     def describe_formatting():
         def it_formats_row_with_link(classifier):
