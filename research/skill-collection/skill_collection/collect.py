@@ -12,7 +12,7 @@ from .models import EXPECTED_TOTAL, ProgressRow, ShardResult, SizeRange
 def collect_shard(
     size_range: SizeRange,
     max_results: int = 1000,
-    on_page: Callable[[int, int], None] | None = None,
+    on_page: Callable[[int, int, int], None] | None = None,
 ) -> tuple[ShardResult, list[dict]]:
     """Collect all results for a size range shard."""
     client = get_client()
@@ -35,7 +35,7 @@ def collect_shard(
         items.extend(new_items)
 
         if on_page is not None:
-            on_page(page, len(new_items))
+            on_page(page, len(new_items), total_count)
 
         # Early exit: if total_count > 1000, this range needs subdivision.
         # No point fetching more pages - we'll discard and re-query with smaller ranges.

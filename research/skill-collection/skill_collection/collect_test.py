@@ -279,8 +279,9 @@ def describe_collect_shard():
         collect_shard(SizeRange(0, 99), on_page=callback)
 
         assert callback.call_count == 2
-        callback.assert_any_call(1, 100)
-        callback.assert_any_call(2, 50)
+        # Callback receives (page_num, count, total_count)
+        callback.assert_any_call(1, 100, 150)
+        callback.assert_any_call(2, 50, 150)
 
     def it_handles_empty_first_page(mock_client):
         mock_client.search_code.return_value = {"total_count": 0, "items": []}

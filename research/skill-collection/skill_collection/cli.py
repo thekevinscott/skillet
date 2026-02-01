@@ -62,9 +62,10 @@ def cmd_fetch_files(args):
             # Track in-progress state for live updates
             in_progress = {"range": str(size_range), "collected": 0, "pages": {}}
 
-            def on_page(page_num: int, count: int):
+            def on_page(page_num: int, count: int, total_count: int):
                 in_progress["pages"][page_num] = count
                 in_progress["collected"] = sum(in_progress["pages"].values())
+                in_progress["total_count"] = total_count
                 current_total = total_files + in_progress["collected"]
                 status(
                     f"[{current_total:,} / {EXPECTED_TOTAL:,}] Fetching {size_range} (page {page_num})..."
