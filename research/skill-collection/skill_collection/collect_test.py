@@ -202,7 +202,7 @@ def describe_write_progress_md():
         # Format: Range (width) | total_count | #
         assert "| 0-99 (99) | 0 | 0 |" in content
 
-    def it_includes_in_progress_shard_with_arrow(output_dir):
+    def it_shows_in_progress_shard_at_top(output_dir):
         results = [
             ShardResult(
                 SizeRange(0, 99),
@@ -211,13 +211,32 @@ def describe_write_progress_md():
                 pages={1: 100, 2: 100, 3: 100, 4: 100, 5: 16},
             )
         ]
-        in_progress = {"range": "100-199", "collected": 200}
+        in_progress = {"range": "100-199", "collected": 200, "pages": {1: 100, 2: 100}}
 
         write_progress_md(output_dir, results, in_progress)
 
         content = (output_dir / "progress.md").read_text()
-        # In-progress rows are bold with arrow (total_count=0 since not set, #=200)
-        assert "| **-> 100-199 (99)** | 0 | 200 |" in content
+        # In-progress shows at top, separate from table
+        assert "**Currently fetching:** 100-199" in content
+        assert "page 2, 200 items" in content
+        # In-progress is NOT in the table
+        assert "100-199" not in content.split("| Range |")[1]
+        # Total only includes completed shards (416, not 416+200)
+        assert "**Total collected:** 416 / 113,066" in content
+
+    def it_shows_total_count_in_progress_when_available(output_dir):
+        results = []
+        in_progress = {
+            "range": "100-199",
+            "collected": 200,
+            "total_count": 936,
+            "pages": {1: 100, 2: 100},
+        }
+
+        write_progress_md(output_dir, results, in_progress)
+
+        content = (output_dir / "progress.md").read_text()
+        assert "200 items / 936 reported" in content
 
 
 def describe_collect_shard():

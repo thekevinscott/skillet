@@ -132,39 +132,42 @@ def write_progress_md(
     in_progress: dict | None = None,
     unique_count: int | None = None,
 ):
-    """Write current progress to markdown file."""
+    """Write current progress to markdown file.
+
+    Only completed shards are included in the total and table.
+    In-progress work is shown separately at the top.
+    """
     # Use unique_count if provided (deduplicated), otherwise sum raw collected
+    # Note: in_progress is NOT included in the total - only completed shards count
     if unique_count is not None:
         total_collected = unique_count
     else:
         total_collected = sum(r.collected for r in results)
-        if in_progress:
-            total_collected += in_progress.get("collected", 0)
 
     md_path = output_dir / "progress.md"
     with open(md_path, "w") as f:
         f.write("# SKILL.md Collection Progress\n\n")
         pct = (total_collected / EXPECTED_TOTAL * 100) if EXPECTED_TOTAL else 0
         f.write(f"**Total collected:** {total_collected:,} / {EXPECTED_TOTAL:,} ({pct:.1f}%)\n\n")
+
+        # Show in-progress shard at the top, separate from the completed table
+        if in_progress:
+            range_str = in_progress["range"]
+            collected = in_progress.get("collected", 0)
+            total_count = in_progress.get("total_count", 0)
+            pages = in_progress.get("pages", {})
+            page_count = len(pages)
+            f.write(f"**Currently fetching:** {range_str} ")
+            f.write(f"(page {page_count}, {collected:,} items")
+            if total_count > 0:
+                f.write(f" / {total_count:,} reported")
+            f.write(")\n\n")
+
         f.write("| Range | total_count | # |\n")
         f.write("|-------|------------:|--:|\n")
 
-        # Build list of all rows (completed + in-progress) for sorting
+        # Only include completed shards in the table
         rows: list[ProgressRow] = [result.to_progress_row() for result in results]
-
-        if in_progress:
-            range_str = in_progress["range"]
-            parsed_range = SizeRange.from_string(range_str)
-            rows.append(
-                ProgressRow(
-                    min_bytes=parsed_range.min_bytes,
-                    max_bytes=parsed_range.max_bytes,
-                    range_str=f"-> {range_str}",  # Arrow indicates in-progress
-                    total_count=in_progress.get("total_count", 0),
-                    collected=in_progress["collected"],
-                    bold=True,
-                )
-            )
 
         # Sort by min_bytes descending (largest at top)
         rows.sort(key=lambda r: r.min_bytes, reverse=True)
