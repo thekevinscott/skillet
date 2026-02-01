@@ -71,12 +71,14 @@ def cmd_fetch_files(args):
                     f"[{current_total:,} / {EXPECTED_TOTAL:,}] Fetching {size_range} (page {page_num})..."
                 )
                 # Don't show in_progress if we hit 1000 (will be subdivided)
+                # Note: unique_count only includes completed shards (deduplicated)
+                # The in_progress row shows raw collected, but isn't added to total
                 if in_progress["collected"] >= 1000:
                     write_progress_md(args.output_dir, list(completed_results.values()), unique_count=total_files)
                 else:
                     write_progress_md(
                         args.output_dir, list(completed_results.values()), in_progress,
-                        unique_count=total_files + in_progress["collected"],
+                        unique_count=total_files,
                     )
 
             result, items = collect_shard(size_range, on_page=on_page)

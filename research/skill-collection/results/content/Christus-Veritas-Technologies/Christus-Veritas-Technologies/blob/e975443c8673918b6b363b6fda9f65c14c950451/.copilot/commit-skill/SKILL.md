@@ -1,0 +1,2 @@
+name: "Git commit skill"
+description: "Whenever you make changes to files or a set of files as part of a feature, make a commit for that feature. Keep the commits as small as possible, don;t bundle 'auth' as a commit but instead make adding a login function, creating  hashPassword function its own commit, byte-sized features like these across 1 or multiple related files"
