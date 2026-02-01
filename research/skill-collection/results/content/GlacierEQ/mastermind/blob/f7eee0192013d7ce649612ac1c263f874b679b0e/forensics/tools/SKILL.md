@@ -1,0 +1,1 @@
+# Forensic & Document Analysis Tools\n\nBest practice toolkit for PDF/metadata extraction, timeline reconstruction, hash verification.\n\n## Quick Start\n1. Install: `pip install pdfplumber exiftool autopsy`\n2. Core commands in `forensics/tools/`

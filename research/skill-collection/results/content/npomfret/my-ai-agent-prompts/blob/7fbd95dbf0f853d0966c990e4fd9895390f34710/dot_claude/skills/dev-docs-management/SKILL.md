@@ -1,0 +1,1 @@
+Manages structured development documentation for large tasks and features. This skill helps create and update task-specific directories containing plans, context, and tasks, combating Claude's 'amnesia' and ensuring consistent context.

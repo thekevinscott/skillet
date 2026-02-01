@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a skill for sending prompts to Codex with YAML frontmatter containing name and description, and clear instructions referencing additional documentation"}

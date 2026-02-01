@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a valid skill with YAML frontmatter (name: python, description) and clear coding instructions for writing Python code using dataclasses instead of TypedDict"}

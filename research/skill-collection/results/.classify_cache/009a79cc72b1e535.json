@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a specific skill (FileOps) with a clear purpose (delegating file I/O to Codex via FileOpsREQ protocol) and instructions, though minimal. It has proper YAML frontmatter with name and description fields."}

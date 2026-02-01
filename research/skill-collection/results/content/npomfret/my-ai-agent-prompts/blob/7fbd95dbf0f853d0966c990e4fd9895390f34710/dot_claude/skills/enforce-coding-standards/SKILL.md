@@ -1,0 +1,1 @@
+Enforces coding standards, naming conventions, and design patterns for TypeScript and JavaScript projects. This skill helps maintain a consistent code style across the project, making it easier to read and understand.

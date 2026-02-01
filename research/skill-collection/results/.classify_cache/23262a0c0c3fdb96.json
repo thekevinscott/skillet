@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid skill file with YAML frontmatter defining name/description and clear workflow instructions for searching codebase patterns using rg and viewing results with sed"}

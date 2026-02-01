@@ -1,0 +1,1 @@
+Assassin periodic ability centered around shadows that appear at a random spot 10yds away from the target and attempt to backstab the target. If they don't, they just recover you some energy or give you some benefit.

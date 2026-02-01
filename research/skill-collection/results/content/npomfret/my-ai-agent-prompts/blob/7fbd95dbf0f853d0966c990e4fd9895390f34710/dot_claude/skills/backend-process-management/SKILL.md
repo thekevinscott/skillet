@@ -1,0 +1,1 @@
+Manages and monitors backend microservices using process managers like PM2. This skill enables real-time log reading, automatic service restarts, and performance monitoring for efficient debugging in TypeScript/JavaScript backend projects.

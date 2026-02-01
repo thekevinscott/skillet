@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Invalid SKILL.md file - malformed frontmatter with no closing delimiter (---). The file has broken YAML frontmatter that never closes, making it unparseable and unusable as a skill definition."}

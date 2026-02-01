@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'prime' skill with YAML frontmatter (name, description) and clear instructions for Claude to execute git commands and read files to understand a codebase"}

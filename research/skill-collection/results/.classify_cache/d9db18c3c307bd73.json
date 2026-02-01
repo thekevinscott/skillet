@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid skill file with proper frontmatter (name, description) and a reference to external rules file. Defines a formatting/linting capability for Claude Code with specific file pattern matching."}

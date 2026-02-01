@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Malformed YAML frontmatter with invalid syntax (unquoted colon value). While it attempts to define a skill structure, the invalid YAML makes it non-functional, and the content is essentially a placeholder example demonstrating malformed syntax rather than a real skill definition."}

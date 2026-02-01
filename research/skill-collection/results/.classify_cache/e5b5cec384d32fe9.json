@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Missing required YAML frontmatter delimiters (---). Valid skill files must have YAML frontmatter to define metadata like name and description."}

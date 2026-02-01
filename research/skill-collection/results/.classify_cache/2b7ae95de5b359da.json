@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with proper frontmatter (name, description, allowed-tools, metadata) that defines a PR review skill. The content references an external skill definition file, which is a valid pattern for skill organization."}

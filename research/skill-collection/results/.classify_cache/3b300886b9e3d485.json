@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with proper frontmatter (name, description, user-invocable), clear purpose (listing available just commands), and executable instruction using the shell command syntax to run 'just --list'"}

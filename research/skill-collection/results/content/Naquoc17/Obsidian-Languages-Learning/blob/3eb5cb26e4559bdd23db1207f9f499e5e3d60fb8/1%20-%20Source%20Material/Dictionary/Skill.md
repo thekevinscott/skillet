@@ -1,0 +1,7 @@
+- Skill [skɪl] Noun  
+- Khả năng làm gì đó tốt do học hỏi và luyện tập  
+- Kỹ năng  
+- Fähigkeit / Fertigkeit  
+- Writing is an important skill in any job.  
+- Skilled (có kỹ năng), skillful (khéo léo)  
+- Old Norse: *skil* ("discernment")

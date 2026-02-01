@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with frontmatter metadata and skill definition, though it contains non-standard frontmatter keys (version, author, custom_field) beyond the expected name/description fields"}

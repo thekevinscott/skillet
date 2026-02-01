@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'Spec steward' skill with clear goal and instructions for preventing spec drift by checking for changes under game/** without corresponding spec.md changes"}

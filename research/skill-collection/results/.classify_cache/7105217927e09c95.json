@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file that defines a React skill with frontmatter (name, description) and references an external MDC file for the skill content. The description indicates it provides React patterns and should always be used when working with React."}

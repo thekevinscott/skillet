@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines an 'android' skill with clear workflow instructions for Android builds, including specific guidance on using './mach gradle' instead of 'gradlew'."}

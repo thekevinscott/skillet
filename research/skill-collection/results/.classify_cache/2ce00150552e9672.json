@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "This is a skill loader/dispatcher template, not a skill definition itself. It contains instructions to load another skill from a subdirectory rather than defining actual capabilities or prompts for Claude Code to execute."}

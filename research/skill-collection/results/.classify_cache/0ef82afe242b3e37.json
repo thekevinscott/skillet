@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'Review' skill with YAML frontmatter containing name and description, provides clear purpose (dual review with Claude and Codex), and references external instructions file"}

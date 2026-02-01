@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Contains malformed YAML frontmatter with syntax errors (unclosed bracket). While it attempts to define a skill, the invalid YAML makes it an invalid SKILL.md file."}

@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a GraphQL schema skill with clear instructions for maintaining backward compatibility, using explicit input types, and adding tests for resolvers and auth rules"}

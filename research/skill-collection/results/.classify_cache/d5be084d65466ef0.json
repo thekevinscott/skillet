@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'fetcher' skill with YAML frontmatter (name, description) and usage instructions for fetching web content via mcporter command"}

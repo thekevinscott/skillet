@@ -1,0 +1,1 @@
+Refactors existing TypeScript or JavaScript code to improve its structure, readability, and performance. This skill can be used to extract functions, rename variables, and apply other refactoring techniques to improve the quality of the code.

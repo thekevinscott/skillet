@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'fix-checks' skill with YAML frontmatter containing name and description, and provides clear instructions for running quality checks and fixing failures"}

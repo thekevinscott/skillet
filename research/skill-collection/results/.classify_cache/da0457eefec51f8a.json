@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with proper frontmatter (name, description, disable-model-invocation flag) and clear instructions defining it as a manual-only skill that can be invoked via slash command."}

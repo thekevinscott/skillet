@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a clear iterative workflow for Claude Code: implement code, take screenshot, analyze image, capture video, analyze video, and repeat until quality score reaches 85%. This is a valid skill instruction for visual development/testing loops."}

@@ -1,0 +1,1 @@
+Generates comprehensive test suites for TypeScript and JavaScript code, including unit tests, integration tests, and end-to-end tests. This skill can help identify edge cases and improve test coverage.

@@ -1,0 +1,1 @@
+Automates web application testing using a popular testing framework for TypeScript and JavaScript, such as Playwright or Cypress. This skill can be used to create end-to-end tests, integration tests, and unit tests for a web application.

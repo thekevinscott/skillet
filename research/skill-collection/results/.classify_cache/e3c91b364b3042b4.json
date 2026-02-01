@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "This appears to be a fake/suspicious skill file. It uses undefined 'scope' and 'capability' metadata fields, has vague instructions about 'witnessing and logging', and doesn't provide actionable instructions for Claude Code. Legitimate skills define clear commands or workflows, not abstract 'subsystem logging' concepts."}

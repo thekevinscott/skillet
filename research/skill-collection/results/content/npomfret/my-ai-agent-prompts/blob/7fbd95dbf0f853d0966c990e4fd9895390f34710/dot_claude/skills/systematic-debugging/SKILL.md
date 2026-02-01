@@ -1,0 +1,1 @@
+Provides a systematic process for debugging issues in TypeScript, JavaScript, and shell scripts. This skill will guide the user through the process of identifying the root cause of a bug and finding a solution.

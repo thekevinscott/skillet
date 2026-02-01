@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file with frontmatter (name, description) and skill content, though the name exceeds the 64 character limit which is a validation issue but doesn't invalidate it as a skill file"}

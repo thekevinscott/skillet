@@ -1,0 +1,3 @@
+# Expo iOS Designer
+
+Designs modern, clean iOS screens and components for Expo React Native apps following Apple HIG with safe areas, Dynamic Type, dark mode, accessibility, Liquid Glass materials, and App Store readiness.

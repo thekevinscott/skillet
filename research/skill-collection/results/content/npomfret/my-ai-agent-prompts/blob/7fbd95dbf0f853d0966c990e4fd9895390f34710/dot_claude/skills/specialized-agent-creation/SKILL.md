@@ -1,0 +1,1 @@
+Assists in creating highly specialized subagents with specific roles, such as `code-architecture-reviewer`, `strategic-plan-architect`, or `build-error-resolver`, to handle complex tasks efficiently.

@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Has valid SKILL.md frontmatter with name, description, and version fields, and identifies itself as a skill bundled as an inline dependency for testing skillsets."}

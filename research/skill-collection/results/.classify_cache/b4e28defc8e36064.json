@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Invalid SKILL.md file - contains malformed YAML frontmatter with unclosed bracket in allowed-tools array, and the skill content is essentially empty with no actual instructions or prompts"}

@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Invalid YAML frontmatter - the frontmatter block is never closed (missing closing '---'), making this a malformed SKILL.md file that cannot be properly parsed"}

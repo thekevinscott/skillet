@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a code-review skill with clear instructions for 3-layer validation (type-check, lint, test) - a valid capability definition for Claude Code"}

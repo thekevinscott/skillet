@@ -1,0 +1,1 @@
+Enforces brand and style guidelines for a web application. This skill will scan the application's code and assets to ensure that they adhere to the organization's branding and style guidelines.

@@ -66,6 +66,7 @@ class ProgressRow:
 
     min_bytes: int
     range_str: str
+    total_count: int
     collected: int
     pages: dict[int, int]
     bold: bool = False
@@ -74,7 +75,7 @@ class ProgressRow:
         """Format as markdown table row."""
         range_cell = f"**{self.range_str}**" if self.bold else self.range_str
         page_cells = [str(self.pages.get(i, "")) for i in range(1, 11)]
-        return f"| {range_cell} | {self.collected:,} | " + " | ".join(page_cells) + " |\n"
+        return f"| {range_cell} | {self.total_count:,} | {self.collected:,} | " + " | ".join(page_cells) + " |\n"
 
 
 @dataclass
@@ -101,6 +102,7 @@ class ShardResult:
         return ProgressRow(
             min_bytes=self.range.min_bytes,
             range_str=str(self.range),
+            total_count=self.total_count,
             collected=self.collected,
             pages=self.pages,
             bold=bold,

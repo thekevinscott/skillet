@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "This is a valid skill file that defines a meta-skill for creating or updating agent skills. It has a description, clear instructions to load and use the build-skill skill, and includes placeholders for loading the actual skill content and user arguments."}

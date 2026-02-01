@@ -1,0 +1,1 @@
+Implements post-response hooks to ensure code quality. This skill includes tracking edited files, running build checks for TypeScript errors, and providing reminders for error handling in risky code patterns.

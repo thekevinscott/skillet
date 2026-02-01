@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a 'lint' skill with clear frontmatter (name, description) and specific instructions for running lint checks using pre-commit"}

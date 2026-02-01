@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "The file has valid frontmatter with name and description, but the content section is empty (only contains '## Overview' with no instructions). A valid skill file needs clear instructions or prompts for Claude to follow."}

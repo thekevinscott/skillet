@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a valid skill with name 'npm', description, and clear instructions for Claude Code to follow when running npm commands (using nvm and avoiding node_modules changes)"}

@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid skill file with YAML frontmatter containing description, defines a clear skill command (/flow:now), and has specific instructions for Claude to execute a date command and respond with the result."}

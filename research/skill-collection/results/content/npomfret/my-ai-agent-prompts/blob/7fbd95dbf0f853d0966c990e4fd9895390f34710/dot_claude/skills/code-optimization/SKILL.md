@@ -1,0 +1,1 @@
+Analyzes TypeScript and JavaScript code to identify performance bottlenecks and suggests optimizations. This skill can help improve the execution speed and efficiency of the code by suggesting alternative algorithms, data structures, and code changes.

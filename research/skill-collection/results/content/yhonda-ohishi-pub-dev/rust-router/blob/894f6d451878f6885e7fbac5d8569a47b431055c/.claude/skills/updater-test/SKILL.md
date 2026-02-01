@@ -1,0 +1,2 @@
+いったんローカルでバージョン下げてbuild
+その後,github release経由でのupdateをテスト

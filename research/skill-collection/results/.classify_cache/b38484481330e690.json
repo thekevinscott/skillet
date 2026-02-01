@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a workflow execution capability for Claude Code with clear scope (self-control-plane) and specific instructions about executing workflows from .self/workflows/ directory"}

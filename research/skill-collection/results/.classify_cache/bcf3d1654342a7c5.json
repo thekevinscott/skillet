@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "This is a Hugo archetype template file for creating new skill pages, not an actual SKILL.md file. It contains placeholder variables ({{ .Date }}, {{ .File.ContentBaseName }}) and is marked as draft=true with empty description and arrays."}

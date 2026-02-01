@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a clear skill for enforcing uv-only Python workflows with specific rules (no pip/poetry) and covered capabilities (dependency management, environment sync, running commands)"}

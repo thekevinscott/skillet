@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a specific workflow skill for Claude Code - instructs to work in a git worktree directory (.worktrees/codex), make frequent commits, and avoid merging. This is a valid operational instruction for Claude Code behavior."}

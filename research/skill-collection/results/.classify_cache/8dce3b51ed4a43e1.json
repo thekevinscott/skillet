@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a specific skill 'kill' with clear instructions to stop the archive watcher process using pkill command"}

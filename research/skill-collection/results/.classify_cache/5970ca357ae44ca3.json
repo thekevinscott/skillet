@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid skill definition with YAML frontmatter containing name, description, and context fields, plus a clear instruction to invoke a prompt-reviewer agent with arguments"}

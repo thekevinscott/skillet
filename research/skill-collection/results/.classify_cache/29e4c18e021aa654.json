@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Invalid SKILL.md file - version field must be a string but is a number (123). This appears to be a test fixture for type validation rather than a functional skill definition."}

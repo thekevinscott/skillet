@@ -1,0 +1,1 @@
+Implements a system to automatically activate relevant Claude skills based on user prompts, keywords, and file changes. This skill uses TypeScript hooks to inject skill reminders and perform post-response checks for risky patterns.

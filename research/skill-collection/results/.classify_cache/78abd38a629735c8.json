@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Contains YAML frontmatter with name/description and defines a skill, though the name format is invalid (uses underscore instead of hyphen)"}

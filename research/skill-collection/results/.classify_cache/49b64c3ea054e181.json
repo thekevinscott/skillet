@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md structure with frontmatter (name, description) and instructions, though the name exceeds the 64-character limit which would cause a validation error"}

@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid skill file with frontmatter containing name, description, and allowed-tools. Defines a CSS initialization skill that prioritizes using init.css variables when applying CSS."}

@@ -1,0 +1,1 @@
+Generates documentation for TypeScript and JavaScript code, including function descriptions, parameter explanations, and usage examples. This skill helps to keep the documentation up-to-date and consistent with the code.
