@@ -200,6 +200,14 @@ def describe_GitHubClient():
 
             assert result == {"total_count": 0, "items": []}
 
+        def it_raises_on_404_error(client: GitHubClient, mock_subprocess: MagicMock):
+            mock_subprocess.return_value = MagicMock(
+                returncode=1, stderr="gh: Not Found (HTTP 404)", stdout=""
+            )
+
+            with pytest.raises(FileNotFoundError, match="GitHub resource not found"):
+                client.api("repos/owner/repo/contents/missing.md", use_cache=False)
+
         def it_retries_on_other_errors(client: GitHubClient, mock_subprocess: MagicMock):
             mock_subprocess.side_effect = [
                 MagicMock(returncode=1, stderr="Connection timeout", stdout=""),

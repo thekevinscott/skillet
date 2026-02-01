@@ -185,6 +185,9 @@ class GitHubClient:
                 elif "422" in result.stderr:
                     # Hit pagination limit
                     return {"total_count": 0, "items": []}
+                elif "404" in result.stderr:
+                    # Resource not found - don't retry, it won't magically appear
+                    raise FileNotFoundError(f"GitHub resource not found: {endpoint}")
                 else:
                     print(f"API error: {result.stderr.strip()}, retrying...")
                     time.sleep(5)
