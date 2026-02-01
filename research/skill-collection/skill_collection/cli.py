@@ -112,11 +112,20 @@ def cmd_fetch_files(args):
             unique_items.extend(new_items)
             append_urls(args.output_dir, new_items)
 
-            # Save progress incrementally so Ctrl+C doesn't lose work
+            # Save progress incrementally with atomic write to prevent corruption
             import json
+            import os
+            import tempfile
 
-            with open(files_path, "w") as f:
-                json.dump(unique_items, f)
+            fd, tmp_path = tempfile.mkstemp(dir=args.output_dir, suffix=".json.tmp")
+            try:
+                with os.fdopen(fd, "w") as f:
+                    json.dump(unique_items, f)
+                os.replace(tmp_path, files_path)
+            except Exception:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                raise
 
         status(
             f"[{len(unique_items):,} / {EXPECTED_TOTAL:,}] Completed {size_range} ({len(completed_results)} shards)"
