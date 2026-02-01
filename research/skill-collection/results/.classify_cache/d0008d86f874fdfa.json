@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file that defines a 'create-skill' skill with proper frontmatter (name, description, allowed-tools, argument-hint) and clear instructions for invoking another skill to create Claude Code skills"}
