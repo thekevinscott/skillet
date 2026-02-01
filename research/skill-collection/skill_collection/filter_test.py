@@ -1,6 +1,15 @@
 """Unit tests for filter module."""
 
-from .filter import escape_html, escape_table_cell, is_symlink_content, resolve_symlink_url
+import pytest
+
+from .filter import (
+    ClassificationProgress,
+    SkillFileClassifier,
+    escape_html,
+    escape_table_cell,
+    is_symlink_content,
+    resolve_symlink_url,
+)
 
 
 def describe_escape_html():
@@ -82,3 +91,83 @@ def describe_resolve_symlink_url():
         url = "https://gitlab.com/owner/repo/blob/main/SKILL.md"
         result = resolve_symlink_url(url, "../other.md")
         assert result == url
+
+
+def describe_SkillFileClassifier():
+    @pytest.fixture
+    def classifier(tmp_path):
+        return SkillFileClassifier(
+            cache_dir=tmp_path / "cache",
+            valid_path=tmp_path / "valid.md",
+            invalid_path=tmp_path / "invalid.md",
+        )
+
+    def describe_cache():
+        def it_generates_consistent_cache_keys(classifier):
+            content = "test content"
+            key1 = classifier.get_cache_key(content)
+            key2 = classifier.get_cache_key(content)
+            assert key1 == key2
+            assert len(key1) == 16  # SHA256 truncated to 16 chars
+
+        def it_generates_different_keys_for_different_content(classifier):
+            key1 = classifier.get_cache_key("content A")
+            key2 = classifier.get_cache_key("content B")
+            assert key1 != key2
+
+        def it_returns_none_for_uncached_content(classifier):
+            classifier.cache_dir.mkdir(parents=True)
+            result = classifier.get_cached_result("new content")
+            assert result is None
+
+        def it_caches_and_retrieves_results(classifier):
+            classifier.cache_dir.mkdir(parents=True)
+            content = "test content"
+            expected = {"is_skill_file": True, "reason": "test"}
+            classifier.cache_result(content, expected)
+            result = classifier.get_cached_result(content)
+            assert result == expected
+
+        def it_respects_skip_cache_flag(tmp_path):
+            classifier = SkillFileClassifier(
+                cache_dir=tmp_path / "cache",
+                valid_path=tmp_path / "valid.md",
+                invalid_path=tmp_path / "invalid.md",
+                skip_cache=True,
+            )
+            classifier.cache_dir.mkdir(parents=True)
+            classifier.cache_result("content", {"is_skill_file": True})
+            result = classifier.get_cached_result("content")
+            assert result is None
+
+    def describe_formatting():
+        def it_formats_row_with_link(classifier):
+            row = classifier.format_row("https://github.com/user/repo/blob/main/SKILL.md", False, "Valid")
+            assert '<a href="https://github.com/user/repo/blob/main/SKILL.md"' in row
+            assert 'target="_blank"' in row
+            assert "| Valid |" in row
+
+        def it_shows_symlink_marker(classifier):
+            row = classifier.format_row("https://example.com", True, "reason")
+            assert "| → |" in row
+
+        def it_escapes_reason_text(classifier):
+            row = classifier.format_row("https://example.com", False, "has <tags> & pipes |")
+            assert "&lt;tags&gt;" in row
+            assert "&amp;" in row
+            assert "&#124;" in row
+
+
+def describe_ClassificationProgress():
+    def it_initializes_with_zeros():
+        progress = ClassificationProgress()
+        assert progress.completed == 0
+        assert progress.valid == 0
+        assert progress.cached == 0
+
+    def it_allows_updating_fields():
+        progress = ClassificationProgress()
+        progress.valid = 5
+        progress.completed = 10
+        assert progress.valid == 5
+        assert progress.completed == 10
