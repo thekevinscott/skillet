@@ -13,7 +13,7 @@ from .analyze import parse_valid_md
 from .cache import CacheManager
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
-from .utils import status
+from .utils import status, truncate_for_analysis
 
 
 CLASSIFICATION_SCHEMA = """{
@@ -44,8 +44,7 @@ async def classify_skill(
 ) -> dict | None:
     """Classify a single skill using Claude."""
     # Truncate very long files to avoid token limits
-    if len(content) > MAX_FILE_CONTENT_LENGTH:
-        content = content[:MAX_FILE_CONTENT_LENGTH] + "\n\n[truncated]"
+    content = truncate_for_analysis(content, MAX_FILE_CONTENT_LENGTH)
 
     # Check cache first
     cached = cache.get(content)

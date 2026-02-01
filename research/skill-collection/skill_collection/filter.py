@@ -13,7 +13,14 @@ from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 from .cache import CacheManager
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
-from .utils import escape_html, escape_table_cell, status, truncate_text, truncate_url
+from .utils import (
+    escape_html,
+    escape_table_cell,
+    status,
+    truncate_for_analysis,
+    truncate_text,
+    truncate_url,
+)
 
 
 def is_symlink_content(content: str) -> bool:
@@ -141,8 +148,7 @@ class SkillFileClassifier:
         resolved_url = resolve_symlink_url(url, content) if is_symlink else url
 
         # Truncate very long files to avoid token limits
-        if len(content) > MAX_FILE_CONTENT_LENGTH:
-            content = content[:MAX_FILE_CONTENT_LENGTH] + "\n\n[truncated]"
+        content = truncate_for_analysis(content, MAX_FILE_CONTENT_LENGTH)
 
         # Check cache first
         cached = self.cache.get(content)

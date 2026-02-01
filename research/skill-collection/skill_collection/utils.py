@@ -39,3 +39,10 @@ def escape_table_cell(text: str) -> str:
     """Escape text for use in markdown table cell."""
     # Escape HTML entities first, then pipe characters which break table structure
     return escape_html(text).replace("|", "&#124;")
+
+
+def truncate_for_analysis(content: str, max_length: int) -> str:
+    """Truncate content for LLM analysis, appending truncation marker if needed."""
+    if len(content) <= max_length:
+        return content
+    return content[:max_length] + "\n\n[truncated]"
