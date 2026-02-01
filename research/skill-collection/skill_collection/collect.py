@@ -62,7 +62,15 @@ def collect_shard(
 
 def needs_subdivision(result: ShardResult) -> bool:
     """Check if a shard result indicates the range needs subdivision."""
-    return result.total_count > 1000
+    if result.total_count > 1000:
+        if result.range.width == 0:
+            raise ValueError(
+                f"Cannot subdivide single-byte range {result.range} "
+                f"but it has {result.total_count} results (limit 1000). "
+                f"Data will be lost."
+            )
+        return True
+    return False
 
 
 def extract_file_info(item: dict) -> dict:

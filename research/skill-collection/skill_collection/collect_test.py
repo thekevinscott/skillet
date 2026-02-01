@@ -320,6 +320,16 @@ def describe_needs_subdivision():
         )
         assert needs_subdivision(result) is False
 
+    def it_raises_when_single_byte_range_exceeds_limit():
+        result = ShardResult(
+            range=SizeRange(100, 100),  # width=0, single byte
+            total_count=1500,
+            collected=100,
+            pages={},
+        )
+        with pytest.raises(ValueError, match="Cannot subdivide single-byte range"):
+            needs_subdivision(result)
+
 
 def describe_deduplicate_items():
     def it_removes_duplicates_by_sha():
