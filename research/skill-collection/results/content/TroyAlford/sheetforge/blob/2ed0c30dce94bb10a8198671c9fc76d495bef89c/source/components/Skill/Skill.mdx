@@ -1,0 +1,18 @@
+---
+name: Skill
+route: /skill
+---
+import { Playground } from 'docz'
+import Skill from '@/components/Skill'
+import SkillModel from '@/models/Skill'
+
+## Skill
+
+<Playground>
+  <Skill model={SkillModel.create({ name: 'Survival' })} />
+  <Skill model={SkillModel.create({
+    mastery: 4,
+    name: 'Fighting Style: Sword & Board',
+    theory: 2,
+  })} />
+</Playground>
