@@ -42,30 +42,27 @@ def _(mo):
 
 
 @app.cell
-def _(alt, df, mo):
+def _(alt, df, mo, pl):
     # Histograms for size distributions
-    word_hist = alt.Chart(df.to_pandas()).mark_bar().encode(
+    pdf = df.to_pandas()
+
+    word_hist = alt.Chart(pdf).mark_bar().encode(
         alt.X("word_count:Q", bin=alt.Bin(maxbins=50), title="Word Count"),
         alt.Y("count()", title="Number of Skills"),
     ).properties(width=280, height=200, title="Word Count Distribution")
 
-    line_hist = alt.Chart(df.to_pandas()).mark_bar().encode(
+    line_hist = alt.Chart(pdf).mark_bar().encode(
         alt.X("line_count:Q", bin=alt.Bin(maxbins=50), title="Line Count"),
         alt.Y("count()", title="Number of Skills"),
     ).properties(width=280, height=200, title="Line Count Distribution")
 
-    byte_hist = alt.Chart(df.to_pandas()).mark_bar().encode(
+    byte_hist = alt.Chart(pdf).mark_bar().encode(
         alt.X("byte_size:Q", bin=alt.Bin(maxbins=50), title="Byte Size"),
         alt.Y("count()", title="Number of Skills"),
     ).properties(width=280, height=200, title="File Size Distribution")
 
     charts = mo.hstack([word_hist, line_hist, byte_hist])
-    charts
-    return
 
-
-@app.cell
-def _(df, mo, pl):
     # Summary statistics table
     stats_data = []
     for col, name in [("word_count", "Words"), ("line_count", "Lines"), ("byte_size", "Bytes")]:
@@ -80,7 +77,9 @@ def _(df, mo, pl):
             "Mean": round(data.mean(), 1),
         })
     stats_df = pl.DataFrame(stats_data)
-    mo.ui.table(stats_df.to_pandas())
+    stats_table = mo.ui.table(stats_df.to_pandas())
+
+    mo.vstack([charts, stats_table])
     return
 
 
