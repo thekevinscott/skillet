@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a specific skill for LLM data lookup with clear instructions for MCP tool usage, explains the purpose (gathering data for orchestrator), specifies allowed tools, and provides guidance on tool selection behavior."}

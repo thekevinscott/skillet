@@ -160,9 +160,9 @@ def describe_write_progress_md():
 
         content = (output_dir / "progress.md").read_text()
         assert "**Total collected:** 728 / 113,066" in content
-        # Format: Range | total_count | page-size | #
-        assert "| 0-99 | 416 | 99 | 416 |" in content
-        assert "| 100-199 | 312 | 99 | 312 |" in content
+        # Format: Range (width) | total_count | #
+        assert "| 0-99 (99) | 416 | 416 |" in content
+        assert "| 100-199 (99) | 312 | 312 |" in content
 
     def it_sorts_results_by_range_descending(output_dir):
         # Results collected out of order (due to subdivision)
@@ -186,8 +186,8 @@ def describe_write_progress_md():
         write_progress_md(output_dir, results)
 
         content = (output_dir / "progress.md").read_text()
-        # Format: Range | total_count | page-size | #
-        assert "| 0-99 | 0 | 99 | 0 |" in content
+        # Format: Range (width) | total_count | #
+        assert "| 0-99 (99) | 0 | 0 |" in content
 
     def it_includes_in_progress_shard_with_arrow(output_dir):
         results = [
@@ -203,8 +203,8 @@ def describe_write_progress_md():
         write_progress_md(output_dir, results, in_progress)
 
         content = (output_dir / "progress.md").read_text()
-        # In-progress rows are bold with arrow (total_count=0 since not set, page-size=99, #=200)
-        assert "| **-> 100-199** | 0 | 99 | 200 |" in content
+        # In-progress rows are bold with arrow (total_count=0 since not set, #=200)
+        assert "| **-> 100-199 (99)** | 0 | 200 |" in content
 
 
 def describe_collect_shard():

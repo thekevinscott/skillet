@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a valid 'Clock' skill with YAML frontmatter (name, description, version) and clear instructions for getting the current date/time using a bash command."}

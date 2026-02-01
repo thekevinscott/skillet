@@ -81,8 +81,9 @@ class ProgressRow:
 
     def format(self) -> str:
         """Format as markdown table row."""
-        range_cell = f"**{self.range_str}**" if self.bold else self.range_str
-        return f"| {range_cell} | {self.total_count:,} | {self.width:,} | {self.collected:,} |\n"
+        range_with_width = f"{self.range_str} ({self.width})"
+        range_cell = f"**{range_with_width}**" if self.bold else range_with_width
+        return f"| {range_cell} | {self.total_count:,} | {self.collected:,} |\n"
 
 
 @dataclass

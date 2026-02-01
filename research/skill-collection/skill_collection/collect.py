@@ -112,8 +112,8 @@ def write_progress_md(
         f.write("# SKILL.md Collection Progress\n\n")
         pct = (total_collected / EXPECTED_TOTAL * 100) if EXPECTED_TOTAL else 0
         f.write(f"**Total collected:** {total_collected:,} / {EXPECTED_TOTAL:,} ({pct:.1f}%)\n\n")
-        f.write("| Range | total_count | page-size | # |\n")
-        f.write("|-------|------------:|----------:|--:|\n")
+        f.write("| Range | total_count | # |\n")
+        f.write("|-------|------------:|--:|\n")
 
         # Build list of all rows (completed + in-progress) for sorting
         rows: list[ProgressRow] = [result.to_progress_row() for result in results]

@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a specific operational instruction for Claude Code when working with k3s clusters - explicitly requiring kubeconfig derivation and careful cluster targeting"}

@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid SKILL.md file that defines a 'slugify-helper' skill with proper frontmatter (name, description, allowed-tools), clear usage context, and a specific procedure for converting text to URL-friendly slugs."}

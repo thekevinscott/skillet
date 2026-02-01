@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "This is a skill file for 'Codex' (a different tool), not Claude Code. It references Codex-specific paths (~/.codex/skills/) and commands (/prompts:skill-bootstrap) rather than Claude Code conventions."}
