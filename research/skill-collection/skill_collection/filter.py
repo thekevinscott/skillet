@@ -11,7 +11,7 @@ from pathlib import Path
 from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 
 from .github import parse_github_url
-from .utils import status
+from .utils import status, truncate_text, truncate_url
 
 
 def is_symlink_content(content: str) -> bool:
@@ -254,22 +254,6 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
             .replace('"', "&quot;")
         )
 
-    def truncate_url(url: str, max_len: int = 60) -> str:
-        """Truncate URL for display, keeping the end visible."""
-        # Remove github prefix for cleaner display
-        display = url.removeprefix("https://github.com/")
-        if len(display) <= max_len:
-            return display
-        # Keep start and end, add ellipsis in middle
-        keep = (max_len - 3) // 2
-        return display[:keep] + "..." + display[-keep:]
-
-    def truncate_reason(reason: str, max_len: int = 120) -> str:
-        """Truncate reason to roughly two lines."""
-        if len(reason) <= max_len:
-            return reason
-        return reason[: max_len - 3].rsplit(" ", 1)[0] + "..."
-
     with open(output_file, "w") as f:
         f.write("# Skill Classification Results\n\n")
         f.write(f"**Total:** {len(results)} files\n")
@@ -291,7 +275,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
                     f"| {make_link(resolved_url)} "
-                    f"| {symlink_marker} | {truncate_reason(reason)} |\n"
+                    f"| {symlink_marker} | {truncate_text(reason)} |\n"
                 )
         else:
             f.write("*No valid skills found.*\n")
@@ -307,7 +291,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
                     f"| {make_link(resolved_url)} "
-                    f"| {symlink_marker} | {truncate_reason(reason)} |\n"
+                    f"| {symlink_marker} | {truncate_text(reason)} |\n"
                 )
         else:
             f.write("*No invalid skills found.*\n")
@@ -321,7 +305,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 symlink_marker = "→" if is_symlink else ""
                 f.write(
                     f"| {make_link(resolved_url)} "
-                    f"| {symlink_marker} | {truncate_reason(reason)} |\n"
+                    f"| {symlink_marker} | {truncate_text(reason)} |\n"
                 )
 
     print(f"Results saved to {output_file}", file=sys.stderr)
