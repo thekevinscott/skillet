@@ -101,24 +101,60 @@ def cmd_filter_skills(args, load_skill_urls):
         cache_file = cache_dir / f"{get_cache_key(content)}.json"
         cache_file.write_text(json.dumps(result))
 
+    # Setup output directory and files for incremental writes
+    output_dir = args.output if args.output else args.output_dir / "classified-skills"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    valid_path = output_dir / "valid.md"
+    invalid_path = output_dir / "invalid.md"
+
+    def escape_html(text: str) -> str:
+        """Escape HTML special characters."""
+        return (
+            text.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+        )
+
+    def make_link(url: str) -> str:
+        """Create HTML link with target=_blank."""
+        display = escape_html(truncate_url(url))
+        return f'<a href="{url}" target="_blank">{display}</a>'
+
+    def format_row(resolved_url: str, is_symlink: bool, reason: str) -> str:
+        """Format a single table row."""
+        symlink_marker = "→" if is_symlink else ""
+        return f"| {make_link(resolved_url)} | {symlink_marker} | {truncate_text(reason)} |\n"
+
+    # Initialize output files with headers
+    with open(valid_path, "w") as f:
+        f.write("# Valid Skills\n\n")
+        f.write("| URL | Symlink | Reason |\n")
+        f.write("|-----|:-------:|--------|\n")
+
+    with open(invalid_path, "w") as f:
+        f.write("# Not Skills\n\n")
+        f.write("| URL | Symlink | Reason |\n")
+        f.write("|-----|:-------:|--------|\n")
+
     # Track progress
-    progress = {"completed": 0, "cached": 0, "api_calls": 0}
+    progress = {"completed": 0, "cached": 0, "api_calls": 0, "valid": 0, "invalid": 0, "errors": 0}
     progress_lock = asyncio.Lock()
+    file_lock = asyncio.Lock()
 
-    async def classify_file(
-        url: str, file_path: Path, semaphore: asyncio.Semaphore
-    ) -> tuple[str, str, bool, dict | None, bool]:
-        """Classify a single file using Claude.
-
-        Returns (original_url, resolved_url, is_symlink, result_dict, was_cached).
-        """
+    async def classify_and_write(url: str, file_path: Path, semaphore: asyncio.Semaphore):
+        """Classify a single file and write result immediately."""
         content = file_path.read_text()
 
         # Skip empty files
         if not content.strip():
+            async with file_lock:
+                with open(invalid_path, "a") as f:
+                    f.write(format_row(url, False, "empty file"))
             async with progress_lock:
                 progress["completed"] += 1
-            return url, url, False, {"is_skill_file": False, "reason": "empty file"}, False
+                progress["invalid"] += 1
+            return
 
         # Check if this is a symlink
         is_symlink = is_symlink_content(content)
@@ -130,13 +166,24 @@ def cmd_filter_skills(args, load_skill_urls):
         if len(content) > 10000:
             content = content[:10000] + "\n\n[truncated]"
 
-        # Check cache first (no semaphore needed for cache check)
+        # Check cache first
         cached = get_cached_result(content)
         if cached is not None:
+            async with file_lock:
+                if cached.get("is_skill_file"):
+                    with open(valid_path, "a") as f:
+                        f.write(format_row(resolved_url, is_symlink, cached.get("reason", "")))
+                    async with progress_lock:
+                        progress["valid"] += 1
+                else:
+                    with open(invalid_path, "a") as f:
+                        f.write(format_row(resolved_url, is_symlink, cached.get("reason", "")))
+                    async with progress_lock:
+                        progress["invalid"] += 1
             async with progress_lock:
                 progress["completed"] += 1
                 progress["cached"] += 1
-            return url, resolved_url, is_symlink, cached, True
+            return
 
         # Acquire semaphore for API call
         async with semaphore:
@@ -144,7 +191,7 @@ def cmd_filter_skills(args, load_skill_urls):
                 progress["api_calls"] += 1
 
             options = ClaudeAgentOptions(
-                allowed_tools=[],  # No tools, just respond
+                allowed_tools=[],
                 max_turns=1,
             )
 
@@ -166,10 +213,6 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
 
             result_data = None
             try:
-                # IMPORTANT: We must consume the entire generator, not break early.
-                # The SDK uses anyio task groups internally, and breaking triggers
-                # GeneratorExit which tries to close the task group from a different
-                # task context (due to asyncio.gather), causing RuntimeError.
                 async for message in query(prompt=prompt, options=options):
                     if isinstance(message, ResultMessage):
                         if message.is_error:
@@ -186,13 +229,29 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                                         f"DEBUG: Could not parse JSON from: {message.result}",
                                         file=sys.stderr,
                                     )
-                    # Don't break - let the generator complete naturally
             except Exception as e:
                 print(f"Error classifying {url}: {e}", file=sys.stderr)
 
+            # Write result immediately
+            async with file_lock:
+                if result_data is None:
+                    with open(invalid_path, "a") as f:
+                        f.write(format_row(resolved_url, is_symlink, "Failed to classify"))
+                    async with progress_lock:
+                        progress["errors"] += 1
+                elif result_data.get("is_skill_file"):
+                    with open(valid_path, "a") as f:
+                        f.write(format_row(resolved_url, is_symlink, result_data.get("reason", "")))
+                    async with progress_lock:
+                        progress["valid"] += 1
+                else:
+                    with open(invalid_path, "a") as f:
+                        f.write(format_row(resolved_url, is_symlink, result_data.get("reason", "")))
+                    async with progress_lock:
+                        progress["invalid"] += 1
+
             async with progress_lock:
                 progress["completed"] += 1
-            return url, resolved_url, is_symlink, result_data, False
 
     async def update_status():
         """Periodically update status line."""
@@ -200,103 +259,28 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
         while progress["completed"] < total:
             status(
                 f"[{progress['completed']}/{total}] "
-                f"Classifying ({progress['cached']} cached, {progress['api_calls']} API calls)..."
+                f"Classifying ({progress['valid']} valid, {progress['invalid']} invalid, "
+                f"{progress['cached']} cached, {progress['api_calls']} API calls)..."
             )
             await asyncio.sleep(0.1)
 
     async def classify_all():
-        # Limit concurrent API calls
         semaphore = asyncio.Semaphore(args.concurrency)
-
-        # Start status updater
         status_task = asyncio.create_task(update_status())
 
-        # Run all classifications in parallel
-        tasks = [classify_file(url, file_path, semaphore) for url, file_path in files_to_classify]
-        results = await asyncio.gather(*tasks)
+        tasks = [classify_and_write(url, file_path, semaphore) for url, file_path in files_to_classify]
+        await asyncio.gather(*tasks)
 
-        # Stop status updater
         status_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await status_task
 
-        return results
-
-    results = asyncio.run(classify_all())
+    asyncio.run(classify_all())
 
     print()  # New line after status
-
-    # Separate valid and invalid skills
-    # Each entry: (original_url, resolved_url, is_symlink, reason)
-    valid_skills = []
-    invalid_skills = []
-    errors = []
-
-    for original_url, resolved_url, is_symlink, result, _was_cached in results:
-        if result is None:
-            errors.append((original_url, resolved_url, is_symlink, "Failed to classify"))
-        elif result.get("is_skill_file"):
-            valid_skills.append((original_url, resolved_url, is_symlink, result.get("reason", "")))
-        else:
-            invalid_skills.append(
-                (original_url, resolved_url, is_symlink, result.get("reason", ""))
-            )
-
-    # Write separate markdown files for valid and invalid skills
-    output_dir = args.output if args.output else args.output_dir / "classified-skills"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    def escape_html(text: str) -> str:
-        """Escape HTML special characters."""
-        return (
-            text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace('"', "&quot;")
-        )
-
-    def make_link(url: str) -> str:
-        """Create HTML link with target=_blank."""
-        display = escape_html(truncate_url(url))
-        return f'<a href="{url}" target="_blank">{display}</a>'
-
-    def write_table(f, items: list[tuple[str, str, bool, str]], title: str, empty_msg: str):
-        """Write a markdown table of classified items."""
-        f.write(f"# {title}\n\n")
-        f.write(f"**Count:** {len(items)}\n\n")
-        if items:
-            f.write("| URL | Symlink | Reason |\n")
-            f.write("|-----|:-------:|--------|\n")
-            for _original_url, resolved_url, is_symlink, reason in items:
-                symlink_marker = "→" if is_symlink else ""
-                f.write(
-                    f"| {make_link(resolved_url)} | {symlink_marker} | {truncate_text(reason)} |\n"
-                )
-        else:
-            f.write(f"*{empty_msg}*\n")
-
-    # Write valid.md
-    valid_path = output_dir / "valid.md"
-    with open(valid_path, "w") as f:
-        write_table(f, valid_skills, "Valid Skills", "No valid skills found.")
-
-    # Write invalid.md
-    invalid_path = output_dir / "invalid.md"
-    with open(invalid_path, "w") as f:
-        write_table(f, invalid_skills, "Not Skills", "No invalid skills found.")
-        if errors:
-            f.write("\n## Errors\n\n")
-            f.write("| URL | Symlink | Error |\n")
-            f.write("|-----|:-------:|-------|\n")
-            for _original_url, resolved_url, is_symlink, reason in errors:
-                symlink_marker = "→" if is_symlink else ""
-                f.write(
-                    f"| {make_link(resolved_url)} | {symlink_marker} | {truncate_text(reason)} |\n"
-                )
-
     print(f"Results saved to {output_dir}/", file=sys.stderr)
     print(
-        f"Total: {len(results)}, Valid: {len(valid_skills)}, Invalid: {len(invalid_skills)}, "
-        f"Errors: {len(errors)}, Cached: {progress['cached']}, API calls: {progress['api_calls']}",
+        f"Total: {progress['completed']}, Valid: {progress['valid']}, Invalid: {progress['invalid']}, "
+        f"Errors: {progress['errors']}, Cached: {progress['cached']}, API calls: {progress['api_calls']}",
         file=sys.stderr,
     )
