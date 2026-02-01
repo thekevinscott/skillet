@@ -12,7 +12,6 @@ from .collect import (
     extract_file_info,
     needs_subdivision,
     print_summary,
-    process_range_dry_run,
     save_results,
     write_progress_md,
 )
@@ -40,7 +39,6 @@ __all__ = [
     "append_urls",
     "print_summary",
     "save_results",
-    "process_range_dry_run",
     # CLI
     "main",
 ]

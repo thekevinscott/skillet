@@ -10,7 +10,6 @@ from .collect import (
     deduplicate_items,
     needs_subdivision,
     print_summary,
-    process_range_dry_run,
     save_results,
     write_progress_md,
 )
@@ -56,8 +55,7 @@ def cmd_fetch_files(args):
         status(f"[{total_files:,} / {EXPECTED_TOTAL:,}] Fetching {size_range}...")
 
         if args.dry_run:
-            result = process_range_dry_run(size_range)
-            items: list[dict] = []
+            result, items = collect_shard(size_range, dry_run=True)
         else:
             # Track in-progress state for live updates
             in_progress = {"range": str(size_range), "collected": 0, "pages": {}}

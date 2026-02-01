@@ -291,6 +291,20 @@ def describe_collect_shard():
         assert len(items) == 0
         assert result.pages == {}
 
+    def it_returns_count_only_in_dry_run_mode(mock_client):
+        mock_client.search_code.return_value = {"total_count": 500, "items": [{"id": 1}]}
+
+        result, items = collect_shard(SizeRange(0, 99), dry_run=True)
+
+        assert result.total_count == 500
+        assert result.collected == 0
+        assert len(items) == 0
+        assert result.pages == {}
+        # Should only make one request with per_page=1
+        mock_client.search_code.assert_called_once()
+        call_args = mock_client.search_code.call_args
+        assert call_args[1]["per_page"] == 1
+
 
 def describe_needs_subdivision():
     def it_returns_true_when_total_count_exceeds_1000():

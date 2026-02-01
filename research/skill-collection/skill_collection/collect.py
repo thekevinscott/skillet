@@ -13,10 +13,25 @@ def collect_shard(
     size_range: SizeRange,
     max_results: int = 1000,
     on_page: Callable[[int, int, int], None] | None = None,
+    dry_run: bool = False,
 ) -> tuple[ShardResult, list[dict]]:
-    """Collect all results for a size range shard."""
+    """Collect all results for a size range shard.
+
+    If dry_run=True, only fetches count (no items collected).
+    """
     client = get_client()
     query = size_range.to_search_query()
+
+    # Dry run: just get the count
+    if dry_run:
+        response = client.search_code(query, per_page=1, page=1)
+        return ShardResult(
+            range=size_range,
+            total_count=response.get("total_count", 0),
+            collected=0,
+            pages={},
+        ), []
+
     items = []
     page_counts: dict[int, int] = {}
     page = 1
@@ -217,16 +232,3 @@ def save_results(
                 if item.get("html_url"):
                     f.write(item["html_url"] + "\n")
         print(f"Saved URLs to {urls_path}")
-
-
-def process_range_dry_run(size_range: SizeRange) -> ShardResult:
-    """Process a range in dry-run mode (count only)."""
-    client = get_client()
-    query = size_range.to_search_query()
-    response = client.search_code(query, per_page=1, page=1)
-    return ShardResult(
-        range=size_range,
-        total_count=response.get("total_count", 0),
-        collected=0,
-        pages={},
-    )
