@@ -24,8 +24,13 @@ def is_symlink_content(content: str) -> bool:
     # Must look like a relative path (contains / or starts with ..)
     if "/" not in content and not content.startswith(".."):
         return False
-    # Should not look like markdown or code
-    return not (content.startswith("#") or content.startswith("```"))
+    # Should not look like markdown, code, or template syntax
+    if content.startswith("#") or content.startswith("```"):
+        return False
+    # Exclude chezmoi/Go template syntax (e.g., {{ includeTemplate "..." }})
+    if "{{" in content:
+        return False
+    return True
 
 
 def resolve_symlink_url(original_url: str, symlink_target: str) -> str:
@@ -56,6 +61,22 @@ def resolve_symlink_url(original_url: str, symlink_target: str) -> str:
 
     resolved_path = "/".join(dir_parts)
     return f"https://github.com/{owner}/{repo}/blob/{ref}/{resolved_path}"
+
+
+def escape_html(text: str) -> str:
+    """Escape HTML special characters."""
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+def escape_table_cell(text: str) -> str:
+    """Escape text for use in markdown table cell."""
+    # Escape HTML entities first, then pipe characters which break table structure
+    return escape_html(text).replace("|", "&#124;")
 
 
 def cmd_filter_skills(args, load_skill_urls):
@@ -107,15 +128,6 @@ def cmd_filter_skills(args, load_skill_urls):
     valid_path = output_dir / "valid.md"
     invalid_path = output_dir / "invalid.md"
 
-    def escape_html(text: str) -> str:
-        """Escape HTML special characters."""
-        return (
-            text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace('"', "&quot;")
-        )
-
     def make_link(url: str) -> str:
         """Create HTML link with target=_blank."""
         display = escape_html(truncate_url(url))
@@ -124,7 +136,8 @@ def cmd_filter_skills(args, load_skill_urls):
     def format_row(resolved_url: str, is_symlink: bool, reason: str) -> str:
         """Format a single table row."""
         symlink_marker = "→" if is_symlink else ""
-        return f"| {make_link(resolved_url)} | {symlink_marker} | {truncate_text(reason)} |\n"
+        escaped_reason = escape_table_cell(truncate_text(reason))
+        return f"| {make_link(resolved_url)} | {symlink_marker} | {escaped_reason} |\n"
 
     # Initialize output files with headers
     with open(valid_path, "w") as f:

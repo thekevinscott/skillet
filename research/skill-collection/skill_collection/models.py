@@ -1,9 +1,28 @@
 """Data models and constants for skill collection."""
 
 from dataclasses import dataclass, field
+from typing import TypedDict
 
 DEFAULT_CHUNK_SIZE = 100  # Default chunk size for subdivision ranges
 EXPECTED_TOTAL = 113_066  # Approximate based on GitHub search across all size ranges
+
+
+class RepositoryInfo(TypedDict):
+    """Repository info from GitHub search result."""
+
+    full_name: str | None
+    html_url: str | None
+    description: str | None
+
+
+class FileInfo(TypedDict):
+    """Extracted file info from GitHub search result."""
+
+    name: str | None
+    path: str | None
+    sha: str | None
+    html_url: str | None
+    repository: RepositoryInfo
 
 
 def calc_range_width(min_bytes: int, max_bytes: int | None) -> int:
