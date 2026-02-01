@@ -32,12 +32,15 @@ async def query_json(
     cache_dir: Path | None = None,
     skip_cache: bool = False,
     verbose: bool = False,
-) -> dict | None:
+) -> tuple[dict | None, bool]:
     """Query Claude and return parsed JSON response with automatic caching.
 
     Caching is based on the full prompt hash, so identical prompts return
     cached results. Different prompts (even with same content) are cached
     separately.
+
+    Returns a tuple of (result, from_cache) where from_cache is True if the
+    result was retrieved from cache.
     """
     cache = CacheManager(cache_dir=cache_dir, skip_cache=skip_cache) if cache_dir else None
 
@@ -45,7 +48,7 @@ async def query_json(
     if cache:
         cached = cache.get(prompt)
         if cached is not None:
-            return cached
+            return cached, True
 
     # Query Claude
     options = ClaudeAgentOptions(
@@ -60,7 +63,7 @@ async def query_json(
                 if message.is_error:
                     if verbose:
                         print(f"Error: {message.result}", file=sys.stderr)
-                    return None
+                    return None, False
                 if message.result:
                     result = _parse_json_response(message.result)
                     if result is None and verbose:
@@ -68,10 +71,10 @@ async def query_json(
     except Exception as e:
         if verbose:
             print(f"Query error: {e}", file=sys.stderr)
-        return None
+        return None, False
 
     # Cache successful result
     if result is not None and cache:
         cache.set(prompt, result)
 
-    return result
+    return result, False

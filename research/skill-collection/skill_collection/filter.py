@@ -76,6 +76,7 @@ class ClassificationProgress:
     valid: int = 0
     invalid: int = 0
     errors: int = 0
+    cached: int = 0
 
 
 @dataclass
@@ -164,7 +165,7 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
 
         # Acquire semaphore for API call
         async with semaphore:
-            result_data = await query_json(
+            result_data, from_cache = await query_json(
                 prompt,
                 cache_dir=self.cache_dir,
                 skip_cache=self.skip_cache,
@@ -180,7 +181,10 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                     is_valid, resolved_url, is_symlink, result_data.get("reason", "")
                 )
                 await self.update_progress(
-                    completed=1, valid=1 if is_valid else 0, invalid=0 if is_valid else 1
+                    completed=1,
+                    valid=1 if is_valid else 0,
+                    invalid=0 if is_valid else 1,
+                    cached=1 if from_cache else 0,
                 )
 
     async def run(self, files_to_classify: list[tuple[str, Path]]):
@@ -194,8 +198,8 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
             while self.progress.completed < total:
                 status(
                     f"[{self.progress.completed}/{total}] "
-                    f"Classifying ({self.progress.valid} valid, {self.progress.invalid} invalid, "
-                    f"{self.progress.errors} errors)..."
+                    f"{self.progress.valid} valid, {self.progress.invalid} invalid, "
+                    f"{self.progress.errors} errors, {self.progress.cached} cached"
                 )
                 await asyncio.sleep(0.1)
 

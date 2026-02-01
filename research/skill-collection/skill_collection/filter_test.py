@@ -95,10 +95,13 @@ def describe_ClassificationProgress():
         assert progress.valid == 0
         assert progress.invalid == 0
         assert progress.errors == 0
+        assert progress.cached == 0
 
     def it_allows_updating_fields():
         progress = ClassificationProgress()
         progress.valid = 5
         progress.completed = 10
+        progress.cached = 3
         assert progress.valid == 5
         assert progress.completed == 10
+        assert progress.cached == 3

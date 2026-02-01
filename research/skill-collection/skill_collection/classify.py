@@ -117,7 +117,7 @@ IMPORTANT: Respond with ONLY the JSON object, no other text."""
 
     # Acquire semaphore for API call
     async with semaphore:
-        result = await query_json(
+        result, _from_cache = await query_json(
             prompt,
             cache_dir=cache_dir,
             skip_cache=skip_cache,
