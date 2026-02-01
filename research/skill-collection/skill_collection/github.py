@@ -8,12 +8,24 @@ from pathlib import Path
 
 DEFAULT_CACHE_DIR = Path(__file__).parent.parent / ".cache"
 
-# GitHub Code Search API has a separate rate limit of 10 requests per minute
-# (regardless of authentication). General API is 5000/hour but search is stricter.
+# Rate limits per endpoint type
 # https://docs.github.com/en/rest/search#rate-limit
-# Start slightly under the limit to avoid ever hitting it
-INITIAL_REQUESTS_PER_MINUTE = 8  # 7.5s between requests
-MIN_REQUESTS_PER_MINUTE = 4  # Floor for backoff (15s between requests)
+# https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting
+RATE_LIMITS = {
+    "search": {
+        "requests_per_minute": 8,  # Search API: 10/min, we use 8 to be safe
+        "min_requests_per_minute": 4,
+    },
+    "contents": {
+        "requests_per_minute": 60,  # Contents API: 5000/hour = 83/min, we use 60
+        "min_requests_per_minute": 30,
+    },
+    "default": {
+        "requests_per_minute": 60,  # General API: 5000/hour
+        "min_requests_per_minute": 30,
+    },
+}
+
 BACKOFF_FACTOR = 0.75  # Reduce by 25% on each rate limit hit
 
 
@@ -22,10 +34,19 @@ class RateLimiter:
 
     Uses adaptive throttling: starts at the documented limit and backs off
     if we hit rate limits. This maximizes throughput while staying under limits.
+
+    Different endpoints have different limits - instantiate with appropriate values.
     """
 
-    def __init__(self, requests_per_minute: int = INITIAL_REQUESTS_PER_MINUTE):
+    def __init__(
+        self,
+        requests_per_minute: int,
+        min_requests_per_minute: int,
+        name: str = "default",
+    ):
+        self.name = name
         self.requests_per_minute = requests_per_minute
+        self.min_requests_per_minute = min_requests_per_minute
         self.min_interval = 60.0 / requests_per_minute
 
         # GitHub's reported limits (from response headers)
@@ -36,6 +57,16 @@ class RateLimiter:
         self.last_request_time = 0.0
         self.request_count = 0
         self.rate_limit_hits = 0  # Count how many times we've hit limits
+
+    @classmethod
+    def for_endpoint(cls, endpoint_type: str) -> "RateLimiter":
+        """Create a rate limiter with appropriate limits for the endpoint type."""
+        config = RATE_LIMITS.get(endpoint_type, RATE_LIMITS["default"])
+        return cls(
+            requests_per_minute=config["requests_per_minute"],
+            min_requests_per_minute=config["min_requests_per_minute"],
+            name=endpoint_type,
+        )
 
     def update_from_headers(self, headers: str):
         """Parse rate limit info from GitHub response headers."""
@@ -82,12 +113,12 @@ class RateLimiter:
 
         # Back off: reduce requests per minute
         old_interval = self.min_interval
-        new_rpm = max(MIN_REQUESTS_PER_MINUTE, self.requests_per_minute * BACKOFF_FACTOR)
+        new_rpm = max(self.min_requests_per_minute, self.requests_per_minute * BACKOFF_FACTOR)
         self.requests_per_minute = new_rpm
         self.min_interval = 60.0 / new_rpm
 
         print(
-            f"[BACKOFF] Hit rate limit #{self.rate_limit_hits}, "
+            f"[BACKOFF:{self.name}] Hit rate limit #{self.rate_limit_hits}, "
             f"increasing interval from {old_interval:.1f}s to {self.min_interval:.1f}s"
         )
 
@@ -135,11 +166,27 @@ class Cache:
 
 
 class GitHubClient:
-    """GitHub API client using gh CLI with caching and rate limiting."""
+    """GitHub API client using gh CLI with caching and rate limiting.
+
+    Uses separate rate limiters for different API endpoints (search vs contents).
+    """
 
     def __init__(self, cache_dir: Path | None = None):
         self.cache = Cache(cache_dir or DEFAULT_CACHE_DIR)
-        self.rate_limiter = RateLimiter()
+        # Separate rate limiters for different endpoint types
+        self._rate_limiters = {
+            "search": RateLimiter.for_endpoint("search"),
+            "contents": RateLimiter.for_endpoint("contents"),
+            "default": RateLimiter.for_endpoint("default"),
+        }
+
+    def _get_rate_limiter(self, endpoint: str) -> RateLimiter:
+        """Get the appropriate rate limiter for an endpoint."""
+        if endpoint.startswith("search/"):
+            return self._rate_limiters["search"]
+        elif "/contents/" in endpoint:
+            return self._rate_limiters["contents"]
+        return self._rate_limiters["default"]
 
     def api(
         self,
@@ -163,8 +210,10 @@ class GitHubClient:
         else:
             url = endpoint
 
+        rate_limiter = self._get_rate_limiter(endpoint)
+
         while True:
-            self.rate_limiter.wait_if_needed()
+            rate_limiter.wait_if_needed()
 
             result = subprocess.run(
                 ["gh", "api", url, "--include"],
@@ -172,15 +221,15 @@ class GitHubClient:
                 text=True,
             )
 
-            self.rate_limiter.record_request()
+            rate_limiter.record_request()
 
             if result.returncode != 0:
                 stderr = result.stderr.lower()
                 if "rate limit" in stderr or "403" in stderr or "secondary rate limit" in stderr:
                     # Log the specific error for debugging
                     print(f"[RATE LIMIT] {result.stderr.strip()}")
-                    self.rate_limiter.remaining = 0
-                    self.rate_limiter.force_wait()
+                    rate_limiter.remaining = 0
+                    rate_limiter.force_wait()
                     continue
                 elif "422" in result.stderr:
                     # Hit pagination limit
@@ -198,7 +247,7 @@ class GitHubClient:
             headers = parts[0] if parts else ""
             body = parts[1] if len(parts) > 1 else "{}"
 
-            self.rate_limiter.update_from_headers(headers)
+            rate_limiter.update_from_headers(headers)
 
             data = json.loads(body)
 

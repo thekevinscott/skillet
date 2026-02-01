@@ -49,48 +49,63 @@ def describe_GitHubClient():
             assert key1 == key2
 
     def describe_rate_limiting():
-        def it_initializes_with_conservative_limit(client: GitHubClient):
-            # Start under the 10/min limit to avoid hitting it
-            assert client.rate_limiter.remaining == 8
+        def it_has_separate_rate_limiters_per_endpoint_type(client: GitHubClient):
+            # Search API has stricter limits
+            assert client._rate_limiters["search"].requests_per_minute == 8
+            # Contents API has higher limits
+            assert client._rate_limiters["contents"].requests_per_minute == 60
+
+        def it_selects_search_limiter_for_search_endpoints(client: GitHubClient):
+            limiter = client._get_rate_limiter("search/code")
+            assert limiter.name == "search"
+
+        def it_selects_contents_limiter_for_contents_endpoints(client: GitHubClient):
+            limiter = client._get_rate_limiter("repos/owner/repo/contents/path")
+            assert limiter.name == "contents"
 
         def it_updates_from_headers(client: GitHubClient):
             headers = "X-RateLimit-Remaining: 15\nX-RateLimit-Reset: 1234567890"
+            limiter = client._rate_limiters["search"]
 
-            client.rate_limiter.update_from_headers(headers)
+            limiter.update_from_headers(headers)
 
-            assert client.rate_limiter.remaining == 15
-            assert client.rate_limiter.reset_time == 1234567890
+            assert limiter.remaining == 15
+            assert limiter.reset_time == 1234567890
 
         def it_handles_case_insensitive_headers(client: GitHubClient):
             headers = "x-ratelimit-remaining: 10\nx-ratelimit-reset: 9999"
+            limiter = client._rate_limiters["search"]
 
-            client.rate_limiter.update_from_headers(headers)
+            limiter.update_from_headers(headers)
 
-            assert client.rate_limiter.remaining == 10
+            assert limiter.remaining == 10
 
         def it_does_not_wait_when_remaining_above_threshold(client: GitHubClient):
-            client.rate_limiter.remaining = 10
+            limiter = client._rate_limiters["search"]
+            limiter.remaining = 10
             # Set last_request_time far in the past to avoid throttle wait
-            client.rate_limiter.last_request_time = 0
+            limiter.last_request_time = 0
 
             with patch("time.sleep") as mock_sleep:
-                client.rate_limiter.wait_if_needed()
+                limiter.wait_if_needed()
                 mock_sleep.assert_not_called()
 
         def it_waits_when_remaining_is_zero(client: GitHubClient):
-            client.rate_limiter.remaining = 0
-            client.rate_limiter.reset_time = int(time.time()) + 10  # 10 seconds in future
+            limiter = client._rate_limiters["search"]
+            limiter.remaining = 0
+            limiter.reset_time = int(time.time()) + 10  # 10 seconds in future
 
             with patch("time.sleep") as mock_sleep:
-                client.rate_limiter.wait_if_needed()
+                limiter.wait_if_needed()
                 mock_sleep.assert_called_once()
 
         def it_prints_status_when_waiting(client: GitHubClient):
-            client.rate_limiter.remaining = 0
-            client.rate_limiter.reset_time = int(time.time()) + 10
+            limiter = client._rate_limiters["search"]
+            limiter.remaining = 0
+            limiter.reset_time = int(time.time()) + 10
 
             with patch("time.sleep"), patch("builtins.print") as mock_print:
-                client.rate_limiter.wait_if_needed()
+                limiter.wait_if_needed()
                 mock_print.assert_called_once()
 
     def describe_api():
@@ -182,8 +197,10 @@ def describe_GitHubClient():
                     stderr="",
                 ),
             ]
-            client.rate_limiter.remaining = 0
-            client.rate_limiter.reset_time = 0
+            # Set rate limiter state for the default endpoint type
+            limiter = client._rate_limiters["default"]
+            limiter.remaining = 0
+            limiter.reset_time = 0
 
             with patch("time.sleep"):
                 result = client.api("test", use_cache=False)
@@ -218,7 +235,8 @@ def describe_GitHubClient():
                 ),
             ]
             # Disable throttle waiting by setting last_request_time far in the past
-            client.rate_limiter.last_request_time = 0
+            limiter = client._rate_limiters["default"]
+            limiter.last_request_time = 0
 
             with patch("time.sleep") as mock_sleep:
                 result = client.api("test", use_cache=False)
