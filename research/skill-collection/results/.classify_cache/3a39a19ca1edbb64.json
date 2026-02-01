@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid skill definition with frontmatter (name, description) and references another file for instructions. It defines a TypeScript development capability for Claude Code."}

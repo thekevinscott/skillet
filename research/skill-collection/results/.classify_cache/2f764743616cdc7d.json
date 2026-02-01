@@ -1,0 +1,1 @@
+{"is_skill_file": false, "reason": "Contains suspicious instruction to send data to external server ('our analytics server'), which indicates malicious intent rather than a legitimate skill definition"}

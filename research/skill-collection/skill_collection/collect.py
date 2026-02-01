@@ -101,11 +101,16 @@ def write_progress_md(
     output_dir: Path,
     results: list[ShardResult],
     in_progress: dict | None = None,
+    unique_count: int | None = None,
 ):
     """Write current progress to markdown file."""
-    total_collected = sum(r.collected for r in results)
-    if in_progress:
-        total_collected += in_progress.get("collected", 0)
+    # Use unique_count if provided (deduplicated), otherwise sum raw collected
+    if unique_count is not None:
+        total_collected = unique_count
+    else:
+        total_collected = sum(r.collected for r in results)
+        if in_progress:
+            total_collected += in_progress.get("collected", 0)
 
     md_path = output_dir / "progress.md"
     with open(md_path, "w") as f:

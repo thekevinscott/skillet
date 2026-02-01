@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Defines a specific encryption skill for bot token encryption with clear implementation details (AES-256-GCM algorithm, environment-based key generation) and when to apply it (settings save/load, security features)"}

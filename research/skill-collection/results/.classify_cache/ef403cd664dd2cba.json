@@ -1,0 +1,1 @@
+{"is_skill_file": true, "reason": "Valid skill file with proper YAML frontmatter containing name, description, and allowed-tools, plus clear instructions for executing the echo command"}
