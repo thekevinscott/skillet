@@ -43,31 +43,35 @@ def _(mo):
 
 @app.cell
 def _(alt, df, mo, pl):
-    # Histograms for size distributions
-    pdf = df.to_pandas()
+    # Clip to 95th percentile for readable histograms
+    word_p95 = float(df["word_count"].quantile(0.95))
+    line_p95 = float(df["line_count"].quantile(0.95))
+    byte_p95 = float(df["byte_size"].quantile(0.95))
 
-    word_hist = alt.Chart(pdf).mark_bar().encode(
-        alt.X("word_count:Q", bin=alt.Bin(maxbins=50), title="Word Count"),
-        alt.Y("count()", title="Number of Skills"),
-    ).properties(width=280, height=200, title="Word Count Distribution")
+    chart_data = df.select(["word_count", "line_count", "byte_size"]).to_pandas()
 
-    line_hist = alt.Chart(pdf).mark_bar().encode(
-        alt.X("line_count:Q", bin=alt.Bin(maxbins=50), title="Line Count"),
-        alt.Y("count()", title="Number of Skills"),
-    ).properties(width=280, height=200, title="Line Count Distribution")
+    word_hist = alt.Chart(chart_data).mark_bar().encode(
+        alt.X("word_count:Q", bin=alt.Bin(maxbins=30), title="Word Count", scale=alt.Scale(domain=[0, word_p95])),
+        alt.Y("count()", title="Count"),
+    ).properties(width=250, height=180, title=f"Word Count (clipped at p95={word_p95:.0f})")
 
-    byte_hist = alt.Chart(pdf).mark_bar().encode(
-        alt.X("byte_size:Q", bin=alt.Bin(maxbins=50), title="Byte Size"),
-        alt.Y("count()", title="Number of Skills"),
-    ).properties(width=280, height=200, title="File Size Distribution")
+    line_hist = alt.Chart(chart_data).mark_bar().encode(
+        alt.X("line_count:Q", bin=alt.Bin(maxbins=30), title="Line Count", scale=alt.Scale(domain=[0, line_p95])),
+        alt.Y("count()", title="Count"),
+    ).properties(width=250, height=180, title=f"Line Count (clipped at p95={line_p95:.0f})")
+
+    byte_hist = alt.Chart(chart_data).mark_bar().encode(
+        alt.X("byte_size:Q", bin=alt.Bin(maxbins=30), title="Bytes", scale=alt.Scale(domain=[0, byte_p95])),
+        alt.Y("count()", title="Count"),
+    ).properties(width=250, height=180, title=f"File Size (clipped at p95={byte_p95:.0f})")
 
     charts = mo.hstack([word_hist, line_hist, byte_hist])
 
     # Summary statistics table
-    stats_data = []
+    stats_rows = []
     for col, name in [("word_count", "Words"), ("line_count", "Lines"), ("byte_size", "Bytes")]:
         data = df[col]
-        stats_data.append({
+        stats_rows.append({
             "Metric": name,
             "Min": int(data.min()),
             "P25": int(data.quantile(0.25)),
@@ -76,33 +80,60 @@ def _(alt, df, mo, pl):
             "Max": int(data.max()),
             "Mean": round(data.mean(), 1),
         })
-    stats_df = pl.DataFrame(stats_data)
-    stats_table = mo.ui.table(stats_df.to_pandas())
 
-    mo.vstack([charts, stats_table])
+    stats_md = mo.md(f"""
+| Metric | Min | P25 | Median | P75 | Max | Mean |
+|--------|-----|-----|--------|-----|-----|------|
+| Words | {stats_rows[0]['Min']} | {stats_rows[0]['P25']} | {stats_rows[0]['Median']} | {stats_rows[0]['P75']} | {stats_rows[0]['Max']} | {stats_rows[0]['Mean']} |
+| Lines | {stats_rows[1]['Min']} | {stats_rows[1]['P25']} | {stats_rows[1]['Median']} | {stats_rows[1]['P75']} | {stats_rows[1]['Max']} | {stats_rows[1]['Mean']} |
+| Bytes | {stats_rows[2]['Min']} | {stats_rows[2]['P25']} | {stats_rows[2]['Median']} | {stats_rows[2]['P75']} | {stats_rows[2]['Max']} | {stats_rows[2]['Mean']} |
+""")
+
+    mo.vstack([charts, stats_md])
+    return
+
+
+
+
+@app.cell
+def _(alt, df, mo, pl):
+    # Word count buckets as bar chart
+    word_buckets = df.select(
+        pl.when(pl.col("word_count") < 50).then(pl.lit("< 50"))
+        .when(pl.col("word_count") < 100).then(pl.lit("50-100"))
+        .when(pl.col("word_count") < 250).then(pl.lit("100-250"))
+        .when(pl.col("word_count") < 500).then(pl.lit("250-500"))
+        .otherwise(pl.lit("> 500"))
+        .alias("bucket")
+    ).group_by("bucket").len()
+
+    bucket_order = ["< 50", "50-100", "100-250", "250-500", "> 500"]
+    bucket_chart = alt.Chart(word_buckets.to_pandas()).mark_bar().encode(
+        alt.X("bucket:N", title="Word Count Range", sort=bucket_order),
+        alt.Y("len:Q", title="Number of Skills"),
+        tooltip=["bucket", "len"]
+    ).properties(width=400, height=250, title="Skills by Word Count Bucket")
+
+    mo.vstack([bucket_chart, mo.md("*Most skills are under 250 words*")])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
-    *Reading Level = Flesch-Kincaid Grade Level (lower = easier to read)*
-    """)
-    return
+    mo.callout(mo.md("""
+**Comparison: Anthropic's Official Skills**
 
+| Source | Words | Lines |
+|--------|------:|------:|
+| [anthropics/skills docx](https://github.com/anthropics/skills/blob/main/skills/docx/SKILL.md) | 1,847 | 250 |
+| [anthropics/skills pdf](https://github.com/anthropics/skills/blob/main/skills/pdf/SKILL.md) | ~1,850 | ~420 |
+| **Wild skills (median)** | **41** | **13** |
+| Wild skills (p75) | ~150 | ~40 |
 
-@app.cell
-def _(df, pl):
-    # Word count buckets
-    word_buckets = df.select(
-        pl.when(pl.col("word_count") < 50).then(pl.lit("< 50 words"))
-        .when(pl.col("word_count") < 100).then(pl.lit("50-100 words"))
-        .when(pl.col("word_count") < 250).then(pl.lit("100-250 words"))
-        .when(pl.col("word_count") < 500).then(pl.lit("250-500 words"))
-        .otherwise(pl.lit("> 500 words"))
-        .alias("word_bucket")
-    ).group_by("word_bucket").len().sort("len", descending=True)
-    word_buckets
+Anthropic's production skills are **~45x longer** than the median skill in the wild.
+This suggests either most community skills are too minimal to be effective,
+or Anthropic's examples are overengineered for document processing specifically.
+"""), kind="warn")
     return
 
 
