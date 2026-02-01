@@ -1,6 +1,7 @@
 """Shared utilities for skill collection."""
 
 import sys
+from pathlib import Path
 
 
 def status(msg: str):
@@ -28,10 +29,7 @@ def truncate_text(text: str, max_len: int = 120) -> str:
 def escape_html(text: str) -> str:
     """Escape HTML special characters."""
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
@@ -46,3 +44,8 @@ def truncate_for_analysis(content: str, max_length: int) -> str:
     if len(content) <= max_length:
         return content
     return content[:max_length] + "\n\n[truncated]"
+
+
+def resolve_content_path(content_dir: "Path", owner: str, repo: str, ref: str, path: str) -> "Path":
+    """Build local content path from GitHub URL components."""
+    return content_dir / owner / repo / "blob" / ref / path

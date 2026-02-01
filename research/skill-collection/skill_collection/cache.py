@@ -31,5 +31,6 @@ class CacheManager:
 
     def set(self, content: str, result: dict):
         """Cache a result for the given content."""
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         cache_file = self.cache_dir / f"{self.get_cache_key(content)}.json"
         cache_file.write_text(json.dumps(result))

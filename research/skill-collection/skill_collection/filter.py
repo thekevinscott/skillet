@@ -2,20 +2,18 @@
 
 import asyncio
 import contextlib
-import json
 import signal
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
-
-from .cache import CacheManager
+from .agent import query_json
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
 from .utils import (
     escape_html,
     escape_table_cell,
+    resolve_content_path,
     status,
     truncate_for_analysis,
     truncate_text,
@@ -37,9 +35,7 @@ def is_symlink_content(content: str) -> bool:
     if content.startswith("#") or content.startswith("```"):
         return False
     # Exclude chezmoi/Go template syntax (e.g., {{ includeTemplate "..." }})
-    if "{{" in content:
-        return False
-    return True
+    return "{{" not in content
 
 
 def resolve_symlink_url(original_url: str, symlink_target: str) -> str:
@@ -77,8 +73,6 @@ class ClassificationProgress:
     """Track classification progress."""
 
     completed: int = 0
-    cached: int = 0
-    api_calls: int = 0
     valid: int = 0
     invalid: int = 0
     errors: int = 0
@@ -88,9 +82,10 @@ class ClassificationProgress:
 class SkillFileClassifier:
     """Classifies skill files using Claude and writes results incrementally."""
 
-    cache: CacheManager
+    cache_dir: Path
     valid_path: Path
     invalid_path: Path
+    skip_cache: bool = False
     verbose: bool = False
     concurrency: int = 1
     progress: ClassificationProgress = field(default_factory=ClassificationProgress)
@@ -150,40 +145,7 @@ class SkillFileClassifier:
         # Truncate very long files to avoid token limits
         content = truncate_for_analysis(content, MAX_FILE_CONTENT_LENGTH)
 
-        # Check cache first
-        cached = self.cache.get(content)
-        if cached is not None:
-            is_valid = cached.get("is_skill_file", False)
-            await self.write_result(is_valid, resolved_url, is_symlink, cached.get("reason", ""))
-            await self.update_progress(
-                completed=1, cached=1, valid=1 if is_valid else 0, invalid=0 if is_valid else 1
-            )
-            return
-
-        # Acquire semaphore for API call
-        async with semaphore:
-            await self.update_progress(api_calls=1)
-
-            result_data = await self._call_claude(content, url)
-
-            if result_data is None:
-                await self.write_result(False, resolved_url, is_symlink, "Failed to classify")
-                await self.update_progress(errors=1)
-            else:
-                self.cache.set(content, result_data)
-                is_valid = result_data.get("is_skill_file", False)
-                await self.write_result(is_valid, resolved_url, is_symlink, result_data.get("reason", ""))
-                await self.update_progress(valid=1 if is_valid else 0, invalid=0 if is_valid else 1)
-
-            await self.update_progress(completed=1)
-
-    async def _call_claude(self, content: str, url: str) -> dict | None:
-        """Call Claude API to classify content."""
-        options = ClaudeAgentOptions(
-            allowed_tools=[],
-            max_turns=1,
-        )
-
+        # Build prompt for classification
         prompt = f"""Analyze this file and determine if it is a valid Claude Code SKILL.md file.
 
 A valid SKILL.md file should:
@@ -200,26 +162,26 @@ File content:
 IMPORTANT: Respond with ONLY a JSON object, no other text.
 Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
 
-        try:
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, ResultMessage):
-                    if message.is_error:
-                        print(f"Error: {message.result}", file=sys.stderr)
-                    elif message.result:
-                        try:
-                            parsed = json.loads(message.result)
-                            if parsed.get("is_skill_file") is not None:
-                                return parsed
-                        except json.JSONDecodeError:
-                            if self.verbose:
-                                print(
-                                    f"DEBUG: Could not parse JSON from: {message.result}",
-                                    file=sys.stderr,
-                                )
-        except Exception as e:
-            print(f"Error classifying {url}: {e}", file=sys.stderr)
+        # Acquire semaphore for API call
+        async with semaphore:
+            result_data = await query_json(
+                prompt,
+                cache_dir=self.cache_dir,
+                skip_cache=self.skip_cache,
+                verbose=self.verbose,
+            )
 
-        return None
+            if result_data is None:
+                await self.write_result(False, resolved_url, is_symlink, "Failed to classify")
+                await self.update_progress(completed=1, errors=1)
+            else:
+                is_valid = result_data.get("is_skill_file", False)
+                await self.write_result(
+                    is_valid, resolved_url, is_symlink, result_data.get("reason", "")
+                )
+                await self.update_progress(
+                    completed=1, valid=1 if is_valid else 0, invalid=0 if is_valid else 1
+                )
 
     async def run(self, files_to_classify: list[tuple[str, Path]]):
         """Run classification on all files."""
@@ -233,13 +195,15 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
                 status(
                     f"[{self.progress.completed}/{total}] "
                     f"Classifying ({self.progress.valid} valid, {self.progress.invalid} invalid, "
-                    f"{self.progress.cached} cached, {self.progress.api_calls} API calls)..."
+                    f"{self.progress.errors} errors)..."
                 )
                 await asyncio.sleep(0.1)
 
         status_task = asyncio.create_task(update_status_loop())
 
-        tasks = [self.classify_file(url, file_path, semaphore) for url, file_path in files_to_classify]
+        tasks = [
+            self.classify_file(url, file_path, semaphore) for url, file_path in files_to_classify
+        ]
         await asyncio.gather(*tasks)
 
         status_task.cancel()
@@ -266,7 +230,7 @@ def cmd_filter_skills(args, load_skill_urls):
         if not parsed:
             continue
         owner, repo, ref, path = parsed
-        local_path = content_dir / owner / repo / "blob" / ref / path
+        local_path = resolve_content_path(content_dir, owner, repo, ref, path)
         if local_path.exists():
             files_to_classify.append((url, local_path))
 
@@ -276,11 +240,11 @@ def cmd_filter_skills(args, load_skill_urls):
     output_dir = args.output if args.output else args.output_dir / "classified-skills"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    cache = CacheManager(cache_dir=cache_dir, skip_cache=args.skip_cache)
     classifier = SkillFileClassifier(
-        cache=cache,
+        cache_dir=cache_dir,
         valid_path=output_dir / "valid.md",
         invalid_path=output_dir / "invalid.md",
+        skip_cache=args.skip_cache,
         verbose=args.verbose,
         concurrency=args.concurrency,
     )
@@ -291,7 +255,6 @@ def cmd_filter_skills(args, load_skill_urls):
     print(f"Results saved to {output_dir}/", file=sys.stderr)
     p = classifier.progress
     print(
-        f"Total: {p.completed}, Valid: {p.valid}, Invalid: {p.invalid}, "
-        f"Errors: {p.errors}, Cached: {p.cached}, API calls: {p.api_calls}",
+        f"Total: {p.completed}, Valid: {p.valid}, Invalid: {p.invalid}, Errors: {p.errors}",
         file=sys.stderr,
     )

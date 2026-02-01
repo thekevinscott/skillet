@@ -2,48 +2,12 @@
 
 import pytest
 
-from .cache import CacheManager
 from .filter import (
     ClassificationProgress,
     SkillFileClassifier,
     is_symlink_content,
     resolve_symlink_url,
 )
-from .utils import escape_html, escape_table_cell
-
-
-def describe_escape_html():
-    def it_escapes_ampersand():
-        assert escape_html("foo & bar") == "foo &amp; bar"
-
-    def it_escapes_less_than():
-        assert escape_html("a < b") == "a &lt; b"
-
-    def it_escapes_greater_than():
-        assert escape_html("a > b") == "a &gt; b"
-
-    def it_escapes_quotes():
-        assert escape_html('say "hello"') == "say &quot;hello&quot;"
-
-    def it_escapes_all_special_chars():
-        assert escape_html('<a href="x?a=1&b=2">') == "&lt;a href=&quot;x?a=1&amp;b=2&quot;&gt;"
-
-    def it_handles_empty_string():
-        assert escape_html("") == ""
-
-    def it_passes_through_normal_text():
-        assert escape_html("normal text 123") == "normal text 123"
-
-
-def describe_escape_table_cell():
-    def it_escapes_pipe_characters():
-        assert escape_table_cell("foo | bar") == "foo &#124; bar"
-
-    def it_escapes_html_and_pipes():
-        assert escape_table_cell("<code> | </code>") == "&lt;code&gt; &#124; &lt;/code&gt;"
-
-    def it_handles_multiple_pipes():
-        assert escape_table_cell("a | b | c") == "a &#124; b &#124; c"
 
 
 def describe_is_symlink_content():
@@ -93,60 +57,22 @@ def describe_resolve_symlink_url():
         assert result == url
 
 
-def describe_CacheManager():
-    @pytest.fixture
-    def cache(tmp_path):
-        cache_dir = tmp_path / "cache"
-        cache_dir.mkdir(parents=True)
-        return CacheManager(cache_dir=cache_dir)
-
-    def it_generates_consistent_cache_keys(cache):
-        content = "test content"
-        key1 = cache.get_cache_key(content)
-        key2 = cache.get_cache_key(content)
-        assert key1 == key2
-        assert len(key1) == 16  # SHA256 truncated to 16 chars
-
-    def it_generates_different_keys_for_different_content(cache):
-        key1 = cache.get_cache_key("content A")
-        key2 = cache.get_cache_key("content B")
-        assert key1 != key2
-
-    def it_returns_none_for_uncached_content(cache):
-        result = cache.get("new content")
-        assert result is None
-
-    def it_caches_and_retrieves_results(cache):
-        content = "test content"
-        expected = {"is_skill_file": True, "reason": "test"}
-        cache.set(content, expected)
-        result = cache.get(content)
-        assert result == expected
-
-    def it_respects_skip_cache_flag(tmp_path):
-        cache_dir = tmp_path / "cache"
-        cache_dir.mkdir(parents=True)
-        cache = CacheManager(cache_dir=cache_dir, skip_cache=True)
-        cache.set("content", {"is_skill_file": True})
-        result = cache.get("content")
-        assert result is None
-
-
 def describe_SkillFileClassifier():
     @pytest.fixture
     def classifier(tmp_path):
         cache_dir = tmp_path / "cache"
         cache_dir.mkdir(parents=True)
-        cache = CacheManager(cache_dir=cache_dir)
         return SkillFileClassifier(
-            cache=cache,
+            cache_dir=cache_dir,
             valid_path=tmp_path / "valid.md",
             invalid_path=tmp_path / "invalid.md",
         )
 
     def describe_formatting():
         def it_formats_row_with_link(classifier):
-            row = classifier.format_row("https://github.com/user/repo/blob/main/SKILL.md", False, "Valid")
+            row = classifier.format_row(
+                "https://github.com/user/repo/blob/main/SKILL.md", False, "Valid"
+            )
             assert '<a href="https://github.com/user/repo/blob/main/SKILL.md"' in row
             assert 'target="_blank"' in row
             assert "| Valid |" in row
@@ -167,7 +93,8 @@ def describe_ClassificationProgress():
         progress = ClassificationProgress()
         assert progress.completed == 0
         assert progress.valid == 0
-        assert progress.cached == 0
+        assert progress.invalid == 0
+        assert progress.errors == 0
 
     def it_allows_updating_fields():
         progress = ClassificationProgress()

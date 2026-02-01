@@ -8,6 +8,7 @@ import frontmatter
 import polars as pl
 
 from .github import parse_github_url
+from .utils import resolve_content_path
 
 
 @dataclass
@@ -172,16 +173,10 @@ def extract_features(url: str, content: str, parsed: tuple) -> SkillFeatures:
     external_url_count = sum(1 for _, url in links if url.startswith("http"))
 
     # Content patterns
-    has_examples = bool(
-        re.search(r"(?i)(example|usage|sample)", body)
-        or re.search(r"```", body)
-    )
-    has_when_to_use = bool(
-        re.search(r"(?i)(when to (use|activate)|trigger|invoke)", body)
-    )
+    has_examples = bool(re.search(r"(?i)(example|usage|sample)", body) or re.search(r"```", body))
+    has_when_to_use = bool(re.search(r"(?i)(when to (use|activate)|trigger|invoke)", body))
     has_references = bool(
-        re.search(r"(?i)(reference|see also|documentation|docs)", body)
-        or external_url_count > 0
+        re.search(r"(?i)(reference|see also|documentation|docs)", body) or external_url_count > 0
     )
 
     return SkillFeatures(
@@ -240,7 +235,7 @@ def cmd_analyze(args):
             continue
 
         owner, repo, ref, path = parsed
-        local_path = content_dir / owner / repo / "blob" / ref / path
+        local_path = resolve_content_path(content_dir, owner, repo, ref, path)
 
         if not local_path.exists():
             errors += 1
@@ -275,7 +270,9 @@ def cmd_analyze(args):
     print(f"With description: {df['has_description'].sum()}")
     print(f"With triggers: {df['has_triggers'].sum()}")
     print(f"With examples: {df['has_examples'].sum()}")
-    print(f"\nByte size: min={df['byte_size'].min()}, max={df['byte_size'].max()}, median={df['byte_size'].median()}")
-    print(f"Line count: min={df['line_count'].min()}, max={df['line_count'].max()}, median={df['line_count'].median()}")
-
-
+    print(
+        f"\nByte size: min={df['byte_size'].min()}, max={df['byte_size'].max()}, median={df['byte_size'].median()}"
+    )
+    print(
+        f"Line count: min={df['line_count'].min()}, max={df['line_count'].max()}, median={df['line_count'].median()}"
+    )

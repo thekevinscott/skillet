@@ -7,14 +7,11 @@ import signal
 import sys
 from pathlib import Path
 
-from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
-
+from .agent import query_json
 from .analyze import parse_valid_md
-from .cache import CacheManager
 from .github import parse_github_url
 from .models import MAX_FILE_CONTENT_LENGTH
-from .utils import status, truncate_for_analysis
-
+from .utils import resolve_content_path, status, truncate_for_analysis
 
 CLASSIFICATION_SCHEMA = """{
   "summary": "1-sentence description of what this skill enables",
@@ -38,27 +35,16 @@ CLASSIFICATION_SCHEMA = """{
 async def classify_skill(
     url: str,
     content: str,
-    cache: CacheManager,
+    cache_dir: Path,
     semaphore: asyncio.Semaphore,
+    skip_cache: bool = False,
     verbose: bool = False,
 ) -> dict | None:
     """Classify a single skill using Claude."""
     # Truncate very long files to avoid token limits
     content = truncate_for_analysis(content, MAX_FILE_CONTENT_LENGTH)
 
-    # Check cache first
-    cached = cache.get(content)
-    if cached is not None:
-        return {"url": url, "cached": True, **cached}
-
-    # Acquire semaphore for API call
-    async with semaphore:
-        options = ClaudeAgentOptions(
-            allowed_tools=[],
-            max_turns=1,
-        )
-
-        prompt = f"""Analyze this Claude Code SKILL.md file and extract a structured classification.
+    prompt = f"""Analyze this Claude Code SKILL.md file and extract a structured classification.
 
 File content:
 ```
@@ -120,38 +106,17 @@ Guidelines:
 
 IMPORTANT: Respond with ONLY the JSON object, no other text."""
 
-        try:
-            async for message in query(prompt=prompt, options=options):
-                if isinstance(message, ResultMessage):
-                    if message.is_error:
-                        if verbose:
-                            print(f"Error: {message.result}", file=sys.stderr)
-                        return None
-                    if message.result:
-                        try:
-                            # Try to extract JSON from the response
-                            result_text = message.result.strip()
-                            # Handle markdown code blocks
-                            if result_text.startswith("```"):
-                                result_text = result_text.split("```")[1]
-                                if result_text.startswith("json"):
-                                    result_text = result_text[4:]
-                                result_text = result_text.strip()
-
-                            parsed = json.loads(result_text)
-                            cache.set(content, parsed)
-                            return {"url": url, "cached": False, **parsed}
-                        except json.JSONDecodeError as e:
-                            if verbose:
-                                print(f"JSON parse error for {url}: {e}", file=sys.stderr)
-                                print(f"Response: {message.result[:200]}...", file=sys.stderr)
-                            return None
-        except Exception as e:
-            if verbose:
-                print(f"Error classifying {url}: {e}", file=sys.stderr)
-            return None
-
-    return None
+    # Acquire semaphore for API call
+    async with semaphore:
+        result = await query_json(
+            prompt,
+            cache_dir=cache_dir,
+            skip_cache=skip_cache,
+            verbose=verbose,
+        )
+        if result is not None:
+            return {"url": url, **result}
+        return None
 
 
 def cmd_classify(args):
@@ -162,8 +127,6 @@ def cmd_classify(args):
     valid_md_path = args.output_dir / "classified-skills" / "valid.md"
     content_dir = args.output_dir / "content"
     cache_dir = args.output_dir / ".taxonomy_cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache = CacheManager(cache_dir=cache_dir, skip_cache=args.skip_cache)
 
     if not valid_md_path.exists():
         raise FileNotFoundError(f"{valid_md_path} not found. Run 'filter-skills' first.")
@@ -182,7 +145,7 @@ def cmd_classify(args):
         if not parsed:
             continue
         owner, repo, ref, path = parsed
-        local_path = content_dir / owner / repo / "blob" / ref / path
+        local_path = resolve_content_path(content_dir, owner, repo, ref, path)
         if local_path.exists():
             content = local_path.read_text()
             if content.strip():
@@ -191,22 +154,20 @@ def cmd_classify(args):
     print(f"Found {len(files_to_classify)} files with content", file=sys.stderr)
 
     # Track progress
-    progress = {"completed": 0, "cached": 0, "api_calls": 0, "errors": 0}
+    progress = {"completed": 0, "errors": 0}
     results: list[dict] = []
     results_lock = asyncio.Lock()
     progress_lock = asyncio.Lock()
 
     async def classify_and_collect(url: str, content: str, semaphore: asyncio.Semaphore):
-        result = await classify_skill(url, content, cache, semaphore, args.verbose)
+        result = await classify_skill(
+            url, content, cache_dir, semaphore, skip_cache=args.skip_cache, verbose=args.verbose
+        )
 
         async with progress_lock:
             progress["completed"] += 1
             if result is None:
                 progress["errors"] += 1
-            elif result.get("cached"):
-                progress["cached"] += 1
-            else:
-                progress["api_calls"] += 1
 
         if result is not None:
             async with results_lock:
@@ -216,9 +177,7 @@ def cmd_classify(args):
         total = len(files_to_classify)
         while progress["completed"] < total:
             status(
-                f"[{progress['completed']}/{total}] "
-                f"Classifying ({progress['cached']} cached, {progress['api_calls']} API, "
-                f"{progress['errors']} errors)..."
+                f"[{progress['completed']}/{total}] Classifying ({progress['errors']} errors)..."
             )
             await asyncio.sleep(0.1)
 
@@ -246,8 +205,7 @@ def cmd_classify(args):
 
     print(f"Saved {len(results)} classifications to {output_path}", file=sys.stderr)
     print(
-        f"Total: {progress['completed']}, Cached: {progress['cached']}, "
-        f"API calls: {progress['api_calls']}, Errors: {progress['errors']}",
+        f"Total: {progress['completed']}, Errors: {progress['errors']}",
         file=sys.stderr,
     )
 
@@ -281,5 +239,3 @@ def cmd_classify(args):
         print("\nSophistication:", file=sys.stderr)
         for s, count in sorted(sophistication.items(), key=lambda x: x[1], reverse=True):
             print(f"  {s}: {count}", file=sys.stderr)
-
-

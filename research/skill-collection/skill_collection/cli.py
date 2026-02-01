@@ -4,6 +4,8 @@ import argparse
 import base64
 from pathlib import Path
 
+from .analyze import cmd_analyze as _cmd_analyze
+from .classify import cmd_classify as _cmd_classify
 from .collect import (
     append_urls,
     collect_shard,
@@ -16,7 +18,7 @@ from .collect import (
 from .filter import cmd_filter_skills as _cmd_filter_skills
 from .github import get_client, parse_github_url
 from .models import EXPECTED_TOTAL, SIZE_RANGES, ShardResult
-from .utils import status
+from .utils import resolve_content_path, status
 
 
 def load_skill_urls(output_dir: Path) -> list[str]:
@@ -135,8 +137,7 @@ def cmd_fetch_content(args):
             continue
 
         owner, repo, ref, path = parsed
-        # Build local path: content/{owner}/{repo}/blob/{ref}/{path}
-        local_path = content_dir / owner / repo / "blob" / ref / path
+        local_path = resolve_content_path(content_dir, owner, repo, ref, path)
 
         # Skip if already fetched (on-disk cache)
         if local_path.exists():
@@ -162,6 +163,16 @@ def cmd_fetch_content(args):
 def cmd_filter_skills(args):
     """Classify files using Claude to determine if they are valid SKILL.md files."""
     _cmd_filter_skills(args, load_skill_urls)
+
+
+def cmd_analyze(args):
+    """Extract features from valid skills for analysis."""
+    _cmd_analyze(args)
+
+
+def cmd_classify(args):
+    """Classify skills using Claude to extract structured taxonomy."""
+    _cmd_classify(args)
 
 
 def main():
@@ -236,6 +247,48 @@ def main():
         help="Enable verbose debug output",
     )
 
+    # analyze subcommand
+    subparsers.add_parser(
+        "analyze",
+        help="Extract features from valid skills for analysis",
+    )
+
+    # classify subcommand
+    classify_parser = subparsers.add_parser(
+        "classify",
+        help="Classify skills using Claude to extract structured taxonomy",
+    )
+    classify_parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Output file for classifications (default: skill_classifications.json)",
+    )
+    classify_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of skills to classify",
+    )
+    classify_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=3,
+        help="Maximum concurrent API calls (default: 3)",
+    )
+    classify_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose debug output",
+    )
+    classify_parser.add_argument(
+        "--skip-cache",
+        action="store_true",
+        help="Skip reading from cache (still writes to cache)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "fetch-files":
@@ -244,6 +297,10 @@ def main():
         cmd_fetch_content(args)
     elif args.command == "filter-skills":
         cmd_filter_skills(args)
+    elif args.command == "analyze":
+        cmd_analyze(args)
+    elif args.command == "classify":
+        cmd_classify(args)
     else:
         parser.print_help()
 
