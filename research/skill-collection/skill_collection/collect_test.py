@@ -44,6 +44,19 @@ def describe_SizeRange():
             r = SizeRange(50000, None)
             assert str(r) == ">50000"
 
+    def describe_from_string():
+        def it_parses_bounded_range():
+            r = SizeRange.from_string("100-199")
+            assert r == SizeRange(100, 199)
+
+        def it_parses_unbounded_range():
+            r = SizeRange.from_string(">50000")
+            assert r == SizeRange(50000, None)
+
+        def it_raises_on_invalid_format():
+            with pytest.raises(ValueError, match="Invalid range string"):
+                SizeRange.from_string("invalid")
+
 
 def describe_SizeRange_subdivide():
     def it_splits_bounded_range_in_half():

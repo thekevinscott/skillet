@@ -11,6 +11,7 @@ from pathlib import Path
 from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
 
 from .github import parse_github_url
+from .models import MAX_FILE_CONTENT_LENGTH
 from .utils import status, truncate_text, truncate_url
 
 
@@ -176,8 +177,8 @@ def cmd_filter_skills(args, load_skill_urls):
             resolved_url = resolve_symlink_url(url, content)
 
         # Truncate very long files to avoid token limits
-        if len(content) > 10000:
-            content = content[:10000] + "\n\n[truncated]"
+        if len(content) > MAX_FILE_CONTENT_LENGTH:
+            content = content[:MAX_FILE_CONTENT_LENGTH] + "\n\n[truncated]"
 
         # Check cache first
         cached = get_cached_result(content)

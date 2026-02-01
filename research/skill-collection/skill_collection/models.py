@@ -5,6 +5,8 @@ from typing import TypedDict
 
 DEFAULT_CHUNK_SIZE = 100  # Default chunk size for subdivision ranges
 EXPECTED_TOTAL = 113_066  # Approximate based on GitHub search across all size ranges
+GITHUB_SEARCH_RESULT_LIMIT = 1000  # GitHub Code Search API hard limit per query
+MAX_FILE_CONTENT_LENGTH = 10_000  # Truncate files longer than this for classification
 
 
 class RepositoryInfo(TypedDict):
@@ -82,6 +84,16 @@ class SizeRange:
         if self.max_bytes is None:
             return f">{self.min_bytes}"
         return f"{self.min_bytes}-{self.max_bytes}"
+
+    @classmethod
+    def from_string(cls, range_str: str) -> "SizeRange":
+        """Parse a range string like '500-599' or '>100000' back to SizeRange."""
+        if range_str.startswith(">"):
+            return cls(int(range_str[1:]), None)
+        if "-" in range_str:
+            min_str, max_str = range_str.split("-", 1)
+            return cls(int(min_str), int(max_str))
+        raise ValueError(f"Invalid range string: {range_str}")
 
 
 @dataclass

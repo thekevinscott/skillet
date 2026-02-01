@@ -6,12 +6,18 @@ from datetime import datetime
 from pathlib import Path
 
 from .github import get_client
-from .models import EXPECTED_TOTAL, ProgressRow, ShardResult, SizeRange
+from .models import (
+    EXPECTED_TOTAL,
+    GITHUB_SEARCH_RESULT_LIMIT,
+    ProgressRow,
+    ShardResult,
+    SizeRange,
+)
 
 
 def collect_shard(
     size_range: SizeRange,
-    max_results: int = 1000,
+    max_results: int = GITHUB_SEARCH_RESULT_LIMIT,
     on_page: Callable[[int, int, int], None] | None = None,
     dry_run: bool = False,
 ) -> tuple[ShardResult, list[dict]]:
@@ -52,9 +58,9 @@ def collect_shard(
         if on_page is not None:
             on_page(page, len(new_items), total_count)
 
-        # Early exit: if total_count > 1000, this range needs subdivision.
+        # Early exit: if total_count exceeds limit, this range needs subdivision.
         # No point fetching more pages - we'll discard and re-query with smaller ranges.
-        if total_count > 1000:
+        if total_count > GITHUB_SEARCH_RESULT_LIMIT:
             break
 
         # Stop if we got fewer than requested (last page)
@@ -77,11 +83,11 @@ def collect_shard(
 
 def needs_subdivision(result: ShardResult) -> bool:
     """Check if a shard result indicates the range needs subdivision."""
-    if result.total_count > 1000:
+    if result.total_count > GITHUB_SEARCH_RESULT_LIMIT:
         if result.range.width == 0:
             raise ValueError(
                 f"Cannot subdivide single-byte range {result.range} "
-                f"but it has {result.total_count} results (limit 1000). "
+                f"but it has {result.total_count} results (limit {GITHUB_SEARCH_RESULT_LIMIT}). "
                 f"Data will be lost."
             )
         return True
@@ -147,20 +153,12 @@ def write_progress_md(
         rows: list[ProgressRow] = [result.to_progress_row() for result in results]
 
         if in_progress:
-            # Parse min/max bytes from range string (e.g., "500-599" -> 500, 599)
             range_str = in_progress["range"]
-            if "-" in range_str:
-                parts = range_str.split("-")
-                min_bytes = int(parts[0])
-                max_bytes = int(parts[1])
-            else:
-                # Unbounded range like ">100000"
-                min_bytes = int(range_str.lstrip(">"))
-                max_bytes = None
+            parsed_range = SizeRange.from_string(range_str)
             rows.append(
                 ProgressRow(
-                    min_bytes=min_bytes,
-                    max_bytes=max_bytes,
+                    min_bytes=parsed_range.min_bytes,
+                    max_bytes=parsed_range.max_bytes,
                     range_str=f"-> {range_str}",  # Arrow indicates in-progress
                     total_count=in_progress.get("total_count", 0),
                     collected=in_progress["collected"],

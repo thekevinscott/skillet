@@ -175,6 +175,11 @@ def main():
         default=Path(__file__).parent.parent / "results",
         help="Output directory for results",
     )
+    parser.add_argument(
+        "--skip-cache",
+        action="store_true",
+        help="Skip reading from cache (still writes to cache)",
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -193,21 +198,11 @@ def main():
         type=str,
         help="Comma-separated list of range indices to collect (e.g., '0,1,2')",
     )
-    fetch_files_parser.add_argument(
-        "--skip-cache",
-        action="store_true",
-        help="Skip reading from cache (still writes to cache)",
-    )
 
     # fetch-content subcommand
-    fetch_content_parser = subparsers.add_parser(
+    subparsers.add_parser(
         "fetch-content",
         help="Fetch SKILL.md content from collected URLs",
-    )
-    fetch_content_parser.add_argument(
-        "--skip-cache",
-        action="store_true",
-        help="Skip reading from cache (still writes to cache)",
     )
 
     # filter-skills subcommand
@@ -239,11 +234,6 @@ def main():
         "-v",
         action="store_true",
         help="Enable verbose debug output",
-    )
-    filter_skills_parser.add_argument(
-        "--skip-cache",
-        action="store_true",
-        help="Skip reading from cache (still writes to cache)",
     )
 
     args = parser.parse_args()
