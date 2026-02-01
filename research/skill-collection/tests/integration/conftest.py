@@ -68,5 +68,7 @@ def mock_claude_agent_sdk():
     mock.query = query_mock
     mock._call_count = call_count
 
-    with patch("skill_collection.agent.query", side_effect=lambda **kwargs: mock_sdk_query(**kwargs)):
+    with patch(
+        "skill_collection.agent.query", side_effect=lambda **kwargs: mock_sdk_query(**kwargs)
+    ):
         yield mock

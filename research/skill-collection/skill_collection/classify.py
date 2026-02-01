@@ -21,6 +21,7 @@ def _print_distribution(results: list[dict], field: str, label: str):
     for value, count in counts.most_common():
         print(f"  {value}: {count}", file=sys.stderr)
 
+
 CLASSIFICATION_SCHEMA = """{
   "summary": "1-sentence description of what this skill enables",
   "primary_purpose": "teaching|automation|enforcement|documentation|debugging|refactoring|integration|meta",
