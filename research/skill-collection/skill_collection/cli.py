@@ -209,9 +209,13 @@ def cmd_fetch_content(args):
                 fetched = counters["fetched"]
                 cached = counters["cached"]
                 errors = counters["errors"]
-            status(f"[{processed}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
+            status(
+                f"[{processed}/{len(urls)}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors"
+            )
 
-    print(f"\n\nDone: {counters['fetched']:,} fetched, {counters['cached']:,} cached, {counters['errors']:,} errors")
+    print(
+        f"\n\nDone: {counters['fetched']:,} fetched, {counters['cached']:,} cached, {counters['errors']:,} errors"
+    )
 
 
 def cmd_filter_skills(args):
@@ -349,6 +353,60 @@ def main():
         help="Skip reading from cache (still writes to cache)",
     )
 
+    # fetch-repo-metadata subcommand
+    repo_metadata_parser = subparsers.add_parser(
+        "fetch-repo-metadata",
+        help="Fetch repository metadata (stars, forks, language, etc.)",
+    )
+    repo_metadata_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of repositories to process",
+    )
+    repo_metadata_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=10,
+        help="Number of concurrent fetches (default: 10)",
+    )
+
+    # fetch-claude-md subcommand
+    claude_md_parser = subparsers.add_parser(
+        "fetch-claude-md",
+        help="Fetch CLAUDE.md files from skill repositories",
+    )
+    claude_md_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of repositories to process",
+    )
+    claude_md_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=10,
+        help="Number of concurrent fetches (default: 10)",
+    )
+
+    # fetch-skill-history subcommand
+    skill_history_parser = subparsers.add_parser(
+        "fetch-skill-history",
+        help="Fetch commit history for skill files",
+    )
+    skill_history_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of skills to process",
+    )
+    skill_history_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=10,
+        help="Number of concurrent fetches (default: 10)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "fetch-files":
@@ -361,6 +419,18 @@ def main():
         cmd_analyze(args)
     elif args.command == "classify":
         cmd_classify(args)
+    elif args.command == "fetch-repo-metadata":
+        from .repo_info import cmd_fetch_repo_metadata
+
+        cmd_fetch_repo_metadata(args)
+    elif args.command == "fetch-claude-md":
+        from .repo_info import cmd_fetch_claude_md
+
+        cmd_fetch_claude_md(args)
+    elif args.command == "fetch-skill-history":
+        from .repo_info import cmd_fetch_skill_history
+
+        cmd_fetch_skill_history(args)
     else:
         parser.print_help()
 
