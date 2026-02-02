@@ -282,19 +282,6 @@ Format: {{"is_skill_file": true/false, "reason": "brief explanation"}}"""
 
 Results written incrementally to `classified-skills/valid.md` and `invalid.md`.
 
-### Caching
-
-Two cache layers:
-
-1. **Content cache** - Files on disk. If `local_path.exists()`, skip API call.
-2. **Validation cache** - Prompt-based. SHA256 of prompt → cached classification.
-
-```python
-# cache.py:16-18
-def get_cache_key(self, content: str) -> str:
-    return hashlib.sha256(content.encode()).hexdigest()[:16]
-```
-
 ### Parallel Metadata Fetches
 
 Three additional commands can run after Stage 1 (independent of Stage 2):
@@ -416,4 +403,3 @@ uv run collect-skills fetch content --limit 100 --validation-concurrency 3
 | `github.py` | API client, rate limiting, caching |
 | `filter.py` | Symlink detection, Claude validation |
 | `utils.py` | URL parsing, path resolution |
-| `cache.py` | Prompt-based result caching |
