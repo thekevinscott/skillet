@@ -177,6 +177,53 @@ Different Claude model versions or even different runs could classify the same f
 
 ---
 
+### 9. Inconsistent Output Formats
+
+**Severity: Medium (Maintainability)**
+
+The pipeline outputs a mix of formats with no clear rationale:
+
+| File | Format | Consumed By |
+|------|--------|-------------|
+| `skill_urls.txt` | Plain text (one per line) | Stage 2 |
+| `skill_files.json` | JSON array | Resume logic |
+| `progress.md` | Markdown table | Humans |
+| `valid.md` | Markdown table with HTML `<a>` tags | Stage 3, 4, 5 (regex parsing) |
+| `invalid.md` | Markdown table with HTML | Humans |
+| `skill_features.parquet` | Parquet | Notebooks |
+| `skill_classifications.json` | JSON array | Stage 6 |
+| `embeddings.npy` | NumPy binary | Stage 7, notebooks |
+| `cluster_info.json` | JSON | Stage 7 |
+
+Problems:
+
+1. **Markdown as data interchange:** `valid.md` is parsed by downstream stages using regex:
+   ```python
+   # analyze.py:130-131
+   pattern = r'<a href="([^"]+)"'
+   for match in re.finditer(pattern, content):
+   ```
+   This is fragile—HTML in Markdown parsed with regex.
+
+2. **Redundant representations:** URLs exist in `skill_urls.txt` (text), `skill_files.json` (JSON), and `valid.md` (Markdown). Three formats for the same data.
+
+3. **No single source of truth:** Which file is authoritative? `skill_files.json` has the most metadata, but downstream stages read from `valid.md`.
+
+4. **Human-readable vs machine-readable conflation:** Markdown files try to serve both purposes and do neither well.
+
+**Better approach:** Use a single format (JSON or Parquet) for all machine-consumed data. Generate Markdown views for humans as a separate rendering step, not as primary storage.
+
+```
+# Proposed structure
+results/
+  skills.parquet          # Single source of truth: URL, SHA, content path, valid, features...
+  skills_sample.md        # Rendered view for humans (generated from parquet)
+  embeddings.npy          # Large binary data (acceptable)
+  cluster_info.json       # Derived analysis
+```
+
+---
+
 ## Minor Issues
 
 1. **URL parsing is fragile:** Hardcoded offset `url[19:]` breaks if GitHub URL format changes.
