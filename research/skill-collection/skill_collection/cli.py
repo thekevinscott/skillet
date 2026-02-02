@@ -233,6 +233,49 @@ def cmd_classify(args):
     _cmd_classify(args)
 
 
+def cmd_v2(args):
+    """Handle v2 subcommands."""
+    from .collect_v2 import init_collection, run_collection
+    from .db import get_stats
+
+    if args.v2_command == "init":
+        db_path = args.db or (args.output_dir / "skills.db")
+        count = init_collection(db_path)
+        print(f"Initialized database at {db_path}")
+        print(f"Created {count} shards")
+
+    elif args.v2_command == "collect":
+        db_path = args.db or (args.output_dir / "skills.db")
+
+        def on_progress(query: str, collected: int, shards: int):
+            # Truncate query for display
+            display_query = query if len(query) < 60 else query[:57] + "..."
+            status(f"[{shards} shards, {collected:,} skills] {display_query}")
+
+        print(f"Starting collection from {db_path}")
+        stats = run_collection(db_path, on_progress=on_progress)
+        print()  # New line after status
+        print(f"Shards processed: {stats['shards_processed']}")
+        print(f"Shards subdivided: {stats['shards_subdivided']}")
+        print(f"Skills collected: {stats['skills_collected']}")
+        print(f"New skills: {stats['skills_new']}")
+
+    elif args.v2_command == "stats":
+        db_path = args.db or (args.output_dir / "skills.db")
+        stats = get_stats(db_path)
+        print(f"Database: {db_path}")
+        print(f"Shards: {stats['shards_completed']}/{stats['shards_total']} complete")
+        print(f"Skills: {stats['skills_total']:,}")
+        print(f"Content: {stats['content_fetched']:,}")
+        print(f"Validations: {stats['validations_valid']}/{stats['validations_total']} valid")
+
+    else:
+        print("Usage: collect-skills v2 {init,collect,stats}")
+        print("  init     - Initialize database and seed shards")
+        print("  collect  - Run collection (resumable)")
+        print("  stats    - Show database statistics")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Collect SKILL.md files from GitHub",
@@ -407,6 +450,49 @@ def main():
         help="Number of concurrent fetches (default: 10)",
     )
 
+    # v2 subcommand (SQLite-based pipeline)
+    v2_parser = subparsers.add_parser(
+        "v2",
+        help="SQLite-based collection pipeline (v2)",
+    )
+    v2_subparsers = v2_parser.add_subparsers(dest="v2_command", help="v2 commands")
+
+    # v2 init subcommand
+    v2_init_parser = v2_subparsers.add_parser(
+        "init",
+        help="Initialize database and seed shards",
+    )
+    v2_init_parser.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="Database path (default: results/skills.db)",
+    )
+
+    # v2 collect subcommand
+    v2_collect_parser = v2_subparsers.add_parser(
+        "collect",
+        help="Run collection (resumable)",
+    )
+    v2_collect_parser.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="Database path (default: results/skills.db)",
+    )
+
+    # v2 stats subcommand
+    v2_stats_parser = v2_subparsers.add_parser(
+        "stats",
+        help="Show database statistics",
+    )
+    v2_stats_parser.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="Database path (default: results/skills.db)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "fetch-files":
@@ -431,6 +517,8 @@ def main():
         from .repo_info import cmd_fetch_skill_history
 
         cmd_fetch_skill_history(args)
+    elif args.command == "v2":
+        cmd_v2(args)
     else:
         parser.print_help()
 
