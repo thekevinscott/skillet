@@ -235,9 +235,12 @@ def cmd_classify(args):
 
 def cmd_v2(args):
     """Handle v2 subcommands."""
+    import asyncio
+
     from .collect_v2 import init_collection, run_collection
     from .db import get_stats
     from .fetch_v2 import run_fetch
+    from .validate_v2 import run_validation
 
     if args.v2_command == "init":
         db_path = args.db or (args.output_dir / "skills.db")
@@ -285,6 +288,37 @@ def cmd_v2(args):
         print(f"Cached: {stats['cached']}")
         print(f"Errors: {stats['errors']}")
 
+    elif args.v2_command == "validate":
+        db_path = args.db or (args.output_dir / "skills.db")
+        cache_dir = args.output_dir / ".classify_cache" if args.use_cache else None
+
+        def on_progress(processed: int, valid: int, invalid: int, cached: int, errors: int):
+            status(
+                f"[{processed}] {valid:,} valid, {invalid:,} invalid, "
+                f"{cached:,} cached, {errors:,} errors"
+            )
+
+        print(f"Validating skills from {db_path}")
+        if cache_dir:
+            print(f"Using cache from {cache_dir}")
+
+        stats = asyncio.run(
+            run_validation(
+                db_path,
+                cache_dir=cache_dir,
+                limit=args.limit,
+                concurrency=args.concurrency,
+                verbose=args.verbose,
+                on_progress=on_progress,
+            )
+        )
+        print()  # New line after status
+        print(f"Total: {stats['total']}")
+        print(f"Valid: {stats['valid']}")
+        print(f"Invalid: {stats['invalid']}")
+        print(f"Cached: {stats['cached']}")
+        print(f"Errors: {stats['errors']}")
+
     elif args.v2_command == "stats":
         db_path = args.db or (args.output_dir / "skills.db")
         stats = get_stats(db_path)
@@ -295,10 +329,11 @@ def cmd_v2(args):
         print(f"Validations: {stats['validations_valid']}/{stats['validations_total']} valid")
 
     else:
-        print("Usage: collect-skills v2 {init,collect,fetch-content,stats}")
+        print("Usage: collect-skills v2 {init,collect,fetch-content,validate,stats}")
         print("  init          - Initialize database and seed shards")
         print("  collect       - Run collection (resumable)")
         print("  fetch-content - Fetch content for skills")
+        print("  validate      - Validate skills using Claude")
         print("  stats         - Show database statistics")
 
 
@@ -546,6 +581,41 @@ def main():
         "--use-cache",
         action="store_true",
         help="Check content/ directory before API calls",
+    )
+
+    # v2 validate subcommand
+    v2_validate_parser = v2_subparsers.add_parser(
+        "validate",
+        help="Validate skills using Claude",
+    )
+    v2_validate_parser.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="Database path (default: results/skills.db)",
+    )
+    v2_validate_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of skills to validate",
+    )
+    v2_validate_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="Maximum concurrent API calls (default: 1)",
+    )
+    v2_validate_parser.add_argument(
+        "--use-cache",
+        action="store_true",
+        help="Check .classify_cache/ before API calls",
+    )
+    v2_validate_parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose debug output",
     )
 
     args = parser.parse_args()
