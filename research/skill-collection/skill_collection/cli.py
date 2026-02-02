@@ -237,6 +237,7 @@ def cmd_v2(args):
     """Handle v2 subcommands."""
     from .collect_v2 import init_collection, run_collection
     from .db import get_stats
+    from .fetch_v2 import run_fetch
 
     if args.v2_command == "init":
         db_path = args.db or (args.output_dir / "skills.db")
@@ -260,6 +261,30 @@ def cmd_v2(args):
         print(f"Skills collected: {stats['skills_collected']}")
         print(f"New skills: {stats['skills_new']}")
 
+    elif args.v2_command == "fetch-content":
+        db_path = args.db or (args.output_dir / "skills.db")
+        content_dir = args.output_dir / "content" if args.use_cache else None
+
+        def on_progress(processed: int, fetched: int, cached: int, errors: int):
+            status(f"[{processed}] {fetched:,} fetched, {cached:,} cached, {errors:,} errors")
+
+        print(f"Fetching content to {db_path}")
+        if content_dir:
+            print(f"Using cache from {content_dir}")
+
+        stats = run_fetch(
+            db_path,
+            content_dir=content_dir,
+            limit=args.limit,
+            concurrency=args.concurrency,
+            on_progress=on_progress,
+        )
+        print()  # New line after status
+        print(f"Total: {stats['total']}")
+        print(f"Fetched: {stats['fetched']}")
+        print(f"Cached: {stats['cached']}")
+        print(f"Errors: {stats['errors']}")
+
     elif args.v2_command == "stats":
         db_path = args.db or (args.output_dir / "skills.db")
         stats = get_stats(db_path)
@@ -270,10 +295,11 @@ def cmd_v2(args):
         print(f"Validations: {stats['validations_valid']}/{stats['validations_total']} valid")
 
     else:
-        print("Usage: collect-skills v2 {init,collect,stats}")
-        print("  init     - Initialize database and seed shards")
-        print("  collect  - Run collection (resumable)")
-        print("  stats    - Show database statistics")
+        print("Usage: collect-skills v2 {init,collect,fetch-content,stats}")
+        print("  init          - Initialize database and seed shards")
+        print("  collect       - Run collection (resumable)")
+        print("  fetch-content - Fetch content for skills")
+        print("  stats         - Show database statistics")
 
 
 def main():
@@ -491,6 +517,35 @@ def main():
         type=Path,
         default=None,
         help="Database path (default: results/skills.db)",
+    )
+
+    # v2 fetch-content subcommand
+    v2_fetch_parser = v2_subparsers.add_parser(
+        "fetch-content",
+        help="Fetch content for skills without content",
+    )
+    v2_fetch_parser.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="Database path (default: results/skills.db)",
+    )
+    v2_fetch_parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Maximum number of skills to fetch",
+    )
+    v2_fetch_parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=10,
+        help="Number of concurrent fetches (default: 10)",
+    )
+    v2_fetch_parser.add_argument(
+        "--use-cache",
+        action="store_true",
+        help="Check content/ directory before API calls",
     )
 
     args = parser.parse_args()
