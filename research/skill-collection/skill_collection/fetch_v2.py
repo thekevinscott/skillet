@@ -10,7 +10,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from .db import get_db, get_db_context
+from .db import get_db_context
 from .github import get_client
 from .utils import parse_github_url, resolve_content_path
 

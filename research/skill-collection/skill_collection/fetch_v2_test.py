@@ -70,7 +70,7 @@ def describe_fetch_content_from_cache():
         content, byte_size = fetch_content_from_cache(url, content_dir)
 
         assert content == "cached content"
-        assert byte_size == len("cached content".encode())
+        assert byte_size == len(b"cached content")
 
     def it_returns_none_when_not_cached(tmp_path: Path):
         content_dir = tmp_path / "content"

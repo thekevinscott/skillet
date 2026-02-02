@@ -11,7 +11,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from .db import get_db, get_db_context, init_db
+from .db import get_db_context, init_db
 from .github import get_client
 from .models import GITHUB_SEARCH_RESULT_LIMIT, SIZE_RANGES, SizeRange
 
@@ -142,16 +142,12 @@ def subdivide_shard(
         # Delete the old shard
         conn.execute("DELETE FROM shards WHERE id = ?", (shard_id,))
 
-        # Insert new shards
+        # Insert new shards (ignore if query already exists)
         for new_query in new_queries:
-            try:
-                conn.execute(
-                    "INSERT INTO shards (query, started_at) VALUES (?, NULL)",
-                    (new_query,)
-                )
-            except Exception:
-                # Query already exists
-                pass
+            conn.execute(
+                "INSERT OR IGNORE INTO shards (query, started_at) VALUES (?, NULL)",
+                (new_query,)
+            )
 
     return new_queries
 

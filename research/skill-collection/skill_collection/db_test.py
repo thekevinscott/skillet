@@ -1,7 +1,6 @@
 """Tests for db.py."""
 
 import sqlite3
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -94,10 +93,9 @@ def describe_get_db_context():
         db_path = tmp_path / "test.db"
         init_db(db_path)
 
-        with pytest.raises(ValueError):
-            with get_db_context(db_path) as conn:
-                conn.execute("INSERT INTO shards (query) VALUES ('test')")
-                raise ValueError("Test error")
+        with pytest.raises(ValueError), get_db_context(db_path) as conn:
+            conn.execute("INSERT INTO shards (query) VALUES ('test')")
+            raise ValueError("Test error")
 
         # Verify data was not persisted
         conn = sqlite3.connect(db_path)

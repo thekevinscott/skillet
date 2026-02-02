@@ -4,9 +4,9 @@ Provides schema definition and connection management for the v2 collection pipel
 """
 
 import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 DEFAULT_DB_PATH = Path(__file__).parent.parent / "results" / "skills.db"
 

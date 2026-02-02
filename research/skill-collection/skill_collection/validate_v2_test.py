@@ -1,6 +1,5 @@
 """Tests for validate_v2.py."""
 
-import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
