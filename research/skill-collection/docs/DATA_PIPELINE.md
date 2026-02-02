@@ -59,7 +59,24 @@ SIZE_RANGES = [
 
 ### Adaptive Subdivision
 
-When a range returns >1000 results, split it:
+When a range returns >1000 results, split it.
+
+> **Known Limitation:** If a single byte value (e.g., all files exactly 500 bytes) has >1000 results, subdivision cannot help. The code detects this and raises `ValueError` rather than silently losing data:
+>
+> ```python
+> # collect.py:84-94
+> if result.range.width == 0:
+>     raise ValueError(
+>         f"Cannot subdivide single-byte range {result.range} "
+>         f"but it has {result.total_count} results (limit {GITHUB_SEARCH_RESULT_LIMIT}). "
+>         f"Data will be lost."
+>     )
+> ```
+>
+> In practice this hasn't occurred for SKILL.md files (file sizes are distributed), but it's a fundamental limitation of the size-sharding approach. Alternative strategies if this becomes a problem:
+> - Shard by additional dimensions (language, repo creation date, path prefix)
+> - Accept sampling for oversized single-byte buckets
+> - Use GitHub's GraphQL API (different pagination model)
 
 ```python
 # models.py:59-81
