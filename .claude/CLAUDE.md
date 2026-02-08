@@ -108,6 +108,34 @@ def describe_my_function():
 
 If a fixture is used in multiple describe blocks, move it to the top level rather than duplicating it across describe blocks.
 
+### Test Fixtures for File Content
+
+Use readable multi-line strings for file content. Either module-level constants or inline `dedent()` — never escaped `\n` strings:
+
+```python
+# Good - module-level constant
+VALID_SKILL = """\
+---
+name: test
+---
+"""
+
+def it_does_something(tmp_path):
+    skill.write_text(VALID_SKILL)
+
+# Good - inline dedent
+def it_does_something(tmp_path):
+    skill.write_text(dedent("""\
+        ---
+        name: test
+        ---
+        """))
+
+# Bad - hard to read
+def it_does_something(tmp_path):
+    skill.write_text("---\nname: test\n---\n")
+```
+
 ## Key Commands
 
 `just` is installed via uv as `rust-just`, so run it with `uv run just`:

@@ -19,3 +19,7 @@ class EmptyFolderError(EvalError):
 
 class SkillError(SkilletError):
     """Error during skill creation."""
+
+
+class LintError(SkilletError):
+    """Error during linting."""

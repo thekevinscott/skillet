@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- CLI: `skillet lint <path>` command for static SKILL.md validation with `--list-rules` flag
 - CLI: `skillet generate-evals <skill>` command to generate candidate eval files from a SKILL.md
 - `query_structured()` SDK helper for type-safe structured output with Pydantic models
 - `StructuredOutputError` canary to detect misconfigured structured output (backticks in response)
