@@ -14,7 +14,7 @@
 - **Keep PRs minimal but complete** - each PR should deliver one useful, self-contained piece of functionality
 - Don't add code that isn't used until a future PR (e.g., an error class with no callers)
 - If a task is too large for one PR, create child beads under the parent bead - one per PR
-- Every PR must include appropriate: unit tests, integration tests (if applicable), e2e tests (if applicable), and docs
+- Every PR must include tests per the TDD Order (see Testing section): e2e first if touching public API, integration tests, then unit tests
 - **Changelog**: Update `CHANGELOG.md` for user-facing changes. For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label to bypass the CI check
 
 ### Git Worktrees
@@ -44,14 +44,47 @@ git worktree remove .worktrees/my-feature
 - `scripts/build_claude_config.py` - Template builder
 - `tests/e2e/` - End-to-end tests using Claude Agent SDK
 
+## Documentation
+
+There is a README.md and a docs/ folder (using vitepress) that builds to https://skillet.run.
+
+The README.md should stay concise, but should be useful and contain information about major features. It is the primary way PyPI consumers will discover the library.
+
+For more in-depth documentation, ensure the docs cover all public-facing features.
+
 ## Testing
+
+### TDD Order: Outside-In
+
+Tests are written **before** implementation, starting from the outermost layer:
+
+1. **E2E test first** — proves the feature works from the user's perspective, using real LLMs (slow but most accurate)
+2. **Integration test** — proves internal modules compose correctly, with mocked LLMs (much faster, potential for dependency issues)
+3. **Unit tests** — written as you implement each piece (least important testing layer)
+
+A feature is not done until the e2e and integration tests pass and cover the new functionality.
+
+### When to Write What
+
+**Does the commit change the public-facing API (CLI, SDK, config)?**
+- Yes → **e2e test + integration test required**, plus unit tests as you go
+- No → Check if adequate e2e/integration coverage already exists:
+  - Adequate → unit tests only
+  - Gaps → add the missing e2e/integration tests, plus unit tests
+
+**Always write unit tests.** The question is whether you also need e2e and integration tests.
+
+### Test Locations
 - **Unit tests**: Colocate with source files (`foo.py` → `foo_test.py` in same directory)
-- **E2E tests**: Live in `tests/e2e/`, auto-build `.claude/commands/` via conftest.py
-- `Conversation` helper for multi-turn test flows
-- `setting_sources=["project"]` loads slash commands from `.claude/commands/`
-- Commands in subdirs get namespaced: `skillet/add.md` -> `/skillet:add`
+- **Integration tests**: `tests/integration/`
+- **E2E tests**: `tests/e2e/`, auto-build `.claude/commands/` via conftest.py
+
+### Test Infrastructure
+- `Conversation` helper for multi-turn e2e test flows
 - Use `@pytest.mark.parametrize` when testing multiple inputs/outputs for the same logic
-- Mock external dependencies (like `get_rate_color`) to isolate unit tests
+- Mock all imports in unit tests, to establish isolated coverage
+- Mock external dependencies in integration tests, but avoid mocking anything internal
+- Do not mock anything in e2e tests
 - **Always prefer `pytest.fixture` over inline `with patch(...)`** — use `autouse=True` when the mock applies to all tests in scope
 
 ### Mocking with pytest-describe
@@ -72,6 +105,8 @@ def describe_my_function():
         result = await my_function()
         assert result == expected
 ```
+
+If a fixture is used in multiple describe blocks, move it to the top level rather than duplicating it across describe blocks.
 
 ### Test Fixtures for File Content
 
@@ -108,6 +143,7 @@ def it_does_something(tmp_path):
 ```bash
 uv run just build-claude    # Build .claude/commands/ from templates
 uv run just test-e2e        # Run e2e tests
+uv run just test-integration        # Run integration tests
 uv run just test-unit       # Run unit tests
 ```
 
