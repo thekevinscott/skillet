@@ -130,12 +130,12 @@ expected: "Should start with **issue** (blocking):"
 
 ## Documentation
 
-Full documentation available at the [docs site](https://skillet.dev):
+Full documentation available at the [docs site](https://skillet.run):
 
-- [Getting Started](https://skillet.dev/getting-started)
-- [CLI Reference](https://skillet.dev/reference/cli)
-- [Eval Format](https://skillet.dev/reference/eval-format)
-- [Python API](https://skillet.dev/reference/python-api)
+- [Getting Started](https://skillet.run/getting-started)
+- [CLI Reference](https://skillet.run/reference/cli)
+- [Eval Format](https://skillet.run/reference/eval-format)
+- [Python API](https://skillet.run/reference/python-api)
 
 ## Roadmap
 
