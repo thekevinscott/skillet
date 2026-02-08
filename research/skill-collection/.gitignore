@@ -1,0 +1,10 @@
+.cache/
+results/
+__pycache__/
+*.pyc
+notebooks/__marimo__/
+notebooks/*.ipynb
+.env
+.venv/
+.pytest_cache/
+.ruff_cache/
