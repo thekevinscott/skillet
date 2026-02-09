@@ -1,0 +1,132 @@
+"""Tests for query_structured and StructuredOutputError."""
+
+from unittest.mock import MagicMock, patch
+
+import pytest
+from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
+from pydantic import BaseModel
+
+from skillet._internal.sdk.query_structured import StructuredOutputError, query_structured
+
+
+class MockQuery:
+    """Helper class for mock query fixtures."""
+
+    def __init__(self):
+        self.messages: list = []
+        self.captured: dict = {"options": None}
+
+
+def describe_StructuredOutputError():
+    def it_can_be_raised_with_message():
+        with pytest.raises(StructuredOutputError) as exc_info:
+            raise StructuredOutputError("test message")
+        assert "test message" in str(exc_info.value)
+
+    def it_is_an_exception():
+        assert issubclass(StructuredOutputError, Exception)
+
+
+def describe_query_structured():
+    @pytest.fixture(autouse=True)
+    def mock_query():
+        """Mock claude_agent_sdk.query for all tests in this block."""
+        state = MockQuery()
+
+        async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
+            state.captured["options"] = options
+            for msg in state.messages:
+                yield msg
+
+        with patch("skillet._internal.sdk.query_structured.claude_agent_sdk.query", mock_query_gen):
+            yield state
+
+    @pytest.mark.asyncio
+    async def it_returns_validated_pydantic_model(mock_query):
+        class TestModel(BaseModel):
+            name: str
+            value: int
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = {"name": "test", "value": 42}
+        mock_result.result = None
+        mock_query.messages.append(mock_result)
+
+        result = await query_structured("test prompt", TestModel)
+
+        assert isinstance(result, TestModel)
+        assert result.name == "test"
+        assert result.value == 42
+
+    @pytest.mark.asyncio
+    async def it_passes_json_schema_output_format(mock_query):
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = {"data": "test"}
+        mock_result.result = None
+        mock_query.messages.append(mock_result)
+
+        await query_structured("test", TestModel)
+
+        assert mock_query.captured["options"] is not None
+        assert mock_query.captured["options"].output_format["type"] == "json_schema"
+        assert "schema" in mock_query.captured["options"].output_format
+
+    @pytest.mark.asyncio
+    async def it_raises_on_backticks_in_result(mock_query):
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = None
+        mock_result.result = '```json\n{"data": "test"}\n```'
+        mock_query.messages.append(mock_result)
+
+        with pytest.raises(StructuredOutputError) as exc_info:
+            await query_structured("test", TestModel)
+
+        assert "markdown code fences" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_raises_value_error_when_no_structured_output(mock_query):
+        class TestModel(BaseModel):
+            data: str
+
+        mock_text = MagicMock(spec=TextBlock)
+        mock_text.text = "plain text"
+        mock_message = MagicMock(spec=AssistantMessage)
+        mock_message.content = [mock_text]
+        mock_query.messages.append(mock_message)
+
+        with pytest.raises(ValueError) as exc_info:
+            await query_structured("test", TestModel)
+
+        assert "No structured output" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_raises_type_error_for_non_pydantic_model():
+        class NotPydantic:
+            pass
+
+        with pytest.raises(TypeError) as exc_info:
+            await query_structured("test", NotPydantic)  # type: ignore[type-var]
+
+        assert "Pydantic BaseModel" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_passes_through_additional_options(mock_query):
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = {"data": "test"}
+        mock_result.result = None
+        mock_query.messages.append(mock_result)
+
+        await query_structured("test", TestModel, max_turns=5, allowed_tools=["Read"])
+
+        assert mock_query.captured["options"] is not None
+        assert mock_query.captured["options"].max_turns == 5
+        assert mock_query.captured["options"].allowed_tools == ["Read"]
