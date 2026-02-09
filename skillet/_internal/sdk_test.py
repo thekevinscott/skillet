@@ -298,6 +298,82 @@ def describe_query_structured():
         assert "Pydantic BaseModel" in str(exc_info.value)
 
     @pytest.mark.asyncio
+    async def it_falls_back_to_json_text_when_structured_output_is_none(mock_query):
+        """Test JSON text fallback when structured_output is None but result has JSON."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = None
+        mock_result.result = '{"data": "fallback_value"}'
+        mock_query.messages.append(mock_result)
+
+        result = await query_structured("test", TestModel)
+
+        assert isinstance(result, TestModel)
+        assert result.data == "fallback_value"
+
+    @pytest.mark.asyncio
+    async def it_raises_value_error_when_result_text_is_not_valid_json(mock_query):
+        """Test that ValueError is raised when result text is not valid JSON."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = None
+        mock_result.result = "not valid json at all"
+        mock_query.messages.append(mock_result)
+
+        with pytest.raises(ValueError) as exc_info:
+            await query_structured("test", TestModel)
+
+        assert "No structured output" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_raises_value_error_when_json_does_not_match_model(mock_query):
+        """Test that ValueError is raised when JSON doesn't validate against model."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+            count: int
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = None
+        mock_result.result = '{"wrong_field": "value"}'
+        mock_query.messages.append(mock_result)
+
+        with pytest.raises(ValueError) as exc_info:
+            await query_structured("test", TestModel)
+
+        assert "No structured output" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def it_prefers_structured_output_over_result_text(mock_query):
+        """Test that structured_output is used when both fields are present."""
+        from claude_agent_sdk import ResultMessage
+        from pydantic import BaseModel
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = {"data": "from_structured"}
+        mock_result.result = '{"data": "from_text"}'
+        mock_query.messages.append(mock_result)
+
+        result = await query_structured("test", TestModel)
+
+        assert result.data == "from_structured"
+
+    @pytest.mark.asyncio
     async def it_passes_through_additional_options(mock_query):
         """Test that additional options are passed to ClaudeAgentOptions."""
         from claude_agent_sdk import ResultMessage

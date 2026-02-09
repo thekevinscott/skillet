@@ -1,5 +1,7 @@
 """Claude SDK helpers."""
 
+import json
+import logging
 import sys
 from dataclasses import dataclass, field
 from typing import Any
@@ -12,7 +14,9 @@ from claude_agent_sdk import (
     TextBlock,
     ToolUseBlock,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -65,6 +69,20 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
                     "This indicates structured output was not properly configured. "
                     f"Raw result: {message.result[:200]}..."
                 )
+
+            # Fallback: try parsing result text as JSON when structured_output is None.
+            # This handles SDK versions or configurations that return JSON in the
+            # text result field rather than the dedicated structured_output field.
+            if message.result:
+                try:
+                    parsed = json.loads(message.result)
+                    return model.model_validate(parsed)
+                except (json.JSONDecodeError, ValidationError):
+                    logger.debug(
+                        "Result text could not be parsed as %s: %s",
+                        model.__name__,
+                        message.result[:200],
+                    )
 
     raise ValueError("No structured output returned from query")
 
