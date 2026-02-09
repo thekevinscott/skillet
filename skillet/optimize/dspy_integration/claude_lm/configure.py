@@ -1,6 +1,6 @@
 """DSPy configuration for Skillet."""
 
-from .claude_lm import ClaudeAgentLM
+from .lm import ClaudeAgentLM
 
 
 def get_claude_lm() -> ClaudeAgentLM:

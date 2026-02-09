@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from skillet.optimize.dspy_integration.claude_lm import ClaudeAgentLM
+from skillet.optimize.dspy_integration.claude_lm.lm import ClaudeAgentLM
 
-CLAUDE_LM_MODULE = "skillet.optimize.dspy_integration.claude_lm"
+CLAUDE_LM_MODULE = "skillet.optimize.dspy_integration.claude_lm.lm"
 
 
 @pytest.fixture(autouse=True)
