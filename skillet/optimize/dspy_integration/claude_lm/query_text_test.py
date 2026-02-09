@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from skillet.optimize.dspy_integration.query_text import for_query, query_assistant_text
+from skillet.optimize.dspy_integration.claude_lm.query_text import for_query, query_assistant_text
 
 
 def describe_for_query():
@@ -21,7 +21,7 @@ def describe_for_query():
         async def mock_query_gen(*_args, **_kwargs):
             yield mock_message
 
-        with patch("skillet.optimize.dspy_integration.query_text.query", mock_query_gen):
+        with patch("skillet.optimize.dspy_integration.claude_lm.query_text.query", mock_query_gen):
             blocks = []
             async for block in for_query("test prompt"):
                 blocks.append(block)
@@ -46,7 +46,7 @@ def describe_for_query():
         async def mock_query_gen(*_args, **_kwargs):
             yield mock_message
 
-        with patch("skillet.optimize.dspy_integration.query_text.query", mock_query_gen):
+        with patch("skillet.optimize.dspy_integration.claude_lm.query_text.query", mock_query_gen):
             blocks = []
             async for block in for_query("test", block_type=TextBlock):
                 blocks.append(block)
@@ -63,7 +63,7 @@ def describe_for_query():
         async def mock_query_gen(*_args, **_kwargs):
             yield mock_message
 
-        with patch("skillet.optimize.dspy_integration.query_text.query", mock_query_gen):
+        with patch("skillet.optimize.dspy_integration.claude_lm.query_text.query", mock_query_gen):
             blocks = []
             async for block in for_query("test"):
                 blocks.append(block)
@@ -90,7 +90,7 @@ def describe_query_assistant_text():
         async def mock_query_gen(*_args, **_kwargs):
             yield mock_message
 
-        with patch("skillet.optimize.dspy_integration.query_text.query", mock_query_gen):
+        with patch("skillet.optimize.dspy_integration.claude_lm.query_text.query", mock_query_gen):
             result = await query_assistant_text("test prompt")
 
             assert result == "Hello World"
@@ -109,7 +109,7 @@ def describe_query_assistant_text():
         async def mock_query_gen(*_args, **_kwargs):
             yield mock_message
 
-        with patch("skillet.optimize.dspy_integration.query_text.query", mock_query_gen):
+        with patch("skillet.optimize.dspy_integration.claude_lm.query_text.query", mock_query_gen):
             result = await query_assistant_text("test")
 
             assert result == "response"

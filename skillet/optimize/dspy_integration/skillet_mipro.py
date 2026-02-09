@@ -8,7 +8,7 @@ from typing import Any, cast
 from dspy.teleprompt import MIPROv2
 from dspy.teleprompt.mipro_optimizer_v2 import eval_candidate_program, save_candidate_program
 
-from .dataclasses import TrialResult
+from .claude_lm.dataclasses import TrialResult
 
 logger = logging.getLogger(__name__)
 

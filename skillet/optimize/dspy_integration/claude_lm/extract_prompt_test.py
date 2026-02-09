@@ -2,7 +2,7 @@
 
 import pytest
 
-from skillet.optimize.dspy_integration.extract_prompt import extract_prompt
+from skillet.optimize.dspy_integration.claude_lm.extract_prompt import extract_prompt
 
 
 @pytest.mark.parametrize(
