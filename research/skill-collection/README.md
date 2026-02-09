@@ -24,4 +24,12 @@ uv run marimo edit notebooks/ --port 2718 --watch --host 0.0.0.0
 
 ## Data
 
-Analysis uses data in `results/` (gitignored, kept locally only).
+Download the dataset from Kaggle:
+
+```bash
+uvx kaggle datasets download thekevinscott/github-skill-files -p data/ --unzip
+```
+
+This creates `data/` with three parquet files (`files.parquet`, `repos.parquet`, `history.parquet`). See `data/README.md` after download for schema details.
+
+Legacy analysis artifacts live in `results/` (gitignored).

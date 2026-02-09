@@ -2,6 +2,28 @@
 
 Analysis notebooks for exploring skill data.
 
+## Data
+
+Dataset lives in `data/` (gitignored). Download with:
+
+```bash
+uvx kaggle datasets download thekevinscott/github-skill-files -p data/ --unzip
+```
+
+Three parquet files:
+- `files.parquet` — 42k+ SKILL.md files with URLs, paths, repo keys
+- `repos.parquet` — 6.5k+ repos with stars, language, topics, license
+- `history.parquet` — commit history per file (first/last commit, total commits)
+
+Load with:
+```python
+import polars as pl
+files = pl.read_parquet("data/files.parquet")
+repos = pl.read_parquet("data/repos.parquet")
+history = pl.read_parquet("data/history.parquet")
+df = files.join(repos, on="repo_key")
+```
+
 ## Marimo Notebooks
 
 Analysis notebooks are in `notebooks/`.
