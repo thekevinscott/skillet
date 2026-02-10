@@ -10,13 +10,9 @@ app = marimo.App(width="medium")
 def _():
     import marimo as mo
 
-    mo.md("""# Content Shape Analysis
+    mo.md("""# An Analysis of public SKILL.md files on Github
 
-    What do these skills actually look like? This notebook examines the structural
-    properties of skill file content: size, markdown structure, frontmatter adoption,
-    and how these vary between organic repos and skill collections.
-
-    **Data source:** `data/content_features.parquet` (built by `analyze_skills/extract_features.py`)
+    This notebook examines the structural properties of skill file content: size, markdown structure, frontmatter adoption, and how these vary between organic repos and skill collections.
     """)
     return (mo,)
 
@@ -95,6 +91,44 @@ def _(mo):
     | Unique repos | {_n_repos:,} |
     """)
     return alt, features, has_classification, np, pl
+
+
+@app.cell
+def _(alt, features, mo, pl):
+    # Filename distribution
+    _filenames = (
+        features.with_columns(
+            pl.col("url").str.split("/").list.last().alias("filename")
+        )["filename"]
+        .value_counts()
+        .sort("count", descending=True)
+    )
+
+    _top = _filenames.head(25)
+
+    _chart = (
+        alt.Chart(_top.to_pandas())
+        .mark_bar()
+        .encode(
+            x=alt.X("count:Q", title="Files"),
+            y=alt.Y("filename:N", sort="-x", title="Filename"),
+        )
+        .properties(title="Top 25 Skill Filenames", width=600, height=500)
+    )
+
+    _total = features.shape[0]
+    _top1 = _filenames.row(0, named=True)
+    _n_unique = _filenames.shape[0]
+
+    mo.vstack([
+        mo.md(f"""### Filenames
+
+    {_n_unique:,} distinct filenames across {_total:,} files.
+    Most common: **{_top1["filename"]}** ({_top1["count"]:,} files, {_top1["count"] / _total:.1%}).
+    """),
+        _chart,
+    ])
+    return
 
 
 @app.cell(hide_code=True)
