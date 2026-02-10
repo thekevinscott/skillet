@@ -28,8 +28,8 @@ def _(mo):
     alt.data_transformers.disable_max_rows()
 
     _data_dir = Path("data")
-    _features_path = _data_dir / "content_features.parquet"
-    _repo_class_path = _data_dir / "repo_classification.parquet"
+    _features_path = _data_dir / "analyzed" / "content_features.parquet"
+    _files_path = _data_dir / "github-skill-files" / "files.parquet"
 
     if not _features_path.exists():
         mo.stop(
@@ -42,43 +42,36 @@ def _(mo):
 
     features = pl.read_parquet(_features_path)
 
-    # Extract repo_key from URL for joining
-    features = (
-        features.with_columns(
-            pl.col("url")
-            .str.replace("https://github.com/", "")
-            .str.split_exact("/", 1)
-            .struct.rename_fields(["_owner", "_rest"])
-            .alias("_split1"),
-        )
-        .with_columns(
-            pl.col("_split1")
-            .struct.field("_rest")
-            .str.split_exact("/", 1)
-            .struct.rename_fields(["_repo", "_path"])
-            .alias("_split2"),
-        )
-        .with_columns(
-            (
-                pl.col("_split1").struct.field("_owner")
-                + "/"
-                + pl.col("_split2").struct.field("_repo")
-            ).alias("repo_key"),
-        )
-        .drop("_split1", "_split2")
-    )
-
-    # Join with repo classification if available
-    has_classification = _repo_class_path.exists()
-    if has_classification:
-        _repo_class = pl.read_parquet(_repo_class_path)
-        features = features.join(
-            _repo_class.select("repo_key", "collection_score"),
-            on="repo_key",
-            how="left",
-        ).with_columns(pl.col("collection_score").fill_null(0.0))
+    # Join with files.parquet to get repo_key
+    if _files_path.exists():
+        _files = pl.read_parquet(_files_path, columns=["url", "repo_key"])
+        features = features.join(_files, on="url", how="left")
     else:
-        features = features.with_columns(pl.lit(0.0).alias("collection_score"))
+        # Fallback: parse repo_key from URL
+        features = (
+            features.with_columns(
+                pl.col("url")
+                .str.replace("https://github.com/", "")
+                .str.split_exact("/", 1)
+                .struct.rename_fields(["_owner", "_rest"])
+                .alias("_split1"),
+            )
+            .with_columns(
+                pl.col("_split1")
+                .struct.field("_rest")
+                .str.split_exact("/", 1)
+                .struct.rename_fields(["_repo", "_path"])
+                .alias("_split2"),
+            )
+            .with_columns(
+                (
+                    pl.col("_split1").struct.field("_owner")
+                    + "/"
+                    + pl.col("_split2").struct.field("_repo")
+                ).alias("repo_key"),
+            )
+            .drop("_split1", "_split2")
+        )
 
     _n_total = features.shape[0]
     _n_repos = features["repo_key"].n_unique()
@@ -90,7 +83,7 @@ def _(mo):
     | Total files | {_n_total:,} |
     | Unique repos | {_n_repos:,} |
     """)
-    return alt, features, has_classification, np, pl
+    return alt, features, np, pl
 
 
 @app.cell(hide_code=True)
@@ -141,12 +134,16 @@ def _(alt, features, mo, pl):
 @app.cell
 def _(alt, features, mo, pl):
     # Filename age analysis: are non-SKILL.md files older?
-    _history_path = __import__("pathlib").Path("data/history.parquet")
+    _history_path = __import__("pathlib").Path("data/github-skill-files/history.parquet")
     if not _history_path.exists():
         mo.stop(True, mo.md("*history.parquet not found -- skipping filename age analysis.*"))
 
     _history = pl.read_parquet(_history_path)
-    _joined = features.join(_history, on="url", how="inner")
+    # Aggregate per-commit rows to get first commit date per file
+    _first_commits = _history.group_by("url").agg(
+        pl.col("commit_date").min().alias("first_commit_date")
+    )
+    _joined = features.join(_first_commits, on="url", how="inner")
     _joined = _joined.with_columns(
         pl.col("url").str.split("/").list.last().alias("filename"),
         pl.col("first_commit_date").str.slice(0, 10).str.to_date("%Y-%m-%d").alias("first_date"),
@@ -218,185 +215,10 @@ def _(mo):
     mo.md("""
     ## Filtering
 
-    There are two categories of repository: **collection repos** that aggregate
-    skills from other repositories, and **organic repos** that do not.
-
-    Additionally, there can be **duplicate content** across repos.
-
-    This section identifies and removes both, producing a clean `skills` dataframe for analysis.
+    The raw dataset contains **duplicate content** across repos (forks, collections
+    that aggregate skills from other repositories, etc.). This section identifies
+    and removes duplicates, producing a clean `skills` dataframe for analysis.
     """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(features, has_classification, mo, pl):
-    # Organic vs Collection classification explanation
-    if not has_classification:
-        mo.stop(
-            True,
-            mo.md("*repo_classification.parquet not found -- all files treated as organic.*"),
-        )
-
-    _n_total = features.shape[0]
-    _n_organic = features.filter(pl.col("collection_score") <= 0.75).shape[0]
-    _n_collection = features.filter(pl.col("collection_score") > 0.75).shape[0]
-    _n_repos = features["repo_key"].n_unique()
-    _n_org_repos = (
-        features.filter(pl.col("collection_score") <= 0.75)["repo_key"].n_unique()
-    )
-    _n_coll_repos = (
-        features.filter(pl.col("collection_score") > 0.75)["repo_key"].n_unique()
-    )
-
-    mo.md(f"""### Organic vs Collection Repos
-
-    Many repos in this dataset are **skill collections** -- aggregators that copy skills from
-    other sources into a single repository. These inflate file counts and duplicate content.
-    We classify each repo using a composite `collection_score` (0--1) based on three signals:
-
-    - **File count** -- repos with hundreds or thousands of skill files are likely aggregators
-    - **Keyword match** -- repo names containing "collection", "registry", "awesome", etc.
-    - **Bulk commit ratio** -- fraction of files added in large batch commits (vs incremental authoring)
-
-    Repos scoring above **0.75** are labeled "Collection"; the rest are "Organic" (authored in-place).
-
-    _Note that this is not perfect - a spot check reveals some non-collection repos above 0.75 and collection repos below; but I think it's acceptable._
-
-    | Source | Repos | Files | Avg files/repo |
-    |--------|-------|-------|----------------|
-    | Organic (score <= 0.75) | {_n_org_repos:,} | {_n_organic:,} | {_n_organic / _n_org_repos:.1f} |
-    | Collection (score > 0.75) | {_n_coll_repos:,} | {_n_collection:,} | {_n_collection / _n_coll_repos:.1f} |
-    | **Total** | **{_n_repos:,}** | **{_n_total:,}** | **{_n_total / _n_repos:.1f}** |
-
-    Collection repos are {_n_coll_repos / _n_repos:.1%} of repos but contribute {_n_collection / _n_total:.1%} of files.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(alt, features, has_classification, mo, np, pl):
-    # Organic vs Collection detailed comparison
-    if not has_classification:
-        mo.stop(True, mo.md("*Skipping collection split -- no repo_classification.parquet.*"))
-
-    features_labeled = features.with_columns(
-        pl.when(pl.col("collection_score") > 0.75)
-        .then(pl.lit("Collection"))
-        .otherwise(pl.lit("Organic"))
-        .alias("source")
-    )
-
-    _organic = features_labeled.filter(pl.col("source") == "Organic")
-    _collection = features_labeled.filter(pl.col("source") == "Collection")
-
-    # Files per repo (repo-level metric)
-    _org_repo_sizes = _organic.group_by("repo_key").agg(pl.len().alias("n"))["n"]
-    _coll_repo_sizes = _collection.group_by("repo_key").agg(pl.len().alias("n"))["n"]
-
-    _rows = [
-        {
-            "Metric": "files_per_repo",
-            "Organic Median": int(_org_repo_sizes.median()),
-            "Collection Median": int(_coll_repo_sizes.median()),
-            "Organic Mean": round(float(_org_repo_sizes.mean()), 1),
-            "Collection Mean": round(float(_coll_repo_sizes.mean()), 1),
-            "Organic P75": int(_org_repo_sizes.quantile(0.75)),
-            "Collection P75": int(_coll_repo_sizes.quantile(0.75)),
-        },
-    ]
-
-    # Per-file metrics
-    for _col in ["words", "lines", "heading_count", "code_block_count"]:
-        _o = _organic[_col]
-        _c = _collection[_col]
-        _rows.append(
-            {
-                "Metric": _col,
-                "Organic Median": int(_o.median()),
-                "Collection Median": int(_c.median()),
-                "Organic Mean": round(float(_o.mean()), 1),
-                "Collection Mean": round(float(_c.mean()), 1),
-                "Organic P75": int(_o.quantile(0.75)),
-                "Collection P75": int(_c.quantile(0.75)),
-            }
-        )
-
-    _comparison = pl.DataFrame(_rows)
-
-    # Word count by source
-    _org_words = features_labeled.filter(
-        (pl.col("source") == "Organic") & (pl.col("words") <= 2000)
-    )["words"].to_numpy()
-    _coll_words = features_labeled.filter(
-        (pl.col("source") == "Collection") & (pl.col("words") <= 2000)
-    )["words"].to_numpy()
-
-    _bin_edges = np.linspace(0, 2000, 41)
-
-    _org_counts, _ = np.histogram(_org_words, bins=_bin_edges)
-    _coll_counts, _ = np.histogram(_coll_words, bins=_bin_edges)
-
-    _hist_df = (
-        pl.concat(
-            [
-                pl.DataFrame(
-                    {
-                        "bin_start": _bin_edges[:-1],
-                        "count": _org_counts,
-                        "source": ["Organic"] * len(_org_counts),
-                    }
-                ),
-                pl.DataFrame(
-                    {
-                        "bin_start": _bin_edges[:-1],
-                        "count": _coll_counts,
-                        "source": ["Collection"] * len(_coll_counts),
-                    }
-                ),
-            ]
-        )
-        .filter(pl.col("count") > 0)
-        .to_pandas()
-    )
-
-    _chart = (
-        alt.Chart(_hist_df)
-        .mark_bar(opacity=0.7)
-        .encode(
-            x=alt.X("bin_start:Q", title="Word Count"),
-            y=alt.Y("count:Q", title="Files"),
-            color="source:N",
-        )
-        .properties(title="Word Count: Organic vs Collection", width=600, height=300)
-    )
-
-    # Frontmatter adoption by source
-    _org_total = features_labeled.filter(pl.col("source") == "Organic").shape[0]
-    _org_fm = features_labeled.filter(
-        (pl.col("source") == "Organic") & pl.col("has_frontmatter")
-    ).shape[0]
-    _coll_total = features_labeled.filter(pl.col("source") == "Collection").shape[0]
-    _coll_fm = features_labeled.filter(
-        (pl.col("source") == "Collection") & pl.col("has_frontmatter")
-    ).shape[0]
-
-    mo.vstack(
-        [
-            mo.md("""### Organic vs Collection Comparison
-
-    #### Key Metrics by Source
-    """),
-            mo.ui.table(_comparison.to_pandas(), selection=None),
-            mo.md(f"""#### Frontmatter Adoption
-
-    | Source | Has FM | Total | Rate |
-    |--------|--------|-------|------|
-    | Organic | {_org_fm:,} | {_org_total:,} | {_org_fm / _org_total:.1%} |
-    | Collection | {_coll_fm:,} | {_coll_total:,} | {_coll_fm / _coll_total:.1%} |
-    """),
-            _chart,
-        ]
-    )
     return
 
 
@@ -469,30 +291,6 @@ def _(alt, features, mo, np, pl):
 
 @app.cell(hide_code=True)
 def _(features, mo, pl):
-    # Deduplication by source (organic vs collection)
-    _organic = features.filter(pl.col("collection_score") <= 0.75)
-    _collection = features.filter(pl.col("collection_score") > 0.75)
-
-    _org_total = _organic.shape[0]
-    _org_unique = _organic["normalized_hash"].n_unique()
-    _coll_total = _collection.shape[0]
-    _coll_unique = _collection["normalized_hash"].n_unique()
-
-    mo.md(f"""#### Deduplication by Source
-
-    | Source | Files | Unique Hashes | Dedup Rate |
-    |--------|-------|---------------|------------|
-    | Organic (score <= 0.75) | {_org_total:,} | {_org_unique:,} | {(_org_total - _org_unique) / _org_total:.1%} |
-    | Collection (score > 0.75) | {_coll_total:,} | {_coll_unique:,} | {(_coll_total - _coll_unique) / _coll_total:.1%} |
-
-    Collection repos are expected to drive most duplication since they aggregate
-    skills from other sources.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(features, mo, pl):
     # Most duplicated skills
     _clusters = (
         features.group_by("normalized_hash")
@@ -518,7 +316,7 @@ def _(features, mo, pl):
     # Show full content of most-duplicated skill
     _top = _clusters.row(0, named=True)
     _content_dir = (
-        __import__("pathlib").Path.home() / "work" / "skills-dataset" / "data" / "content"
+        __import__("pathlib").Path("data/content")
     )
     _top_rel = _top["example_url"].replace("https://github.com/", "")
     _top_path = _content_dir / _top_rel
@@ -548,12 +346,8 @@ def _(features, mo):
     # Filtering result: produce the deduped `skills` dataframe
     _n_before = features.shape[0]
 
-    # One representative per normalized_hash, preferring organic sources (low collection_score)
-    skills = (
-        features.sort("collection_score")
-        .group_by("normalized_hash")
-        .first()
-    )
+    # One representative per normalized_hash
+    skills = features.group_by("normalized_hash").first()
 
     _n_after = skills.shape[0]
     _reduction = (_n_before - _n_after) / _n_before
@@ -562,8 +356,7 @@ def _(features, mo):
 
     After deduplication: **{_n_after:,}** unique skills (from {_n_before:,} total files, **{_reduction:.1%}** reduction).
 
-    All analysis below uses this deduped `skills` dataframe. For each group of duplicates,
-    the representative with the lowest `collection_score` is kept (preferring organic originals).
+    All analysis below uses this deduped `skills` dataframe.
     """)
     return (skills,)
 
@@ -673,7 +466,7 @@ def _(mo, pl, skills):
         ).head(1)
 
     _content_dir = (
-        __import__("pathlib").Path.home() / "work" / "skills-dataset" / "data" / "content"
+        __import__("pathlib").Path("data/content")
     )
     _row = _near_median.row(0, named=True)
     _rel = _row["url"].replace("https://github.com/", "")
@@ -746,7 +539,7 @@ def _(mo, pl, skills):
         ).head(1)
 
     _content_dir = (
-        __import__("pathlib").Path.home() / "work" / "skills-dataset" / "data" / "content"
+        __import__("pathlib").Path("data/content")
     )
     _row = _near_median.row(0, named=True)
     _rel = _row["url"].replace("https://github.com/", "")
@@ -904,7 +697,7 @@ def _(alt, mo, pl, skills):
     import urllib.parse
     from collections import Counter
     _URL_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
-    _content_dir = __import__("pathlib").Path.home() / "work" / "skills-dataset" / "data" / "content"
+    _content_dir = __import__("pathlib").Path("data/content")
 
     _with_urls = skills.filter(pl.col("url_count") > 0)
     _sample = _with_urls.sample(min(1000, _with_urls.shape[0]), seed=42)
@@ -980,6 +773,15 @@ def _(alt, mo, pl, skills):
 @app.cell
 def _(alt, mo, pl, skills):
     # Language distribution
+    if "language" not in skills.columns:
+        mo.stop(
+            True,
+            mo.md(
+                "*Language column not found.* Run `python -m analyze_skills.detect_language` "
+                "to add language detection."
+            ),
+        )
+
     _lang_counts = (
         skills["language"]
         .value_counts()
@@ -1033,7 +835,7 @@ def _(mo, skills):
     import random as _random1
 
     _content_dir = (
-        __import__("pathlib").Path.home() / "work" / "skills-dataset" / "data" / "content"
+        __import__("pathlib").Path("data/content")
     )
     _idx = _random1.randint(0, skills.shape[0] - 1)
     _row = skills.row(_idx, named=True)
@@ -1059,7 +861,7 @@ def _(mo, skills):
     import random as _random2
 
     _content_dir = (
-        __import__("pathlib").Path.home() / "work" / "skills-dataset" / "data" / "content"
+        __import__("pathlib").Path("data/content")
     )
     _idx = _random2.randint(0, skills.shape[0] - 1)
     _row = skills.row(_idx, named=True)
@@ -1085,7 +887,7 @@ def _(mo, skills):
     import random as _random3
 
     _content_dir = (
-        __import__("pathlib").Path.home() / "work" / "skills-dataset" / "data" / "content"
+        __import__("pathlib").Path("data/content")
     )
     _idx = _random3.randint(0, skills.shape[0] - 1)
     _row = skills.row(_idx, named=True)
