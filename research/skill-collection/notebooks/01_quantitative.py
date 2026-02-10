@@ -132,9 +132,82 @@ def _(alt, features, mo, pl):
 
     {_n_unique:,} distinct filenames across {_total:,} files.
     Most common: **{_top1["filename"]}** ({_top1["count"]:,} files, {_top1["count"] / _total:.1%}).
-    The long tail of non-standard names likely reflects early adopters or tools that
-    predated the standard.
     """),
+        _chart,
+    ])
+    return
+
+
+@app.cell
+def _(alt, features, mo, pl):
+    # Filename age analysis: are non-SKILL.md files older?
+    _history_path = __import__("pathlib").Path("data/history.parquet")
+    if not _history_path.exists():
+        mo.stop(True, mo.md("*history.parquet not found -- skipping filename age analysis.*"))
+
+    _history = pl.read_parquet(_history_path)
+    _joined = features.join(_history, on="url", how="inner")
+    _joined = _joined.with_columns(
+        pl.col("url").str.split("/").list.last().alias("filename"),
+        pl.col("first_commit_date").str.slice(0, 10).str.to_date("%Y-%m-%d").alias("first_date"),
+    )
+
+    _is_skill = pl.col("filename") == "SKILL.md"
+    _skill_median = _joined.filter(_is_skill)["first_date"].median()
+    _other_median = _joined.filter(~_is_skill)["first_date"].median()
+    _n_with_history = _joined.shape[0]
+    _n_total = features.shape[0]
+
+    # Top non-SKILL.md filenames with dates
+    _other = _joined.filter(~_is_skill)
+    _by_name = (
+        _other.group_by("filename")
+        .agg([
+            pl.len().alias("count"),
+            pl.col("first_date").median().alias("median_date"),
+            pl.col("first_date").min().alias("earliest"),
+        ])
+        .sort("count", descending=True)
+        .head(10)
+    )
+
+    # Timeline chart: SKILL.md vs others by month
+    _monthly = (
+        _joined.with_columns(
+            pl.col("first_date").dt.truncate("1mo").alias("month"),
+            pl.when(_is_skill).then(pl.lit("SKILL.md")).otherwise(pl.lit("Other")).alias("name_group"),
+        )
+        .group_by("month", "name_group")
+        .agg(pl.len().alias("count"))
+        .sort("month")
+    )
+
+    _chart = (
+        alt.Chart(_monthly.to_pandas())
+        .mark_bar()
+        .encode(
+            x=alt.X("month:T", title="First Commit Month"),
+            y=alt.Y("count:Q", title="Files"),
+            color="name_group:N",
+        )
+        .properties(title="When were skill files first committed?", width=600, height=250)
+    )
+
+    mo.vstack([
+        mo.md(f"""#### Are non-standard filenames older?
+
+    Commit history is available for {_n_with_history:,} / {_n_total:,} files ({_n_with_history / _n_total:.0%}).
+
+    | Group | Median first commit | Files |
+    |-------|-------------------|-------|
+    | `SKILL.md` | {_skill_median} | {_joined.filter(_is_skill).shape[0]:,} |
+    | Other names | {_other_median} | {_other.shape[0]:,} |
+
+    Non-standard names are slightly earlier on median but largely concurrent with `SKILL.md`
+    adoption -- not a legacy artifact. The main outlier is lowercase `skill.md`, which dates
+    back to 2022.
+    """),
+        mo.ui.table(_by_name.to_pandas(), selection=None),
         _chart,
     ])
     return
@@ -155,7 +228,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(features, has_classification, mo, pl):
     # Organic vs Collection classification explanation
     if not has_classification:
