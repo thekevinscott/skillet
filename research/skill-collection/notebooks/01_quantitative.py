@@ -93,7 +93,7 @@ def _(mo):
     return alt, features, has_classification, np, pl
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(alt, features, mo, pl):
     # Filename distribution
     _filenames = (
@@ -123,8 +123,17 @@ def _(alt, features, mo, pl):
     mo.vstack([
         mo.md(f"""### Filenames
 
+    The [Agent Skills](https://agentskills.io) open standard requires skills to be
+    defined in a file named exactly `SKILL.md` (case-sensitive). This convention is
+    enforced by [Claude Code](https://code.claude.com/docs/en/skills),
+    [OpenAI Codex](https://developers.openai.com/codex/skills),
+    [VS Code Copilot](https://code.visualstudio.com/docs/copilot/customization/agent-skills),
+    and other compatible tools.
+
     {_n_unique:,} distinct filenames across {_total:,} files.
     Most common: **{_top1["filename"]}** ({_top1["count"]:,} files, {_top1["count"] / _total:.1%}).
+    The long tail of non-standard names likely reflects early adopters or tools that
+    predated the standard.
     """),
         _chart,
     ])
@@ -136,9 +145,12 @@ def _(mo):
     mo.md("""
     ## Filtering
 
-    The raw dataset contains noise from two sources: **collection repos** that aggregate
-    skills from other repositories, and **duplicate content** across repos. This section
-    identifies and removes both, producing a clean `skills` dataframe for analysis.
+    There are two categories of repository: **collection repos** that aggregate
+    skills from other repositories, and **organic repos** that do not.
+
+    Additionally, there can be **duplicate content** across repos.
+
+    This section identifies and removes both, producing a clean `skills` dataframe for analysis.
     """)
     return
 
@@ -174,6 +186,8 @@ def _(features, has_classification, mo, pl):
     - **Bulk commit ratio** -- fraction of files added in large batch commits (vs incremental authoring)
 
     Repos scoring above **0.75** are labeled "Collection"; the rest are "Organic" (authored in-place).
+
+    _Note that this is not perfect - a spot check reveals some non-collection repos above 0.75 and collection repos below; but I think it's acceptable._
 
     | Source | Repos | Files | Avg files/repo |
     |--------|-------|-------|----------------|
