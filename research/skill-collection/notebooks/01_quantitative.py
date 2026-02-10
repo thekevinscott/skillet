@@ -214,20 +214,23 @@ def _(alt, features, has_classification, mo, np, pl):
     )
 
     _metrics = ["words", "lines", "heading_count", "code_block_count"]
+    _organic = features_labeled.filter(pl.col("source") == "Organic")
+    _collection = features_labeled.filter(pl.col("source") == "Collection")
     _rows = []
     for _col in _metrics:
-        for _src in ["Organic", "Collection"]:
-            _s = features_labeled.filter(pl.col("source") == _src)[_col]
-            if _s.len() > 0:
-                _rows.append(
-                    {
-                        "Metric": _col,
-                        "Source": _src,
-                        "Median": int(_s.median()),
-                        "Mean": round(float(_s.mean()), 1),
-                        "P75": int(_s.quantile(0.75)),
-                    }
-                )
+        _o = _organic[_col]
+        _c = _collection[_col]
+        _rows.append(
+            {
+                "Metric": _col,
+                "Organic Median": int(_o.median()),
+                "Collection Median": int(_c.median()),
+                "Organic Mean": round(float(_o.mean()), 1),
+                "Collection Mean": round(float(_c.mean()), 1),
+                "Organic P75": int(_o.quantile(0.75)),
+                "Collection P75": int(_c.quantile(0.75)),
+            }
+        )
 
     _comparison = pl.DataFrame(_rows)
 
