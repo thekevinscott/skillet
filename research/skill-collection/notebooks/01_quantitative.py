@@ -286,11 +286,27 @@ def _(alt, features, has_classification, mo, np, pl):
         .alias("source")
     )
 
-    _metrics = ["words", "lines", "heading_count", "code_block_count"]
     _organic = features_labeled.filter(pl.col("source") == "Organic")
     _collection = features_labeled.filter(pl.col("source") == "Collection")
-    _rows = []
-    for _col in _metrics:
+
+    # Files per repo (repo-level metric)
+    _org_repo_sizes = _organic.group_by("repo_key").agg(pl.len().alias("n"))["n"]
+    _coll_repo_sizes = _collection.group_by("repo_key").agg(pl.len().alias("n"))["n"]
+
+    _rows = [
+        {
+            "Metric": "files_per_repo",
+            "Organic Median": int(_org_repo_sizes.median()),
+            "Collection Median": int(_coll_repo_sizes.median()),
+            "Organic Mean": round(float(_org_repo_sizes.mean()), 1),
+            "Collection Mean": round(float(_coll_repo_sizes.mean()), 1),
+            "Organic P75": int(_org_repo_sizes.quantile(0.75)),
+            "Collection P75": int(_coll_repo_sizes.quantile(0.75)),
+        },
+    ]
+
+    # Per-file metrics
+    for _col in ["words", "lines", "heading_count", "code_block_count"]:
         _o = _organic[_col]
         _c = _collection[_col]
         _rows.append(
