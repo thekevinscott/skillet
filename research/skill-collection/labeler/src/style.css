@@ -1,0 +1,290 @@
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
+
+header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+header button {
+  padding: 4px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+}
+
+header button:hover { background: #f3f4f6; }
+header button:disabled { opacity: 0.4; cursor: default; }
+
+.counter {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: #6b7280;
+}
+
+.meta {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.meta a { color: #2563eb; text-decoration: none; }
+.meta a:hover { text-decoration: underline; }
+
+.spacer { flex: 1; }
+
+.layout {
+  display: flex;
+  margin-top: 41px;
+  min-height: calc(100vh - 41px);
+}
+
+.editor-col {
+  flex: 1;
+  padding: 24px;
+}
+
+#editor {
+  max-width: 800px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px 24px;
+  min-height: 300px;
+}
+
+.sidebar-col {
+  flex: 1;
+  border-left: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 24px 16px;
+  position: relative;
+}
+
+.sidebar-col h2 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+
+#label-list {
+  position: relative;
+}
+
+.tiptap {
+  outline: none;
+}
+
+.sel-highlight {
+  background: #bfdbfe;
+}
+
+.tiptap p {
+  margin: 0.5em 0;
+}
+
+.tiptap pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+  margin: 0;
+}
+
+#bubble-menu {
+  position: fixed;
+  z-index: 30;
+  gap: 4px;
+  background: #1f2937;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+}
+
+#bubble-menu input {
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+  width: 160px;
+}
+
+#bubble-menu input::placeholder {
+  color: #9ca3af;
+}
+
+#bubble-menu input:focus {
+  border-color: #6b7280;
+}
+
+#tag-suggestions {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #1f2937;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+#tag-suggestions .tag-option {
+  padding: 4px 10px;
+  font-size: 13px;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+#tag-suggestions .tag-option:hover,
+#tag-suggestions .tag-option.active {
+  background: #374151;
+}
+
+#tag-suggestions .tag-option .tag-color-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.label-item {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 8px 2px 16px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.label-suggestion {
+  z-index: 1;
+}
+
+.label-item::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 3px;
+  height: var(--bar-height, 20px);
+  background: var(--bar-color, #bfdbfe);
+  border-radius: 2px;
+}
+
+.label-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.label-tag {
+  font-weight: 600;
+  color: #1d4ed8;
+  white-space: nowrap;
+}
+
+.label-text {
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.label-delete {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.label-delete:hover {
+  color: #ef4444;
+}
+
+/* --- LLM Suggestions (dashed, dimmed) --- */
+
+.label-suggestion::before {
+  background: none;
+  border-left: 2px dashed var(--bar-color, #a5b4fc);
+  width: 0;
+}
+
+.label-suggestion .label-tag {
+  font-weight: 500;
+}
+
+.suggestion-accept,
+.suggestion-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+.suggestion-accept {
+  color: #22c55e;
+}
+
+.suggestion-accept:hover {
+  color: #16a34a;
+}
+
+.suggestion-dismiss {
+  color: #9ca3af;
+}
+
+.suggestion-dismiss:hover {
+  color: #ef4444;
+}
+
+/* --- AI loading indicator --- */
+
+.ai-loading {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  font-size: 12px;
+  color: #6366f1;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "skill-labeler",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "server": "nodemon server.js",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.39",
+    "@tiptap/core": "^3",
+    "@tiptap/extension-bubble-menu": "^3",
+    "@tiptap/pm": "^3",
+    "@tiptap/starter-kit": "^3",
+    "better-sqlite3": "^11",
+    "express": "^5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11",
+    "vite": "^6"
+  }
+}
