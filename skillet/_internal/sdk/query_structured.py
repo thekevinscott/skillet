@@ -3,7 +3,7 @@
 from typing import Any
 
 import claude_agent_sdk
-from claude_agent_sdk import ClaudeAgentOptions, ResultMessage
+from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, ResultMessage, ToolUseBlock
 from pydantic import BaseModel
 
 from .stderr import _stderr_callback
@@ -35,7 +35,15 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
     )
 
     async for message in claude_agent_sdk.query(prompt=prompt, options=opts):
+        # The SDK delivers structured output via a synthetic StructuredOutput
+        # tool call in an AssistantMessage, not via ResultMessage.structured_output
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, ToolUseBlock) and block.name == "StructuredOutput":
+                    return model.model_validate(block.input)
+
         if isinstance(message, ResultMessage):
+            # Fallback: if the SDK ever populates structured_output directly
             if message.structured_output is not None:
                 return model.model_validate(message.structured_output)
 
