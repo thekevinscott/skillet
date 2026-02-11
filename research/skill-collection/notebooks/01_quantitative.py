@@ -2,7 +2,7 @@
 
 import marimo
 
-__generated_with = "0.19.7"
+__generated_with = "0.19.9"
 app = marimo.App(width="medium")
 
 
@@ -13,21 +13,21 @@ def _():
     mo.md("""# An Analysis of public SKILL.md files on Github
 
     This notebook examines the structural properties of skill file content: size, markdown structure, frontmatter adoption, and how these vary between organic repos and skill collections.
+
+    [Data comes from Kaggle](https://www.kaggle.com/datasets/thekevinscott/github-skill-files/data)
     """)
     return (mo,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    from pathlib import Path
-
     import altair as alt
     import numpy as np
     import polars as pl
 
     alt.data_transformers.disable_max_rows()
 
-    _data_dir = Path("data")
+    _data_dir = __import__("pathlib").Path("data")
     _features_path = _data_dir / "analyzed" / "content_features.parquet"
     _files_path = _data_dir / "github-skill-files" / "files.parquet"
 
@@ -41,6 +41,11 @@ def _(mo):
         )
 
     features = pl.read_parquet(_features_path)
+
+    # Filter to skill.md files only (case-insensitive)
+    features = features.filter(
+        pl.col("url").str.to_lowercase().str.ends_with("/skill.md")
+    )
 
     # Join with files.parquet to get repo_key
     if _files_path.exists():
@@ -75,6 +80,15 @@ def _(mo):
 
     _n_total = features.shape[0]
     _n_repos = features["repo_key"].n_unique()
+    _median_bytes = features["bytes"].median()
+    _median_words = features["prose_words"].median() if "prose_words" in features.columns else features["words"].median()
+    _median_lines = features["lines"].median()
+    _fm_count = features.filter(pl.col("has_frontmatter")).shape[0]
+    _fm_pct = _fm_count / _n_total
+    _has_code = features.filter(pl.col("code_block_count") > 0).shape[0]
+    _code_pct = _has_code / _n_total
+    _has_headings = features.filter(pl.col("heading_count") > 0).shape[0]
+    _heading_pct = _has_headings / _n_total
 
     mo.md(f"""## Dataset Overview
 
@@ -82,144 +96,12 @@ def _(mo):
     |--------|-------|
     | Total files | {_n_total:,} |
     | Unique repos | {_n_repos:,} |
+    | Median size | {_median_words:.0f} prose words / {_median_lines:.0f} lines |
+    | With frontmatter | {_fm_pct:.0%} |
+    | With headings | {_heading_pct:.0%} |
+    | With code blocks | {_code_pct:.0%} |
     """)
     return alt, features, np, pl
-
-
-@app.cell(hide_code=True)
-def _(alt, features, mo, pl):
-    # Filename distribution
-    _filenames = (
-        features.with_columns(
-            pl.col("url").str.split("/").list.last().alias("filename")
-        )["filename"]
-        .value_counts()
-        .sort("count", descending=True)
-    )
-
-    _top = _filenames.head(25)
-
-    _chart = (
-        alt.Chart(_top.to_pandas())
-        .mark_bar()
-        .encode(
-            x=alt.X("count:Q", title="Files"),
-            y=alt.Y("filename:N", sort="-x", title="Filename"),
-        )
-        .properties(title="Top 25 Skill Filenames", width=600, height=500)
-    )
-
-    _total = features.shape[0]
-    _top1 = _filenames.row(0, named=True)
-    _n_unique = _filenames.shape[0]
-
-    mo.vstack([
-        mo.md(f"""### Filenames
-
-    The [Agent Skills](https://agentskills.io) open standard requires skills to be
-    defined in a file named exactly `SKILL.md` (case-sensitive). This convention is
-    enforced by [Claude Code](https://code.claude.com/docs/en/skills),
-    [OpenAI Codex](https://developers.openai.com/codex/skills),
-    [VS Code Copilot](https://code.visualstudio.com/docs/copilot/customization/agent-skills),
-    and other compatible tools.
-
-    {_n_unique:,} distinct filenames across {_total:,} files.
-    Most common: **{_top1["filename"]}** ({_top1["count"]:,} files, {_top1["count"] / _total:.1%}).
-    """),
-        _chart,
-    ])
-    return
-
-
-@app.cell
-def _(alt, features, mo, pl):
-    # Filename age analysis: are non-SKILL.md files older?
-    _history_path = __import__("pathlib").Path("data/github-skill-files/history.parquet")
-    if not _history_path.exists():
-        mo.stop(True, mo.md("*history.parquet not found -- skipping filename age analysis.*"))
-
-    _history = pl.read_parquet(_history_path)
-    # Aggregate per-commit rows to get first commit date per file
-    _first_commits = _history.group_by("url").agg(
-        pl.col("commit_date").min().alias("first_commit_date")
-    )
-    _joined = features.join(_first_commits, on="url", how="inner")
-    _joined = _joined.with_columns(
-        pl.col("url").str.split("/").list.last().alias("filename"),
-        pl.col("first_commit_date").str.slice(0, 10).str.to_date("%Y-%m-%d").alias("first_date"),
-    )
-
-    _is_skill = pl.col("filename") == "SKILL.md"
-    _skill_median = _joined.filter(_is_skill)["first_date"].median()
-    _other_median = _joined.filter(~_is_skill)["first_date"].median()
-    _n_with_history = _joined.shape[0]
-    _n_total = features.shape[0]
-
-    # Top non-SKILL.md filenames with dates
-    _other = _joined.filter(~_is_skill)
-    _by_name = (
-        _other.group_by("filename")
-        .agg([
-            pl.len().alias("count"),
-            pl.col("first_date").median().alias("median_date"),
-            pl.col("first_date").min().alias("earliest"),
-        ])
-        .sort("count", descending=True)
-        .head(10)
-    )
-
-    # Timeline chart: SKILL.md vs others by month
-    _monthly = (
-        _joined.with_columns(
-            pl.col("first_date").dt.truncate("1mo").alias("month"),
-            pl.when(_is_skill).then(pl.lit("SKILL.md")).otherwise(pl.lit("Other")).alias("name_group"),
-        )
-        .group_by("month", "name_group")
-        .agg(pl.len().alias("count"))
-        .sort("month")
-    )
-
-    _chart = (
-        alt.Chart(_monthly.to_pandas())
-        .mark_bar()
-        .encode(
-            x=alt.X("month:T", title="First Commit Month"),
-            y=alt.Y("count:Q", title="Files"),
-            color="name_group:N",
-        )
-        .properties(title="When were skill files first committed?", width=600, height=250)
-    )
-
-    mo.vstack([
-        mo.md(f"""#### Are non-standard filenames older?
-
-    Commit history is available for {_n_with_history:,} / {_n_total:,} files ({_n_with_history / _n_total:.0%}).
-
-    | Group | Median first commit | Files |
-    |-------|-------------------|-------|
-    | `SKILL.md` | {_skill_median} | {_joined.filter(_is_skill).shape[0]:,} |
-    | Other names | {_other_median} | {_other.shape[0]:,} |
-
-    Non-standard names are slightly earlier on median but largely concurrent with `SKILL.md`
-    adoption -- not a legacy artifact. The main outlier is lowercase `skill.md`, which dates
-    back to 2022.
-    """),
-        mo.ui.table(_by_name.to_pandas(), selection=None),
-        _chart,
-    ])
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
-    ## Filtering
-
-    The raw dataset contains **duplicate content** across repos (forks, collections
-    that aggregate skills from other repositories, etc.). This section identifies
-    and removes duplicates, producing a clean `skills` dataframe for analysis.
-    """)
-    return
 
 
 @app.cell(hide_code=True)
@@ -231,61 +113,18 @@ def _(features, mo):
     _exact_dupes = _total - _exact_unique
     _norm_dupes = _total - _norm_unique
 
-    mo.md(f"""### Deduplication
+    mo.md(f"""## Deduplication
 
-    Collection repos copy skills from other sources, so many files are duplicates.
-    Two methods: exact byte-for-byte matching and normalized matching (strip frontmatter,
-    collapse whitespace).
+    The raw dataset contains **duplicate content** across repos (forks, collections
+    that aggregate skills from other repositories, etc.).
 
     | Method | Total Files | Unique | Duplicates | Dedup Rate |
     |--------|------------|--------|------------|------------|
     | Exact (content_hash) | {_total:,} | {_exact_unique:,} | {_exact_dupes:,} | {_exact_dupes / _total:.1%} |
     | Normalized (normalized_hash) | {_total:,} | {_norm_unique:,} | {_norm_dupes:,} | {_norm_dupes / _total:.1%} |
+
+    **Note:** Normalization strips frontmatter, so skills with identical body text but different metadata (name, tags) are treated as duplicates. This is appropriate for structural analysis but may undercount distinct skills for semantic analysis.
     """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(alt, features, mo, np, pl):
-    # Cluster size distribution
-    _clusters = (
-        features.group_by("normalized_hash")
-        .agg(pl.len().alias("cluster_size"))
-    )
-    _singletons = _clusters.filter(pl.col("cluster_size") == 1).shape[0]
-    _duplicated = _clusters.filter(pl.col("cluster_size") > 1).shape[0]
-    _large = _clusters.filter(pl.col("cluster_size") >= 10).shape[0]
-    _total_clusters = _clusters.shape[0]
-
-    # Histogram of cluster sizes (only duplicated, capped at 50 for readability)
-    _dup_clusters = _clusters.filter(pl.col("cluster_size") > 1)
-    _vals = _dup_clusters.filter(pl.col("cluster_size") <= 50)["cluster_size"].to_numpy()
-    _bin_edges = np.arange(2, 52)
-    _hist_counts, _ = np.histogram(_vals, bins=_bin_edges)
-    _hist_df = (
-        pl.DataFrame({"cluster_size": _bin_edges[:-1], "count": _hist_counts})
-        .filter(pl.col("count") > 0)
-        .to_pandas()
-    )
-
-    _chart = (
-        alt.Chart(_hist_df)
-        .mark_bar()
-        .encode(
-            x=alt.X("cluster_size:Q", title="Copies per Unique Skill (capped at 50)"),
-            y=alt.Y("count:Q", title="Unique Skills"),
-        )
-        .properties(title="Cluster Size Distribution (duplicated skills only)", width=600, height=300)
-    )
-
-    mo.vstack([
-        mo.md(f"""#### Cluster Size Distribution
-
-    {_singletons:,} / {_total_clusters:,} ({_singletons / _total_clusters:.1%}) unique skills appear only once.
-    {_large:,} ({_large / _total_clusters:.1%}) appear 10+ times.
-    """),
-        _chart,
-    ])
     return
 
 
@@ -321,7 +160,8 @@ def _(features, mo, pl):
     _top_rel = _top["example_url"].replace("https://github.com/", "")
     _top_path = _content_dir / _top_rel
     _top_text = _top_path.read_text(errors="replace") if _top_path.exists() else "(not found)"
-    _top_escaped = _top_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    import html as _html
+    _top_escaped = _html.escape(_top_text)
 
     _pre = f'<pre style="max-height:400px;overflow:auto;padding:12px;font-size:12px;border-radius:6px;border:1px solid var(--border-color, #ddd)">{_top_escaped}</pre>'
 
@@ -343,20 +183,14 @@ def _(features, mo, pl):
 
 @app.cell(hide_code=True)
 def _(features, mo):
-    # Filtering result: produce the deduped `skills` dataframe
-    _n_before = features.shape[0]
-
-    # One representative per normalized_hash
-    skills = features.group_by("normalized_hash").first()
+    # Produce the deduped `skills` dataframe
+    # One representative per normalized_hash; sort by URL for deterministic selection
+    skills = features.sort("url").group_by("normalized_hash").first()
 
     _n_after = skills.shape[0]
-    _reduction = (_n_before - _n_after) / _n_before
+    _reduction = (features.shape[0] - _n_after) / features.shape[0]
 
-    mo.md(f"""### Filtering Result
-
-    After deduplication: **{_n_after:,}** unique skills (from {_n_before:,} total files, **{_reduction:.1%}** reduction).
-
-    All analysis below uses this deduped `skills` dataframe.
+    mo.md(f"""Using normalized deduplication: **{_n_after:,}** unique skills ({_reduction:.0%} reduction). All analysis below uses this deduplicated set.
     """)
     return (skills,)
 
@@ -368,7 +202,9 @@ def _(mo, pl, skills):
 
     _metrics = {
         "bytes": "File size (bytes)",
-        "words": "Word count",
+        "words": "Word count (total)",
+        "prose_words": "Prose words",
+        "code_words": "Code words",
         "lines": "Line count",
         "paragraphs": "Paragraph count",
         "heading_count": "Headings",
@@ -387,6 +223,7 @@ def _(mo, pl, skills):
                 "Median": int(_s.median()),
                 "Anthropic Median": int(_a.median()) if _a.len() > 0 else None,
                 "Mean": round(float(_s.mean()), 1),
+                "Anthropic Mean": round(float(_a.mean()), 1) if _a.len() > 0 else None,
                 "P25": int(_s.quantile(0.25)),
                 "P75": int(_s.quantile(0.75)),
                 "P95": int(_s.quantile(0.95)),
@@ -396,11 +233,14 @@ def _(mo, pl, skills):
 
     _summary = pl.DataFrame(_rows)
 
+    _n_anthropic = _anthropic.shape[0]
+    _caveat = " *(small sample -- interpret with caution)*" if _n_anthropic < 30 else ""
+
     mo.vstack(
         [
             mo.md(f"""## Summary Statistics
 
-    Anthropic column shows median across {_anthropic.shape[0]} skills from the `anthropics/` GitHub org.
+    Anthropic column: median across **{_n_anthropic}** skills from the `anthropics/` GitHub org.{_caveat}
     """),
             mo.ui.table(_summary.to_pandas(), selection=None),
         ]
@@ -410,44 +250,38 @@ def _(mo, pl, skills):
 
 @app.cell(hide_code=True)
 def _(alt, mo, np, pl, skills):
-    # Word count distribution
-    _vals = skills.filter(pl.col("words") <= 2000)["words"].to_numpy()
-    _bin_edges = np.linspace(0, 2000, 51)
-    _hist_counts, _ = np.histogram(_vals, bins=_bin_edges)
-    _word_dist = (
-        pl.DataFrame(
-            {
-                "bin_start": _bin_edges[:-1],
-                "count": _hist_counts,
-            }
-        )
-        .filter(pl.col("count") > 0)
-        .to_pandas()
-    )
+    # Prose word count distribution — clipped at 2000, pre-aggregated
+    _cutoff = 2000
+    _excluded = skills.filter(pl.col("prose_words") > _cutoff).shape[0]
+    _excluded_pct = _excluded / skills.shape[0]
+    _vals = skills.filter(pl.col("prose_words") <= _cutoff)["prose_words"].to_numpy()
+    _counts, _edges = np.histogram(_vals, bins=50)
+    _hist = pl.DataFrame({"bin_start": _edges[:-1], "bin_end": _edges[1:], "count": _counts}).to_pandas()
 
     _chart = (
-        alt.Chart(_word_dist)
+        alt.Chart(_hist)
         .mark_bar()
         .encode(
-            x=alt.X("bin_start:Q", title="Word Count (clipped at 2000)"),
+            x=alt.X("bin_start:Q", bin="binned", title="Prose Words"),
+            x2="bin_end:Q",
             y=alt.Y("count:Q", title="Skills"),
         )
-        .properties(title="Word Count Distribution", width=600, height=300)
+        .properties(title="Prose Word Count Distribution", width=600, height=300)
     )
 
-    _median = skills["words"].median()
-    _p75 = skills["words"].quantile(0.75)
-    _p95 = skills["words"].quantile(0.95)
+    _median = skills["prose_words"].median()
+    _p75 = skills["prose_words"].quantile(0.75)
+    _p95 = skills["prose_words"].quantile(0.95)
 
     mo.vstack(
         [
             mo.md(f"""## Size Distributions
 
-    ### Word Count
+    ### Prose Word Count
 
-    Median: **{int(_median)}** words | P75: **{int(_p75)}** | P95: **{int(_p95)}**
+    Prose words exclude tokens inside code blocks. Chart clipped at {_cutoff:,}; **{_excluded:,}** skills ({_excluded_pct:.1%}) exceed the cutoff.
 
-    Skills above 2000 words excluded from histogram.
+    Median: **{int(_median)}** | P75: **{int(_p75)}** | P95: **{int(_p95)}** | Max: **{int(skills["prose_words"].max()):,}**
     """),
             _chart,
         ]
@@ -457,12 +291,12 @@ def _(alt, mo, np, pl, skills):
 
 @app.cell(hide_code=True)
 def _(mo, pl, skills):
-    # Show a skill near the median word count
-    _median_words = int(skills["words"].median())
-    _near_median = skills.filter(pl.col("words") == _median_words).head(1)
+    # Show a skill near the median prose word count
+    _median_words = int(skills["prose_words"].median())
+    _near_median = skills.filter(pl.col("prose_words") == _median_words).head(1)
     if _near_median.shape[0] == 0:
         _near_median = skills.filter(
-            (pl.col("words") >= _median_words - 5) & (pl.col("words") <= _median_words + 5)
+            (pl.col("prose_words") >= _median_words - 5) & (pl.col("prose_words") <= _median_words + 5)
         ).head(1)
 
     _content_dir = (
@@ -470,44 +304,36 @@ def _(mo, pl, skills):
     )
     _row = _near_median.row(0, named=True)
     _rel = _row["url"].replace("https://github.com/", "")
+    _rel_short = __import__("re").sub(r"/blob/[0-9a-f]+/", "/.../", _rel)
     _path = _content_dir / _rel
     _text = _path.read_text(errors="replace") if _path.exists() else "(not found)"
-    _escaped = _text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    import html as _html
+    _escaped = _html.escape(_text)
 
     _pre = f'<pre style="max-height:400px;overflow:auto;padding:12px;font-size:12px;border-radius:6px;border:1px solid var(--border-color, #ddd)">{_escaped}</pre>'
 
-    mo.vstack([
-        mo.md(f"""#### Example: a {_row["words"]}-word skill (median)
-
-    `{_rel}`
-    """),
-        mo.Html(_pre),
-    ])
+    mo.accordion({
+        f"Example: a {_row['words']}-word skill (median) — `{_rel_short}`": mo.Html(_pre),
+    })
     return
 
 
 @app.cell(hide_code=True)
 def _(alt, mo, np, pl, skills):
-    # Line count distribution
-    _vals = skills.filter(pl.col("lines") <= 200)["lines"].to_numpy()
-    _bin_edges = np.linspace(0, 200, 51)
-    _hist_counts, _ = np.histogram(_vals, bins=_bin_edges)
-    _line_dist = (
-        pl.DataFrame(
-            {
-                "bin_start": _bin_edges[:-1],
-                "count": _hist_counts,
-            }
-        )
-        .filter(pl.col("count") > 0)
-        .to_pandas()
-    )
+    # Line count distribution — clipped at 200, pre-aggregated
+    _cutoff = 200
+    _excluded = skills.filter(pl.col("lines") > _cutoff).shape[0]
+    _excluded_pct = _excluded / skills.shape[0]
+    _vals = skills.filter(pl.col("lines") <= _cutoff)["lines"].to_numpy()
+    _counts, _edges = np.histogram(_vals, bins=50)
+    _hist = pl.DataFrame({"bin_start": _edges[:-1], "bin_end": _edges[1:], "count": _counts}).to_pandas()
 
     _chart = (
-        alt.Chart(_line_dist)
+        alt.Chart(_hist)
         .mark_bar()
         .encode(
-            x=alt.X("bin_start:Q", title="Line Count (clipped at 200)"),
+            x=alt.X("bin_start:Q", bin="binned", title="Lines"),
+            x2="bin_end:Q",
             y=alt.Y("count:Q", title="Skills"),
         )
         .properties(title="Line Count Distribution", width=600, height=300)
@@ -515,12 +341,15 @@ def _(alt, mo, np, pl, skills):
 
     _median = skills["lines"].median()
     _p75 = skills["lines"].quantile(0.75)
+    _p95 = skills["lines"].quantile(0.95)
 
     mo.vstack(
         [
             mo.md(f"""### Line Count
 
-    Median: **{int(_median)}** lines | P75: **{int(_p75)}**
+    Chart clipped at {_cutoff}; **{_excluded:,}** skills ({_excluded_pct:.1%}) exceed the cutoff.
+
+    Median: **{int(_median)}** | P75: **{int(_p75)}** | P95: **{int(_p95)}** | Max: **{int(skills["lines"].max()):,}**
     """),
             _chart,
         ]
@@ -543,19 +372,17 @@ def _(mo, pl, skills):
     )
     _row = _near_median.row(0, named=True)
     _rel = _row["url"].replace("https://github.com/", "")
+    _rel_short = __import__("re").sub(r"/blob/[0-9a-f]+/", "/.../", _rel)
     _path = _content_dir / _rel
     _text = _path.read_text(errors="replace") if _path.exists() else "(not found)"
-    _escaped = _text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    import html as _html
+    _escaped = _html.escape(_text)
 
     _pre = f'<pre style="max-height:400px;overflow:auto;padding:12px;font-size:12px;border-radius:6px;border:1px solid var(--border-color, #ddd)">{_escaped}</pre>'
 
-    mo.vstack([
-        mo.md(f"""#### Example: a {_row["lines"]}-line skill (median)
-
-    `{_rel}`
-    """),
-        mo.Html(_pre),
-    ])
+    mo.accordion({
+        f"Example: a {_row['lines']}-line skill (median) — `{_rel_short}`": mo.Html(_pre),
+    })
     return
 
 
@@ -656,24 +483,29 @@ def _(alt, mo, pl, skills):
 
 @app.cell(hide_code=True)
 def _(alt, mo, pl, skills):
-    # Code block count histogram
+    # Code block count histogram — clipped at 40, value_counts (already small)
+    _cutoff = 40
+    _excluded = skills.filter(pl.col("code_block_count") > _cutoff).shape[0]
+    _excluded_pct = _excluded / skills.shape[0]
     _code_counts = (
-        skills.filter(pl.col("code_block_count") <= 40)["code_block_count"]
+        skills.filter(pl.col("code_block_count") <= _cutoff)["code_block_count"]
         .value_counts()
         .sort("code_block_count")
+        .to_pandas()
     )
 
     _chart = (
-        alt.Chart(_code_counts.to_pandas())
+        alt.Chart(_code_counts)
         .mark_bar()
         .encode(
-            x=alt.X("code_block_count:O", title="Code Blocks per Skill"),
+            x=alt.X("code_block_count:Q", title="Code Blocks per Skill", scale=alt.Scale(domainMin=0)),
             y=alt.Y("count:Q", title="Skills"),
         )
-        .properties(title="Code Block Count Distribution (<=40)", width=600, height=300)
+        .properties(title="Code Block Count Distribution", width=600, height=300)
     )
 
     _median = skills["code_block_count"].median()
+    _max = int(skills["code_block_count"].max())
     _has_code = skills.filter(pl.col("code_block_count") > 0).shape[0]
     _total = skills.shape[0]
 
@@ -682,7 +514,9 @@ def _(alt, mo, pl, skills):
             mo.md(f"""### Code Blocks
 
     {_has_code:,} / {_total:,} ({_has_code / _total:.1%}) skills have at least one code block.
-    Median: **{int(_median)}** code blocks.
+    Chart clipped at {_cutoff}; **{_excluded:,}** skills ({_excluded_pct:.1%}) exceed the cutoff.
+
+    Median: **{int(_median)}** | Max: **{_max}**
     """),
             _chart,
         ]
@@ -712,8 +546,11 @@ def _(alt, mo, pl, skills):
         _text = _path.read_text(errors="replace")
         for _label, _href in _URL_RE.findall(_text):
             if _href.startswith("http"):
-                _parsed = urllib.parse.urlparse(_href)
-                _domains[_parsed.netloc] += 1
+                try:
+                    _parsed = urllib.parse.urlparse(_href)
+                    _domains[_parsed.netloc] += 1
+                except ValueError:
+                    pass
                 _href_types["External"] += 1
             elif _href.startswith("#"):
                 _href_types["Anchor (#)"] += 1
@@ -771,49 +608,539 @@ def _(alt, mo, pl, skills):
 
 
 @app.cell
-def _(alt, mo, pl, skills):
-    # Language distribution
-    if "language" not in skills.columns:
+def _(mo):
+    mo.callout(
+        mo.md("""## Language Detection
+
+**Placeholder.** The `langdetect`-based approach is unreliable for mixed-language content
+(e.g., English headings with Chinese body text, code-heavy files with minimal prose).
+Accurate language classification requires an LLM-based workflow — to be added in a future pass.
+"""),
+        kind="warn",
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, pl, skills):
+    _repos_path = __import__("pathlib").Path("data/github-skill-files/repos.parquet")
+    if not _repos_path.exists():
         mo.stop(
             True,
-            mo.md(
-                "*Language column not found.* Run `python -m analyze_skills.detect_language` "
-                "to add language detection."
-            ),
+            mo.md("**Missing data.** `data/github-skill-files/repos.parquet` not found."),
         )
 
-    _lang_counts = (
-        skills["language"]
-        .value_counts()
-        .sort("count", descending=True)
-    )
-    _total = skills.shape[0]
-    _top_langs = _lang_counts.head(15)
-    _english = _lang_counts.filter(pl.col("language") == "en")
-    _en_count = _english["count"].item() if _english.shape[0] > 0 else 0
-    _unknown = _lang_counts.filter(pl.col("language") == "unknown")
-    _unk_count = _unknown["count"].item() if _unknown.shape[0] > 0 else 0
+    repos = pl.read_parquet(_repos_path)
+
+    _skills_per_repo = skills.group_by("repo_key").agg(pl.len().alias("skill_count"))
+    repo_skills = _skills_per_repo.join(repos, on="repo_key", how="left")
+
+    _n_repos_with_skills = repo_skills.shape[0]
+    _n_repos_total = repos.shape[0]
+    _median_skills = repo_skills["skill_count"].median()
+    _p75 = repo_skills["skill_count"].quantile(0.75)
+    _p95 = repo_skills["skill_count"].quantile(0.95)
+    _max_skills = int(repo_skills["skill_count"].max())
+
+    mo.md(f"""## Repository Analysis
+
+    Analysis of the {_n_repos_with_skills:,} repos that contain deduplicated skills (out of {_n_repos_total:,} repos in the dataset).
+
+    | Metric | Value |
+    |--------|-------|
+    | Repos with skills | {_n_repos_with_skills:,} |
+    | Median skills/repo | {int(_median_skills)} |
+    | P75 | {int(_p75)} |
+    | P95 | {int(_p95)} |
+    | Max | {_max_skills:,} |
+    """)
+    return repo_skills, repos
+
+
+@app.cell(hide_code=True)
+def _(alt, mo, np, pl, repo_skills):
+    # Skills per repo distribution — clipped at 50, pre-aggregated
+    _cutoff = 50
+    _excluded = repo_skills.filter(pl.col("skill_count") > _cutoff).shape[0]
+    _excluded_pct = _excluded / repo_skills.shape[0]
+    _vals = repo_skills.filter(pl.col("skill_count") <= _cutoff)["skill_count"].to_numpy()
+    _counts, _edges = np.histogram(_vals, bins=50)
+    _hist = pl.DataFrame({"bin_start": _edges[:-1], "bin_end": _edges[1:], "count": _counts}).to_pandas()
 
     _chart = (
-        alt.Chart(_top_langs.to_pandas())
+        alt.Chart(_hist)
         .mark_bar()
         .encode(
-            x=alt.X("count:Q", title="Skills"),
-            y=alt.Y("language:N", sort="-x", title="Detected Language"),
+            x=alt.X("bin_start:Q", bin="binned", title="Skills per Repo"),
+            x2="bin_end:Q",
+            y=alt.Y("count:Q", title="Repos"),
         )
-        .properties(title="Top 15 Detected Languages", width=500, height=350)
+        .properties(title="Skills per Repository Distribution", width=600, height=300)
+    )
+
+    _median = repo_skills["skill_count"].median()
+    _p75 = repo_skills["skill_count"].quantile(0.75)
+    _p95 = repo_skills["skill_count"].quantile(0.95)
+
+    mo.vstack([
+        mo.md(f"""### Skills per Repository
+
+    Most repos contain just one or two skills; a small number of "collection" repos aggregate hundreds or thousands. Chart clipped at {_cutoff}; **{_excluded:,}** repos ({_excluded_pct:.1%}) exceed the cutoff.
+
+    Median: **{int(_median)}** | P75: **{int(_p75)}** | P95: **{int(_p95)}** | Max: **{int(repo_skills["skill_count"].max()):,}**
+    """),
+        _chart,
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, repo_skills):
+    # Top 20 repos by skill count
+    _top = repo_skills.sort("skill_count", descending=True).head(20)
+
+    _rows_md = []
+    for _row in _top.iter_rows(named=True):
+        _rk = _row["repo_key"]
+        _url = f"https://github.com/{_rk}"
+        _stars = _row["stars"] if _row["stars"] is not None else 0
+        _lang = _row["language"] if _row["language"] is not None else "—"
+        _rows_md.append(
+            f"| [{_rk}]({_url}) | {_row['skill_count']:,} | {_stars:,} | {_lang} |"
+        )
+
+    _table = "\n    ".join(_rows_md)
+
+    mo.md(f"""### Top 20 Repos by Skill Count
+
+    | Repository | Skills | Stars | Language |
+    |------------|--------|-------|----------|
+    {_table}
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(alt, mo, np, pl, repo_skills):
+    # Stars distribution — clipped at 100, pre-aggregated
+    _cutoff = 100
+    _stars_col = repo_skills["stars"].drop_nulls()
+    _excluded = _stars_col.filter(_stars_col > _cutoff).len()
+    _excluded_pct = _excluded / _stars_col.len()
+    _vals = _stars_col.filter(_stars_col <= _cutoff).to_numpy()
+    _counts, _edges = np.histogram(_vals, bins=50)
+    _hist = pl.DataFrame({"bin_start": _edges[:-1], "bin_end": _edges[1:], "count": _counts}).to_pandas()
+
+    _chart = (
+        alt.Chart(_hist)
+        .mark_bar()
+        .encode(
+            x=alt.X("bin_start:Q", bin="binned", title="GitHub Stars"),
+            x2="bin_end:Q",
+            y=alt.Y("count:Q", title="Repos"),
+        )
+        .properties(title="Stars Distribution (repos with skills)", width=600, height=300)
+    )
+
+    _median = int(_stars_col.median())
+    _p75 = int(_stars_col.quantile(0.75))
+    _p95 = int(_stars_col.quantile(0.95))
+    _zero_pct = _stars_col.filter(_stars_col == 0).len() / _stars_col.len()
+
+    mo.vstack([
+        mo.md(f"""### Repo Metadata
+
+    #### Stars Distribution
+
+    The vast majority of repos with skills have zero or very few stars. Chart clipped at {_cutoff}; **{_excluded:,}** repos ({_excluded_pct:.1%}) exceed the cutoff. **{_zero_pct:.0%}** of repos have 0 stars.
+
+    Median: **{_median}** | P75: **{_p75}** | P95: **{_p95}** | Max: **{int(_stars_col.max()):,}**
+    """),
+        _chart,
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(alt, mo, pl, repo_skills):
+    # Primary language and license breakdown
+    _lang_counts = (
+        repo_skills.filter(pl.col("language").is_not_null())["language"]
+        .value_counts()
+        .sort("count", descending=True)
+        .head(15)
+    )
+
+    _lang_chart = (
+        alt.Chart(_lang_counts.to_pandas())
+        .mark_bar()
+        .encode(
+            x=alt.X("count:Q", title="Repos"),
+            y=alt.Y("language:N", sort="-x", title="Primary Language"),
+        )
+        .properties(title="Top 15 Primary Languages", width=400, height=350)
+    )
+
+    _license_counts = (
+        repo_skills.filter(
+            pl.col("license").is_not_null() & (pl.col("license") != "NOASSERTION")
+        )["license"]
+        .value_counts()
+        .sort("count", descending=True)
+        .head(10)
+    )
+
+    _no_license = repo_skills.filter(
+        pl.col("license").is_null() | (pl.col("license") == "NOASSERTION")
+    ).shape[0]
+    _total = repo_skills.shape[0]
+
+    _license_chart = (
+        alt.Chart(_license_counts.to_pandas())
+        .mark_bar()
+        .encode(
+            x=alt.X("count:Q", title="Repos"),
+            y=alt.Y("license:N", sort="-x", title="License"),
+        )
+        .properties(title="Top 10 Licenses", width=400, height=250)
     )
 
     mo.vstack([
-        mo.md(f"""## Language Detection
+        mo.md(f"""#### Language & License
 
-    Language detected from prose content (frontmatter and code blocks stripped, min 10 words).
+    {_no_license:,} / {_total:,} ({_no_license / _total:.0%}) repos have no license or NOASSERTION.
+    """),
+        mo.hstack([_lang_chart, _license_chart]),
+    ])
+    return
 
-    | | Count | % |
-    |--|-------|---|
-    | English | {_en_count:,} | {_en_count / _total:.1%} |
-    | Unknown (< 10 words) | {_unk_count:,} | {_unk_count / _total:.1%} |
-    | Non-English | {_total - _en_count - _unk_count:,} | {(_total - _en_count - _unk_count) / _total:.1%} |
+
+@app.cell(hide_code=True)
+def _(alt, mo, pl, repos, skills):
+    # Skills vs repo popularity: skill characteristics by star bucket
+    _with_stars = skills.join(
+        repos.select(["repo_key", "stars"]), on="repo_key", how="left"
+    ).filter(pl.col("stars").is_not_null())
+
+    _bucketed = _with_stars.with_columns(
+        pl.when(pl.col("stars") == 0)
+        .then(pl.lit("0"))
+        .when(pl.col("stars") <= 10)
+        .then(pl.lit("1\u201310"))
+        .when(pl.col("stars") <= 100)
+        .then(pl.lit("11\u2013100"))
+        .when(pl.col("stars") <= 1000)
+        .then(pl.lit("101\u20131k"))
+        .otherwise(pl.lit("1k+"))
+        .alias("star_bucket")
+    )
+
+    _summary = _bucketed.group_by("star_bucket").agg([
+        pl.col("prose_words").median().alias("median_prose_words"),
+        pl.col("has_frontmatter").mean().alias("frontmatter_pct"),
+        pl.col("code_block_count").median().alias("median_code_blocks"),
+        pl.len().alias("n_skills"),
+    ])
+
+    _order = ["0", "1\u201310", "11\u2013100", "101\u20131k", "1k+"]
+
+    _prose_chart = (
+        alt.Chart(_summary.to_pandas())
+        .mark_bar()
+        .encode(
+            x=alt.X("star_bucket:N", sort=_order, title="Repo Stars"),
+            y=alt.Y("median_prose_words:Q", title="Median Prose Words"),
+        )
+        .properties(title="Median Prose Words by Repo Stars", width=300, height=250)
+    )
+
+    _fm_chart = (
+        alt.Chart(_summary.to_pandas())
+        .mark_bar()
+        .encode(
+            x=alt.X("star_bucket:N", sort=_order, title="Repo Stars"),
+            y=alt.Y(
+                "frontmatter_pct:Q",
+                title="Frontmatter Adoption",
+                axis=alt.Axis(format=".0%"),
+            ),
+        )
+        .properties(title="Frontmatter Adoption by Repo Stars", width=300, height=250)
+    )
+
+    _rows_md = []
+    for _bucket in _order:
+        _row = _summary.filter(pl.col("star_bucket") == _bucket)
+        if _row.shape[0] == 0:
+            continue
+        _r = _row.row(0, named=True)
+        _rows_md.append(
+            f"| {_bucket} | {_r['n_skills']:,} | {int(_r['median_prose_words'])} "
+            f"| {_r['frontmatter_pct']:.0%} | {int(_r['median_code_blocks'])} |"
+        )
+    _table = "\n    ".join(_rows_md)
+
+    mo.vstack([
+        mo.md(f"""### Skills vs Repo Popularity
+
+    Do skills in popular repos differ structurally from those in low-star repos?
+
+    | Star Bucket | Skills | Median Prose Words | Frontmatter % | Median Code Blocks |
+    |-------------|--------|--------------------|---------------|--------------------|
+    {_table}
+    """),
+        mo.hstack([_prose_chart, _fm_chart]),
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, pl, skills):
+    _history_path = __import__("pathlib").Path("data/github-skill-files/history.parquet")
+    if not _history_path.exists():
+        mo.stop(
+            True,
+            mo.md(
+                "**Missing data.** `data/github-skill-files/history.parquet` not found."
+            ),
+        )
+
+    _raw_history = pl.read_parquet(_history_path)
+
+    # Parse commit_date strings to proper dates
+    _raw_history = _raw_history.with_columns(
+        pl.col("commit_date").str.replace(r"\+00:00$", "Z").str.to_datetime(format="%Y-%m-%dT%H:%M:%SZ").dt.date().alias("date")
+    )
+
+    # Join with deduplicated skills to only analyze unique skills
+    _skill_urls = skills.select("url")
+    history = _raw_history.join(_skill_urls, on="url", how="inner")
+
+    _n_commits = history.shape[0]
+    _n_skills_with_history = history["url"].n_unique()
+    _n_skills_total = skills.shape[0]
+
+    mo.md(f"""## File History
+
+    Commit history for skill files, joined with the deduplicated skill set.
+
+    | Metric | Value |
+    |--------|-------|
+    | Total commits | {_n_commits:,} |
+    | Skills with history | {_n_skills_with_history:,} / {_n_skills_total:,} |
+    """)
+    return (history,)
+
+
+@app.cell(hide_code=True)
+def _(alt, history, mo, np, pl):
+    # Commits per skill — histogram
+    _commit_counts = history.group_by("url").agg(pl.len().alias("commits"))
+    _vals = _commit_counts["commits"].to_numpy()
+
+    _median = int(np.median(_vals))
+    _p75 = int(np.percentile(_vals, 75))
+    _p95 = int(np.percentile(_vals, 95))
+    _max = int(np.max(_vals))
+
+    # Clip for visualization
+    _cutoff = int(np.percentile(_vals, 99))
+    _clipped = _vals[_vals <= _cutoff]
+    _excluded = len(_vals) - len(_clipped)
+
+    _counts, _edges = np.histogram(_clipped, bins=50)
+    _hist = pl.DataFrame(
+        {"bin_start": _edges[:-1], "bin_end": _edges[1:], "count": _counts}
+    ).to_pandas()
+
+    _chart = (
+        alt.Chart(_hist)
+        .mark_bar()
+        .encode(
+            x=alt.X("bin_start:Q", bin="binned", title="Commits per Skill"),
+            x2="bin_end:Q",
+            y=alt.Y("count:Q", title="Skills"),
+        )
+        .properties(title="Commits per Skill", width=600, height=300)
+    )
+
+    mo.vstack([
+        mo.md(f"""### Commits per Skill
+
+    Most skills have very few commits. Chart clipped at P99 ({_cutoff}); **{_excluded}** skills exceed the cutoff.
+
+    Median: **{_median}** | P75: **{_p75}** | P95: **{_p95}** | Max: **{_max:,}**
+    """),
+        _chart,
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(alt, history, mo, pl):
+    # Skill creation timeline — cumulative growth by month
+    import datetime
+    _cutoff_date = datetime.date(2024, 6, 1)
+
+    _created = (
+        history.group_by("url")
+        .agg(pl.col("date").min().alias("created"))
+        .filter(pl.col("created") >= _cutoff_date)
+    )
+
+    # Bin by month (truncate to first of month)
+    _created = _created.with_columns(
+        pl.col("created").dt.truncate("1mo").alias("month")
+    )
+
+    _monthly = (
+        _created.group_by("month")
+        .agg(pl.len().alias("new_skills"))
+        .sort("month")
+    )
+
+    # Cumulative sum
+    _monthly = _monthly.with_columns(
+        pl.col("new_skills").cum_sum().alias("cumulative")
+    )
+
+    _monthly_pd = _monthly.to_pandas()
+
+    _line = (
+        alt.Chart(_monthly_pd)
+        .mark_line(point=True)
+        .encode(
+            x=alt.X("month:T", title="Month"),
+            y=alt.Y("cumulative:Q", title="Cumulative Skills"),
+        )
+        .properties(title="Skill Creation Timeline (cumulative)", width=600, height=300)
+    )
+
+    _bar = (
+        alt.Chart(_monthly_pd)
+        .mark_bar(opacity=0.4)
+        .encode(
+            x=alt.X("month:T", title="Month"),
+            y=alt.Y("new_skills:Q", title="New Skills"),
+        )
+    )
+
+    _total_since = _created.shape[0]
+    _before = (
+        history.group_by("url")
+        .agg(pl.col("date").min().alias("created"))
+        .filter(pl.col("created") < _cutoff_date)
+        .shape[0]
+    )
+
+    mo.vstack([
+        mo.md(f"""### Skill Creation Timeline
+
+    First commit date per skill, binned by month. Filtered to 2024-06 onwards (when Claude Code skills were introduced).
+    **{_before:,}** skills have first commits before this cutoff (likely not Claude Code skills, or repos reorganized retroactively).
+    """),
+        alt.layer(_bar, _line).resolve_scale(y="independent"),
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(alt, history, mo, np, pl):
+    # Update frequency — time span between first and last commit for multi-commit skills
+    _spans = (
+        history.group_by("url")
+        .agg([
+            pl.col("date").min().alias("first_commit"),
+            pl.col("date").max().alias("last_commit"),
+            pl.len().alias("commits"),
+        ])
+        .filter(pl.col("commits") > 1)
+        .with_columns(
+            (pl.col("last_commit") - pl.col("first_commit"))
+            .dt.total_days()
+            .alias("span_days")
+        )
+    )
+
+    _n_multi = _spans.shape[0]
+    _n_total = history["url"].n_unique()
+    _vals = _spans["span_days"].to_numpy()
+
+    _median = int(np.median(_vals))
+    _p75 = int(np.percentile(_vals, 75))
+    _p95 = int(np.percentile(_vals, 95))
+    _max = int(np.max(_vals))
+
+    _counts, _edges = np.histogram(_vals, bins=50)
+    _hist = pl.DataFrame(
+        {"bin_start": _edges[:-1], "bin_end": _edges[1:], "count": _counts}
+    ).to_pandas()
+
+    _chart = (
+        alt.Chart(_hist)
+        .mark_bar()
+        .encode(
+            x=alt.X("bin_start:Q", bin="binned", title="Days Between First and Last Commit"),
+            x2="bin_end:Q",
+            y=alt.Y("count:Q", title="Skills"),
+        )
+        .properties(title="Update Span (skills with >1 commit)", width=600, height=300)
+    )
+
+    mo.vstack([
+        mo.md(f"""### Update Frequency
+
+    Of **{_n_total:,}** skills with history, **{_n_multi:,}** ({_n_multi / _n_total:.1%}) have more than one commit.
+    For these, the span between first and last commit:
+
+    Median: **{_median} days** | P75: **{_p75} days** | P95: **{_p95} days** | Max: **{_max:,} days**
+    """),
+        _chart,
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(alt, history, mo, pl):
+    # Commit message patterns — top 20 most common messages
+    _messages = (
+        history.select("commit_message")
+        .filter(pl.col("commit_message").is_not_null())
+        .with_columns(pl.col("commit_message").str.strip_chars().alias("commit_message"))
+        .filter(pl.col("commit_message") != "")
+    )
+
+    _msg_counts = (
+        _messages["commit_message"]
+        .value_counts()
+        .sort("count", descending=True)
+        .head(20)
+    )
+
+    _msg_pd = _msg_counts.to_pandas()
+    # Truncate long messages for display
+    _msg_pd["label"] = _msg_pd["commit_message"].str[:60]
+
+    _chart = (
+        alt.Chart(_msg_pd)
+        .mark_bar()
+        .encode(
+            x=alt.X("count:Q", title="Occurrences"),
+            y=alt.Y("label:N", sort="-x", title=None),
+        )
+        .properties(
+            title="Top 20 Commit Messages", width=500, height=450
+        )
+    )
+
+    _total_commits = _messages.shape[0]
+    _top_count = int(_msg_counts["count"].head(1).item())
+    _top_msg = _msg_counts["commit_message"].head(1).item()
+
+    mo.vstack([
+        mo.md(f"""### Commit Message Patterns
+
+    Most common commit message: **"{_top_msg[:80]}"** ({_top_count:,} / {_total_commits:,} commits).
     """),
         _chart,
     ])
@@ -832,88 +1159,108 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo, skills):
-    import random as _random1
-
     _content_dir = (
         __import__("pathlib").Path("data/content")
     )
-    _idx = _random1.randint(0, skills.shape[0] - 1)
-    _row = skills.row(_idx, named=True)
+    _row = skills.sample(1, seed=1).row(0, named=True)
     _rel = _row["url"].replace("https://github.com/", "")
+    _rel_short = __import__("re").sub(r"/blob/[0-9a-f]+/", "/.../", _rel)
     _path = _content_dir / _rel
     _text = _path.read_text(errors="replace") if _path.exists() else "(not found)"
-    _escaped = _text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    import html as _html
+    _escaped = _html.escape(_text)
 
     _pre = f'<pre style="max-height:400px;overflow:auto;padding:12px;font-size:12px;border-radius:6px;border:1px solid var(--border-color, #ddd)">{_escaped}</pre>'
 
-    mo.vstack([
-        mo.md(f"""### Sample 1: {_row["words"]} words | {_row["lines"]} lines | {_row["code_block_count"]} code blocks | {"FM" if _row["has_frontmatter"] else "no FM"}
-
-    `{_rel}`
-    """),
-        mo.Html(_pre),
-    ])
+    mo.accordion({
+        f"Sample 1: {_row['words']} words | {_row['lines']} lines | {_row['code_block_count']} code blocks | {'FM' if _row['has_frontmatter'] else 'no FM'} — `{_rel_short}`": mo.Html(_pre),
+    })
     return
 
 
 @app.cell(hide_code=True)
 def _(mo, skills):
-    import random as _random2
-
     _content_dir = (
         __import__("pathlib").Path("data/content")
     )
-    _idx = _random2.randint(0, skills.shape[0] - 1)
-    _row = skills.row(_idx, named=True)
+    _row = skills.sample(1, seed=2).row(0, named=True)
     _rel = _row["url"].replace("https://github.com/", "")
+    _rel_short = __import__("re").sub(r"/blob/[0-9a-f]+/", "/.../", _rel)
     _path = _content_dir / _rel
     _text = _path.read_text(errors="replace") if _path.exists() else "(not found)"
-    _escaped = _text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    import html as _html
+    _escaped = _html.escape(_text)
 
     _pre = f'<pre style="max-height:400px;overflow:auto;padding:12px;font-size:12px;border-radius:6px;border:1px solid var(--border-color, #ddd)">{_escaped}</pre>'
 
-    mo.vstack([
-        mo.md(f"""### Sample 2: {_row["words"]} words | {_row["lines"]} lines | {_row["code_block_count"]} code blocks | {"FM" if _row["has_frontmatter"] else "no FM"}
-
-    `{_rel}`
-    """),
-        mo.Html(_pre),
-    ])
+    mo.accordion({
+        f"Sample 2: {_row['words']} words | {_row['lines']} lines | {_row['code_block_count']} code blocks | {'FM' if _row['has_frontmatter'] else 'no FM'} — `{_rel_short}`": mo.Html(_pre),
+    })
     return
 
 
 @app.cell(hide_code=True)
 def _(mo, skills):
-    import random as _random3
-
     _content_dir = (
         __import__("pathlib").Path("data/content")
     )
-    _idx = _random3.randint(0, skills.shape[0] - 1)
-    _row = skills.row(_idx, named=True)
+    _row = skills.sample(1, seed=3).row(0, named=True)
     _rel = _row["url"].replace("https://github.com/", "")
+    _rel_short = __import__("re").sub(r"/blob/[0-9a-f]+/", "/.../", _rel)
     _path = _content_dir / _rel
     _text = _path.read_text(errors="replace") if _path.exists() else "(not found)"
-    _escaped = _text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    import html as _html
+    _escaped = _html.escape(_text)
 
     _pre = f'<pre style="max-height:400px;overflow:auto;padding:12px;font-size:12px;border-radius:6px;border:1px solid var(--border-color, #ddd)">{_escaped}</pre>'
 
-    mo.vstack([
-        mo.md(f"""### Sample 3: {_row["words"]} words | {_row["lines"]} lines | {_row["code_block_count"]} code blocks | {"FM" if _row["has_frontmatter"] else "no FM"}
-
-    `{_rel}`
-    """),
-        mo.Html(_pre),
-    ])
+    mo.accordion({
+        f"Sample 3: {_row['words']} words | {_row['lines']} lines | {_row['code_block_count']} code blocks | {'FM' if _row['has_frontmatter'] else 'no FM'} — `{_rel_short}`": mo.Html(_pre),
+    })
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
+def _(features, mo, pl, skills):
+    # Key findings summary
+    _n_skills = skills.shape[0]
+    _n_repos = skills["repo_key"].n_unique()
+    _n_total = features.shape[0]
+    _dedup_pct = (_n_total - _n_skills) / _n_total
+
+    _median_prose = int(skills["prose_words"].median())
+    _median_lines = int(skills["lines"].median())
+
+    _fm_count = skills.filter(pl.col("has_frontmatter")).shape[0]
+    _fm_pct = _fm_count / _n_skills
+
+    _heading_count = skills.filter(pl.col("heading_count") > 0).shape[0]
+    _heading_pct = _heading_count / _n_skills
+
+    _code_count = skills.filter(pl.col("code_block_count") > 0).shape[0]
+    _code_pct = _code_count / _n_skills
+
+    mo.md(f"""## Key Findings
+
+    - **Dataset**: {_n_skills:,} unique skills across {_n_repos:,} repos after deduplication ({_dedup_pct:.0%} reduction)
+    - **Typical skill**: {_median_prose} prose words, {_median_lines} lines, {_fm_pct:.0%} have frontmatter
+    - **Structure**: {_heading_pct:.0%} use headings, {_code_pct:.0%} include code blocks
+    - **Limitations**: Normalized hash may over-deduplicate; GitHub search introduces selection bias
+    """)
+    return
+
+
+@app.cell
 def _(mo):
     mo.md("""
     ## Questions for Next Pass
 
     1. **Template detection** -- Which skills are clearly from templates/generators?
+    2. **Content taxonomy** -- Can we cluster skills by purpose (code gen, debugging, docs)?
+    3. **Instruction patterns** -- What imperative structures appear in skill text?
+    4. **Frontmatter semantics** -- What do tag/name values look like across the dataset?
+    5. **Repo enrichment** -- Do stars/language predict skill structure?
+    6. **Quality scoring** -- Can LLMs rate skill quality at scale?
     """)
     return
 

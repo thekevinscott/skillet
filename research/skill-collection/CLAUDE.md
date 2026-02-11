@@ -24,9 +24,9 @@ Use the `/marimo-screenshot` skill to capture rendered notebook output (charts, 
 
 See: `.claude/skills/marimo-screenshot/SKILL.md`
 
-### Verification Rule
+### Verification Rule (MANDATORY)
 
-**After every change to a marimo notebook:**
+**After every change to a marimo notebook, you MUST verify both syntax and rendered output before reporting success.** Do not skip this step. Use the `/marimo-screenshot` skill to capture and review the rendered notebook.
 
 1. **Verify syntax:**
    ```bash
@@ -44,8 +44,14 @@ See: `.claude/skills/marimo-screenshot/SKILL.md`
    pkill -f "marimo run.*2719"
    ```
 
+3. **Review the screenshot** — actually look at the PNG output. Check that:
+   - Charts render with visible data (not blank or crushed)
+   - No "Your output is too large" errors
+   - No Python tracebacks
+   - Layout looks reasonable
+
 Common runtime errors to watch for:
-- **"Your output is too large"** - Sample data for charts (max ~5000 rows)
+- **"Your output is too large"** - Pre-aggregate data before passing to Altair (numpy histogram → small DataFrame). Never pass raw DataFrames with >5000 rows to Altair.
 - **MaxRowsError** - Add `alt.data_transformers.disable_max_rows()`
 - **Blank sections** - Check cell return values
 
