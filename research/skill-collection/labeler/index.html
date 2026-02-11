@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skill Labeler</title>
+</head>
+<body>
+  <header>
+    <span class="meta" id="meta"></span>
+    <span class="counter" id="counter"></span>
+    <span class="spacer"></span>
+    <button id="prev">&larr;</button>
+    <button id="next">&rarr;</button>
+  </header>
+  <div class="layout">
+    <div class="editor-col">
+      <div id="editor"></div>
+    </div>
+    <div class="sidebar-col" id="sidebar">
+      <div id="label-list"></div>
+      <div id="ai-loading" class="ai-loading" hidden>Analyzing sections...</div>
+    </div>
+  </div>
+  <div id="bubble-menu" style="display:none">
+    <input id="tag-input" type="text" placeholder="Tag..." autocomplete="off" />
+    <div id="tag-suggestions"></div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
