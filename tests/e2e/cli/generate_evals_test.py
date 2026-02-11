@@ -77,8 +77,11 @@ def describe_skillet_generate_evals():
 
     @pytest.mark.asyncio
     async def it_generates_evals_from_existing_skill(tmp_path: Path):
-        """Generates evals from the pirate skill fixture."""
-        pirate_skill = PIRATE_FIXTURES / ".claude" / "commands" / "pirate.md"
+        """Generates evals from the pirate skill fixture content written to SKILL.md."""
+        pirate_source = PIRATE_FIXTURES / ".claude" / "commands" / "pirate.md"
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text(pirate_source.read_text())
+
         output_dir = tmp_path / "candidates"
 
         env = os.environ.copy()
@@ -89,7 +92,7 @@ def describe_skillet_generate_evals():
                 "-m",
                 "skillet.cli.main",
                 "generate-evals",
-                str(pirate_skill),
+                str(skill_file),
                 "--output",
                 str(output_dir),
                 "--max",
