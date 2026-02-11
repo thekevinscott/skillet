@@ -114,4 +114,8 @@ jobs:
 
       - name: Publish to PyPI
         if: steps.tag.outputs.created == 'true'
-        run: uv publish --trusted-publishing always
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/
+
+      - name: Rollback tag on failure
+        if: failure() && steps.tag.outputs.created == 'true'
+        run: git push --delete origin "v${{ steps.version.outputs.new_version }}"
