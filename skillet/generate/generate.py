@@ -95,7 +95,7 @@ async def generate_candidates(
     )
 
     # Query LLM with structured output
-    response = await query_structured(prompt, GenerateResponse, max_turns=1, allowed_tools=[])
+    response = await query_structured(prompt, GenerateResponse)
 
     # Convert to CandidateEval objects
     candidates = [
