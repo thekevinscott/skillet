@@ -6,6 +6,57 @@ from unittest.mock import patch
 
 import pytest
 
+_TOOL_USE_COUNTER = 0
+
+
+def _next_tool_use_id() -> str:
+    global _TOOL_USE_COUNTER
+    _TOOL_USE_COUNTER += 1
+    return f"mock-tool-use-{_TOOL_USE_COUNTER}"
+
+
+def _structured_output_messages(data: dict) -> list:
+    """Build the real SDK message sequence for structured output.
+
+    The real SDK delivers structured output as:
+    1. AssistantMessage with ToolUseBlock(name='StructuredOutput', input=data)
+    2. UserMessage with ToolResultBlock
+    3. ResultMessage with structured_output=None
+    """
+    from claude_agent_sdk import (
+        AssistantMessage,
+        ResultMessage,
+        ToolResultBlock,
+        ToolUseBlock,
+        UserMessage,
+    )
+
+    tool_use_id = _next_tool_use_id()
+    return [
+        AssistantMessage(
+            content=[ToolUseBlock(id=tool_use_id, name="StructuredOutput", input=data)],
+            model="claude-sonnet-4-20250514",
+        ),
+        UserMessage(
+            content=[
+                ToolResultBlock(
+                    tool_use_id=tool_use_id,
+                    content="Structured output provided successfully",
+                )
+            ],
+        ),
+        ResultMessage(
+            subtype="result",
+            duration_ms=100,
+            duration_api_ms=100,
+            is_error=False,
+            num_turns=1,
+            session_id="mock-session",
+            result=None,
+            structured_output=None,
+        ),
+    ]
+
 
 def create_eval_file(path: Path, **overrides) -> None:
     """Create a valid eval YAML file with optional field overrides."""
@@ -42,64 +93,36 @@ def skillet_env(tmp_path: Path, monkeypatch):
 def mock_claude_query():
     """Mock claude_agent_sdk.query() with configurable responses.
 
-    Usage:
-        def test_something(mock_claude_query):
-            mock_claude_query.set_response("Generated content here")
-            # ... run code that calls the SDK
-
-        # For structured output with custom data:
-        def test_structured(mock_claude_query):
-            mock_claude_query.set_structured_response({"pass": True, "reasoning": "OK"})
+    Produces the same message sequence as the real SDK:
+    - Text responses: AssistantMessage(TextBlock) + StructuredOutput tool-use sequence
+    - Structured output: ToolUseBlock + ToolResultBlock + ResultMessage sequence
     """
     with patch("claude_agent_sdk.query") as mock:
 
         def set_response(response_text: str):
             """Configure the mock to return a specific text response.
 
-            Yields both AssistantMessage (for query_assistant_text) and
-            ResultMessage with structured_output (for query_structured with SkillContent).
+            Yields AssistantMessage with text for query_assistant_text,
+            followed by StructuredOutput tool-use sequence for query_structured.
             """
-            from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
+            from claude_agent_sdk import AssistantMessage, TextBlock
 
             async def mock_generator() -> AsyncGenerator:
-                # Yield AssistantMessage for query_assistant_text
                 yield AssistantMessage(
                     content=[TextBlock(text=response_text)],
                     model="claude-sonnet-4-20250514",
                 )
-                # Yield ResultMessage with structured_output for query_structured
-                # Uses {"content": text} format compatible with SkillContent model
-                yield ResultMessage(
-                    subtype="result",
-                    duration_ms=100,
-                    duration_api_ms=100,
-                    is_error=False,
-                    num_turns=1,
-                    session_id="mock-session",
-                    result=response_text,
-                    structured_output={"content": response_text},
-                )
+                for msg in _structured_output_messages({"content": response_text}):
+                    yield msg
 
             mock.return_value = mock_generator()
 
         def set_structured_response(data: dict):
-            """Configure the mock to return a structured output response.
-
-            Use this for query_structured with custom models (e.g., Judgment).
-            """
-            from claude_agent_sdk import ResultMessage
+            """Configure the mock to return a structured output response."""
 
             async def mock_generator() -> AsyncGenerator:
-                yield ResultMessage(
-                    subtype="result",
-                    duration_ms=100,
-                    duration_api_ms=100,
-                    is_error=False,
-                    num_turns=1,
-                    session_id="mock-session",
-                    result="",
-                    structured_output=data,
-                )
+                for msg in _structured_output_messages(data):
+                    yield msg
 
             mock.return_value = mock_generator()
 
@@ -119,47 +142,22 @@ def mock_claude_query():
             - A string (text response)
             - A dict (structured response)
             - An Exception (error)
-
-            Usage:
-                mock_claude_query.set_responses(
-                    "Text response 1",                              # First call
-                    {"pass": True, "reasoning": "Good"},           # Second call
-                    RuntimeError("API error"),                     # Third call
-                )
             """
-            from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
+            from claude_agent_sdk import AssistantMessage, TextBlock
 
             async def mock_generator_factory(response):
                 if isinstance(response, Exception):
                     raise response
                 elif isinstance(response, dict):
-                    # Structured response
-                    yield ResultMessage(
-                        subtype="result",
-                        duration_ms=100,
-                        duration_api_ms=100,
-                        is_error=False,
-                        num_turns=1,
-                        session_id="mock-session",
-                        result="",
-                        structured_output=response,
-                    )
+                    for msg in _structured_output_messages(response):
+                        yield msg
                 else:
-                    # Text response
                     yield AssistantMessage(
                         content=[TextBlock(text=response)],
                         model="claude-sonnet-4-20250514",
                     )
-                    yield ResultMessage(
-                        subtype="result",
-                        duration_ms=100,
-                        duration_api_ms=100,
-                        is_error=False,
-                        num_turns=1,
-                        session_id="mock-session",
-                        result=response,
-                        structured_output={"content": response},
-                    )
+                    for msg in _structured_output_messages({"content": response}):
+                        yield msg
 
             mock.side_effect = [mock_generator_factory(r) for r in responses]
 

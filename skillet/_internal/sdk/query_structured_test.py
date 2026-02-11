@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
+from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, ToolUseBlock
 from pydantic import BaseModel
 
 from skillet._internal.sdk.query_structured import StructuredOutputError, query_structured
@@ -42,7 +42,34 @@ def describe_query_structured():
             yield state
 
     @pytest.mark.asyncio
-    async def it_returns_validated_pydantic_model(mock_query):
+    async def it_extracts_structured_output_from_tool_use_block(mock_query):
+        class TestModel(BaseModel):
+            name: str
+            value: int
+
+        mock_query.messages.append(
+            AssistantMessage(
+                content=[
+                    ToolUseBlock(
+                        id="tool-1",
+                        name="StructuredOutput",
+                        input={"name": "test", "value": 42},
+                    )
+                ],
+                model="claude-sonnet-4-20250514",
+            )
+        )
+
+        result = await query_structured("test prompt", TestModel)
+
+        assert isinstance(result, TestModel)
+        assert result.name == "test"
+        assert result.value == 42
+
+    @pytest.mark.asyncio
+    async def it_falls_back_to_result_message_structured_output(mock_query):
+        """ResultMessage.structured_output fallback for forward compatibility."""
+
         class TestModel(BaseModel):
             name: str
             value: int
@@ -63,10 +90,14 @@ def describe_query_structured():
         class TestModel(BaseModel):
             data: str
 
-        mock_result = MagicMock(spec=ResultMessage)
-        mock_result.structured_output = {"data": "test"}
-        mock_result.result = None
-        mock_query.messages.append(mock_result)
+        mock_query.messages.append(
+            AssistantMessage(
+                content=[
+                    ToolUseBlock(id="tool-1", name="StructuredOutput", input={"data": "test"})
+                ],
+                model="claude-sonnet-4-20250514",
+            )
+        )
 
         await query_structured("test", TestModel)
 
@@ -120,10 +151,14 @@ def describe_query_structured():
         class TestModel(BaseModel):
             data: str
 
-        mock_result = MagicMock(spec=ResultMessage)
-        mock_result.structured_output = {"data": "test"}
-        mock_result.result = None
-        mock_query.messages.append(mock_result)
+        mock_query.messages.append(
+            AssistantMessage(
+                content=[
+                    ToolUseBlock(id="tool-1", name="StructuredOutput", input={"data": "test"})
+                ],
+                model="claude-sonnet-4-20250514",
+            )
+        )
 
         await query_structured("test", TestModel, max_turns=5, allowed_tools=["Read"])
 
