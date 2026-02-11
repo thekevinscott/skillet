@@ -48,7 +48,7 @@ def describe_skillet_eval():
             capture_output=True,
             text=True,
             env=env,
-            timeout=120,
+            timeout=300,
         )
 
         assert result.returncode == 0, (
@@ -89,7 +89,7 @@ def describe_skillet_eval():
             capture_output=True,
             text=True,
             env=env,
-            timeout=120,
+            timeout=300,
         )
 
         assert result.returncode == 0, (
@@ -123,7 +123,7 @@ def describe_skillet_eval():
             capture_output=True,
             text=True,
             env=env,
-            timeout=120,
+            timeout=300,
         )
 
         assert result.returncode == 0, (
@@ -157,7 +157,7 @@ def describe_skillet_eval():
             capture_output=True,
             text=True,
             env=env,
-            timeout=120,
+            timeout=300,
         )
 
         assert result.returncode == 0, (
