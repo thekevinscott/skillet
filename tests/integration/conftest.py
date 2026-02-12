@@ -154,6 +154,32 @@ def mock_claude_query():
 
             mock.return_value = mock_generator()
 
+        def set_text_only_response(response_text: str):
+            """Configure the mock to return only text with no StructuredOutput.
+
+            Reproduces the failure mode where the LLM exhausts its output
+            budget on text content and never produces a tool call.
+            """
+            from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
+
+            async def mock_generator() -> AsyncGenerator:
+                yield AssistantMessage(
+                    content=[TextBlock(text=response_text)],
+                    model="claude-sonnet-4-20250514",
+                )
+                yield ResultMessage(
+                    subtype="result",
+                    duration_ms=373000,
+                    duration_api_ms=373000,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result=response_text,
+                    structured_output=None,
+                )
+
+            mock.return_value = mock_generator()
+
         def set_structured_response(data: dict):
             """Configure the mock to return a structured output response."""
 
@@ -199,6 +225,7 @@ def mock_claude_query():
             mock.side_effect = [mock_generator_factory(r) for r in responses]
 
         mock.set_response = set_response
+        mock.set_text_only_response = set_text_only_response
         mock.set_structured_response = set_structured_response
         mock.set_error = set_error
         mock.set_responses = set_responses

@@ -94,8 +94,13 @@ async def generate_candidates(
         max_per_category=str(max_per_category),
     )
 
-    # Query LLM with structured output
-    response = await query_structured(prompt, GenerateResponse)
+    # Query LLM with structured output, retrying once if the model
+    # exhausts its output budget on text without producing the
+    # StructuredOutput tool call.
+    try:
+        response = await query_structured(prompt, GenerateResponse)
+    except ValueError:
+        response = await query_structured(prompt, GenerateResponse)
 
     # Convert to CandidateEval objects
     candidates = [
