@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Renamed `get_cached_results_for_gap` to `get_cached_results_for_eval`
 
 ### Fixed
+- `query_structured()` now fully consumes the SDK async generator, preventing `RuntimeError` from anyio cancel scopes when running evals in parallel
 - E2E test for `create` command (was still using old `new` command name)
 - Add `SlashCommand` to `DEFAULT_SKILL_TOOLS` so eval prompts with `/command` syntax work
 - Judge uses SDK structured output to guarantee clean JSON (removes need for backtick stripping)
