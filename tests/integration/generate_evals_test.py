@@ -313,3 +313,25 @@ def describe_generate_evals():
 
         assert len(result.candidates) > 0
         assert all(c.name for c in result.candidates)
+
+    @pytest.mark.no_mirror
+    @pytest.mark.asyncio
+    async def it_retries_when_llm_returns_no_structured_output(tmp_path: Path, mock_claude_query):
+        """When the LLM exhausts its output budget on text and never produces
+        a StructuredOutput tool call, generate_evals should retry and succeed
+        on the second attempt."""
+        from skillet import generate_evals
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        # First call: raises ValueError (no structured output), second call: success
+        mock_claude_query.set_responses(
+            ValueError("No structured output returned from query"),
+            SAMPLE_GENERATED_EVALS,
+        )
+
+        result = await generate_evals(skill_dir)
+
+        assert len(result.candidates) > 0

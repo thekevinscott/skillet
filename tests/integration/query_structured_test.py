@@ -27,6 +27,7 @@ class SimpleModel(BaseModel):
     data: str
 
 
+@pytest.mark.no_mirror
 def describe_query_structured_failure_modes():
     """Integration tests for SDK failure modes in query_structured."""
 
