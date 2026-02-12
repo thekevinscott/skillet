@@ -4,9 +4,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, ToolUseBlock
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
-from skillet._internal.sdk.query_structured import StructuredOutputError, query_structured
+from skillet._internal.sdk.query_structured import (
+    StructuredOutputError,
+    _validate_with_unwrap,
+    query_structured,
+)
 
 
 class MockQuery:
@@ -25,6 +29,39 @@ def describe_StructuredOutputError():
 
     def it_is_an_exception():
         assert issubclass(StructuredOutputError, Exception)
+
+
+def describe_validate_with_unwrap():
+    class Inner(BaseModel):
+        value: int
+
+    def it_validates_direct_match():
+        result = _validate_with_unwrap(Inner, {"value": 42})
+        assert result.value == 42
+
+    def it_unwraps_single_key_dict_on_failure():
+        result = _validate_with_unwrap(Inner, {"output": {"value": 42}})
+        assert result.value == 42
+
+    def it_unwraps_any_single_key_name():
+        result = _validate_with_unwrap(Inner, {"result": {"value": 42}})
+        assert result.value == 42
+
+    def it_raises_when_inner_also_fails_validation():
+        with pytest.raises(ValidationError):
+            _validate_with_unwrap(Inner, {"output": {"wrong_field": 42}})
+
+    def it_raises_for_multi_key_dict():
+        with pytest.raises(ValidationError):
+            _validate_with_unwrap(Inner, {"output": {"value": 42}, "extra": "key"})
+
+    def it_raises_when_inner_value_is_not_dict():
+        with pytest.raises(ValidationError):
+            _validate_with_unwrap(Inner, {"output": "not a dict"})
+
+    def it_raises_for_completely_invalid_data():
+        with pytest.raises(ValidationError):
+            _validate_with_unwrap(Inner, {"wrong": "data"})
 
 
 def describe_query_structured():
