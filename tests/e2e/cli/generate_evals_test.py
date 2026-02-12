@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 PIRATE_FIXTURES = Path(__file__).parent.parent / "__fixtures__" / "tune-test"
+COMPLEX_SKILL_FIXTURES = Path(__file__).parent.parent.parent / "__fixtures__"
 
 VALID_SKILL = """\
 ---
@@ -146,3 +147,40 @@ def describe_skillet_generate_evals():
         )
 
         assert result.returncode != 0
+
+    @pytest.mark.asyncio
+    async def it_generates_evals_from_complex_skill(tmp_path: Path):
+        """Complex skills with many rules still generate evals."""
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text((COMPLEX_SKILL_FIXTURES / "complex_skill.txt").read_text())
+
+        output_dir = tmp_path / "candidates"
+
+        env = os.environ.copy()
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "skillet.cli.main",
+                "generate-evals",
+                str(skill_file),
+                "--output",
+                str(output_dir),
+                "--max",
+                "2",
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=300,
+        )
+
+        assert result.returncode == 0, (
+            f"Command failed with code {result.returncode}\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+
+        yaml_files = list(output_dir.rglob("*.yaml"))
+        assert len(yaml_files) > 0, f"No eval files generated\nstdout: {result.stdout}"

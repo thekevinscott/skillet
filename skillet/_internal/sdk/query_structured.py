@@ -4,7 +4,7 @@ from typing import Any
 
 import claude_agent_sdk
 from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, ResultMessage, ToolUseBlock
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .stderr import _stderr_callback
 
@@ -13,6 +13,24 @@ class StructuredOutputError(Exception):
     """Raised when structured output contains unexpected formatting."""
 
     pass
+
+
+def _validate_with_unwrap[T: BaseModel](model: type[T], data: Any) -> T:
+    """Validate data against a Pydantic model, unwrapping single-key wrappers.
+
+    LLMs sometimes wrap structured output in an extra object layer like
+    {"output": {...}} or {"result": {...}}. When validation fails and the
+    data is a single-key dict whose value is itself a dict, try validating
+    the inner value before giving up.
+    """
+    try:
+        return model.model_validate(data)
+    except ValidationError:
+        if isinstance(data, dict) and len(data) == 1:
+            inner = next(iter(data.values()))
+            if isinstance(inner, dict):
+                return model.model_validate(inner)
+        raise
 
 
 async def query_structured[T: BaseModel](prompt: str, model: type[T], **options: Any) -> T:
@@ -40,12 +58,12 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
         if isinstance(message, AssistantMessage):
             for block in message.content:
                 if isinstance(block, ToolUseBlock) and block.name == "StructuredOutput":
-                    return model.model_validate(block.input)
+                    return _validate_with_unwrap(model, block.input)
 
         if isinstance(message, ResultMessage):
             # Fallback: if the SDK ever populates structured_output directly
             if message.structured_output is not None:
-                return model.model_validate(message.structured_output)
+                return _validate_with_unwrap(model, message.structured_output)
 
             # Canary: check if result contains backticks (shouldn't happen with structured output)
             if message.result and "```" in message.result:

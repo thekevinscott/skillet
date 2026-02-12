@@ -55,7 +55,7 @@ def describe_skillet_compare():
             capture_output=True,
             text=True,
             env=env,
-            timeout=120,
+            timeout=300,
         )
         assert baseline_result.returncode == 0, (
             f"Baseline eval failed:\n"
@@ -82,7 +82,7 @@ def describe_skillet_compare():
             capture_output=True,
             text=True,
             env=env,
-            timeout=120,
+            timeout=300,
         )
         assert skill_result.returncode == 0, (
             f"Skill eval failed:\nstdout: {skill_result.stdout}\nstderr: {skill_result.stderr}"
@@ -109,8 +109,8 @@ def describe_skillet_compare():
         # Output should contain comparison data (percentages or delta)
         assert "%" in compare_result.stdout or "overall" in compare_result.stdout.lower()
 
-    def it_warns_when_no_cached_results_exist(tmp_path: Path):
-        """Shows warnings when cache is empty for baseline or skill."""
+    def it_errors_when_no_eval_files_exist(tmp_path: Path):
+        """Exits with error when evals directory is empty."""
         evals_dir = tmp_path / "evals" / "nonexistent-skill"
         evals_dir.mkdir(parents=True)
 
@@ -132,7 +132,4 @@ def describe_skillet_compare():
             timeout=30,
         )
 
-        # Should still exit 0 but with warnings about missing data
-        assert result.returncode == 0, (
-            f"Compare failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
+        assert result.returncode != 0

@@ -114,4 +114,19 @@ jobs:
 
       - name: Publish to PyPI
         if: steps.tag.outputs.created == 'true'
-        run: uv publish --trusted-publishing always
+        run: |
+          for attempt in 1 2 3; do
+            echo "Publish attempt $attempt of 3"
+            if uv publish --trusted-publishing always --check-url https://pypi.org/simple/; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Retrying in 15 seconds..."
+              sleep 15
+            fi
+          done
+          exit 1
+
+      - name: Rollback tag on failure
+        if: failure() && steps.tag.outputs.created == 'true'
+        run: git push --delete origin "v${{ steps.version.outputs.new_version }}"

@@ -6,6 +6,43 @@ from unittest.mock import patch
 
 import pytest
 
+_FIXTURES_DIR = Path(__file__).parent.parent / "__fixtures__"
+
+SAMPLE_SKILL = (_FIXTURES_DIR / "sample_skill.txt").read_text()
+COMPLEX_SKILL = (_FIXTURES_DIR / "complex_skill.txt").read_text()
+
+SAMPLE_GENERATED_EVALS = {
+    "candidates": [
+        {
+            "prompt": "I tried to fetch https://api.example.com/data but WebFetch failed",
+            "expected": "Suggests curl with appropriate flags",
+            "name": "positive-goal1-browser-fail",
+            "category": "positive",
+            "source": "goal:1",
+            "confidence": 0.85,
+            "rationale": "Tests the primary goal of suggesting curl on browser failure",
+        },
+        {
+            "prompt": "Please fetch this JavaScript-heavy SPA page",
+            "expected": "Warns that curl won't execute JavaScript",
+            "name": "positive-goal3-js-warning",
+            "category": "positive",
+            "source": "goal:3",
+            "confidence": 0.75,
+            "rationale": "Tests handling of JS-heavy pages per prohibition",
+        },
+        {
+            "prompt": "The browser timed out, try again please",
+            "expected": "Should NOT retry browser operation multiple times",
+            "name": "negative-prohibition1-no-retry",
+            "category": "negative",
+            "source": "prohibition:1",
+            "confidence": 0.9,
+            "rationale": "Tests the prohibition against multiple retries",
+        },
+    ]
+}
+
 _TOOL_USE_COUNTER = 0
 
 
@@ -117,6 +154,32 @@ def mock_claude_query():
 
             mock.return_value = mock_generator()
 
+        def set_text_only_response(response_text: str):
+            """Configure the mock to return only text with no StructuredOutput.
+
+            Reproduces the failure mode where the LLM exhausts its output
+            budget on text content and never produces a tool call.
+            """
+            from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock
+
+            async def mock_generator() -> AsyncGenerator:
+                yield AssistantMessage(
+                    content=[TextBlock(text=response_text)],
+                    model="claude-sonnet-4-20250514",
+                )
+                yield ResultMessage(
+                    subtype="result",
+                    duration_ms=373000,
+                    duration_api_ms=373000,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result=response_text,
+                    structured_output=None,
+                )
+
+            mock.return_value = mock_generator()
+
         def set_structured_response(data: dict):
             """Configure the mock to return a structured output response."""
 
@@ -162,6 +225,7 @@ def mock_claude_query():
             mock.side_effect = [mock_generator_factory(r) for r in responses]
 
         mock.set_response = set_response
+        mock.set_text_only_response = set_text_only_response
         mock.set_structured_response = set_structured_response
         mock.set_error = set_error
         mock.set_responses = set_responses
