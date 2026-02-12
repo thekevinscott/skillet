@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pyskillet>=0.2.16"]
+# dependencies = ["pyskillet>=0.2.17"]
 # ///
 """Evaluate a single skill: generate evals, then run them."""
 
@@ -28,12 +28,8 @@ async def on_eval_status(task: dict, state: str, result: dict | None) -> None:
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Generate evals for a skill and evaluate it."
-    )
-    parser.add_argument(
-        "skill", type=Path, help="Path to SKILL.md or directory containing it"
-    )
+    parser = argparse.ArgumentParser(description="Generate evals for a skill and evaluate it.")
+    parser.add_argument("skill", type=Path, help="Path to SKILL.md or directory containing it")
     parser.add_argument(
         "--evals-dir",
         type=Path,

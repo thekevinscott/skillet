@@ -21,7 +21,6 @@ import dspy
 from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 from dspy.clients.base_lm import BaseLM
 
-
 # ---------------------------------------------------------------------------
 # Minimal Claude Agent SDK LM for DSPy (self-contained, no skillet dependency)
 # ---------------------------------------------------------------------------
@@ -157,7 +156,7 @@ def stratified_split(examples, output_field: str, train_ratio: float, seed: int 
         by_label[getattr(ex, output_field)].append(ex)
 
     train, val = [], []
-    for label, items in by_label.items():
+    for _label, items in by_label.items():
         rng.shuffle(items)
         split = max(1, int(len(items) * train_ratio))
         train.extend(items[:split])
@@ -213,7 +212,9 @@ def extract_prompt(program, input_field: str, output_field: str, labels: list[st
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Optimize a classification prompt with DSPy MIPROv2")
+    parser = argparse.ArgumentParser(
+        description="Optimize a classification prompt with DSPy MIPROv2"
+    )
     parser.add_argument("--input", required=True, help="JSON file with labeled examples")
     parser.add_argument("--output", required=True, help="Output path for the optimized prompt")
     parser.add_argument("--input-field", default="text", help="Input field name (default: text)")

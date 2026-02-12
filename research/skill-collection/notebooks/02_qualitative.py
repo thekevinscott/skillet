@@ -115,72 +115,72 @@ def _(mo):
     def _hi(key, text, label=False):
         bg = _c[key]
         tag = (
-            f'<span style="color:#6b7280;font-size:0.8em"> '
-            f"&larr; {_labels[key]}</span>"
+            f'<span style="color:#6b7280;font-size:0.8em"> &larr; {_labels[key]}</span>'
             if label
             else ""
         )
-        return (
-            f'<span style="background:{bg};color:#1f2937">'
-            f"{_html.escape(text)}</span>{tag}"
-        )
+        return f'<span style="background:{bg};color:#1f2937">{_html.escape(text)}</span>{tag}'
 
     _gap = '<span style="color:#9ca3af">    ...</span>'
 
-    _lines = "\n".join([
-        _hi("trigger", "---", label=True),
-        _hi("trigger", "name: GSD Debugger"),
-        _hi("trigger", "description: Systematic debugging with persistent state"),
-        _hi("trigger", "---"),
-        _gap,
-        _hi("persona", "You are a GSD debugger. You systematically diagnose", label=True),
-        _hi("persona", "bugs using hypothesis testing and evidence gathering."),
-        _hi("persona", "Your job: Find the root cause, not just make symptoms disappear."),
-        _gap,
-        _hi("do", "## Systematic Investigation", label=True),
-        _hi("do", "Change one variable: Make one change, test, observe, document."),
-        _hi("do", "Complete reading: Read entire functions, not just relevant lines."),
-        _gap,
-        _hi("dont", "## Cognitive Biases to Avoid", label=True),
-        _hi("dont", "| Confirmation | Only look for supporting evidence |"),
-        _hi("dont", "| Anchoring    | First explanation becomes anchor  |"),
-        _gap,
-        _hi("why", "Why this is harder:", label=True),
-        _hi("why", "You made the design decisions \u2014 they feel obviously correct"),
-        _hi("why", "Familiarity breeds blindness to bugs"),
-        _gap,
-        _hi("examples", "```markdown", label=True),
-        _hi("examples", "status: gathering | investigating | fixing | verifying"),
-        _hi("examples", 'hypothesis: {current theory}'),
-        _hi("examples", "```"),
-        _gap,
-        _hi("output", "## Output Formats", label=True),
-        _hi("output", "ROOT CAUSE: {specific cause}  EVIDENCE: {proof}"),
-        _hi("output", "INVESTIGATION INCONCLUSIVE:  BLOCKED BY: {what's needed}"),
-        _gap,
-        _hi("verify", "## Verification Checklist", label=True),
-        _hi("verify", "- [ ] Bug reproduced before fix"),
-        _hi("verify", "- [ ] Fix applied; bug no longer reproduced"),
-        _hi("verify", "- [ ] Related functionality still works"),
-        _gap,
-        _hi("refs", "Document what was tried in DEBUG.md", label=True),
-        _hi("refs", "Summarize to STATE.md"),
-    ])
+    _lines = "\n".join(
+        [
+            _hi("trigger", "---", label=True),
+            _hi("trigger", "name: GSD Debugger"),
+            _hi("trigger", "description: Systematic debugging with persistent state"),
+            _hi("trigger", "---"),
+            _gap,
+            _hi("persona", "You are a GSD debugger. You systematically diagnose", label=True),
+            _hi("persona", "bugs using hypothesis testing and evidence gathering."),
+            _hi("persona", "Your job: Find the root cause, not just make symptoms disappear."),
+            _gap,
+            _hi("do", "## Systematic Investigation", label=True),
+            _hi("do", "Change one variable: Make one change, test, observe, document."),
+            _hi("do", "Complete reading: Read entire functions, not just relevant lines."),
+            _gap,
+            _hi("dont", "## Cognitive Biases to Avoid", label=True),
+            _hi("dont", "| Confirmation | Only look for supporting evidence |"),
+            _hi("dont", "| Anchoring    | First explanation becomes anchor  |"),
+            _gap,
+            _hi("why", "Why this is harder:", label=True),
+            _hi("why", "You made the design decisions \u2014 they feel obviously correct"),
+            _hi("why", "Familiarity breeds blindness to bugs"),
+            _gap,
+            _hi("examples", "```markdown", label=True),
+            _hi("examples", "status: gathering | investigating | fixing | verifying"),
+            _hi("examples", "hypothesis: {current theory}"),
+            _hi("examples", "```"),
+            _gap,
+            _hi("output", "## Output Formats", label=True),
+            _hi("output", "ROOT CAUSE: {specific cause}  EVIDENCE: {proof}"),
+            _hi("output", "INVESTIGATION INCONCLUSIVE:  BLOCKED BY: {what's needed}"),
+            _gap,
+            _hi("verify", "## Verification Checklist", label=True),
+            _hi("verify", "- [ ] Bug reproduced before fix"),
+            _hi("verify", "- [ ] Fix applied; bug no longer reproduced"),
+            _hi("verify", "- [ ] Related functionality still works"),
+            _gap,
+            _hi("refs", "Document what was tried in DEBUG.md", label=True),
+            _hi("refs", "Summarize to STATE.md"),
+        ]
+    )
 
-    mo.vstack([
-        mo.md(
-            "**Real example** "
-            "([0futuresystems/future-water-systems/debugger]"
-            "(https://github.com/0futuresystems/future-water-systems"
-            "/blob/c2e3dc5/.agent/skills/debugger/SKILL.md),"
-            " 1,136 words, excerpted) with anatomy components highlighted:"
-        ),
-        mo.Html(
-            f'<pre style="font-size:0.82em;line-height:1.7;padding:12px;'
-            f'border:1px solid #d1d5db;border-radius:6px;overflow-x:auto;'
-            f'background:transparent">{_lines}</pre>'
-        ),
-    ])
+    mo.vstack(
+        [
+            mo.md(
+                "**Real example** "
+                "([0futuresystems/future-water-systems/debugger]"
+                "(https://github.com/0futuresystems/future-water-systems"
+                "/blob/c2e3dc5/.agent/skills/debugger/SKILL.md),"
+                " 1,136 words, excerpted) with anatomy components highlighted:"
+            ),
+            mo.Html(
+                f'<pre style="font-size:0.82em;line-height:1.7;padding:12px;'
+                f"border:1px solid #d1d5db;border-radius:6px;overflow-x:auto;"
+                f'background:transparent">{_lines}</pre>'
+            ),
+        ]
+    )
     return
 
 
