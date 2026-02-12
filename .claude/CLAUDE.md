@@ -3,11 +3,8 @@
 ## Workflow
 - Work in git worktrees under `.worktrees/` folder, tie PRs to GitHub issues
 - **NEVER commit directly to main** - always create a PR
-- **Before pushing, run the same checks CI runs:**
-  ```bash
-  uv run just lint && uv run just format-check && uv run just typecheck && uv run just test-unit
-  ```
-- After pushing: monitor CI checks and fix any failures immediately
+- **Before pushing**: the pre-push hook runs `uv run just ci` automatically (lint, format, typecheck, unit tests in parallel). Integration tests run only on GitHub CI to keep pushes fast
+- **After pushing**: run `gh pr checks <number> --watch` to monitor CI. Fix any failures immediately before moving on
 - **After a PR is merged**: pull main in the root repository to keep worktrees in sync
 
 ### PR Scope
@@ -15,7 +12,7 @@
 - Don't add code that isn't used until a future PR (e.g., an error class with no callers)
 - If a task is too large for one PR, create child beads under the parent bead - one per PR
 - Every PR must include tests per the TDD Order (see Testing section): e2e first if touching public API, integration tests, then unit tests
-- **Changelog**: Update `CHANGELOG.md` for user-facing changes. For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label to bypass the CI check
+- **Changelog (REQUIRED)**: Every PR must either update `CHANGELOG.md` or have the `skip-changelog` label. CI will fail without one of these. Add the changelog entry in the same commit as the code change — do not forget this. User-facing changes go under the appropriate heading (Added/Changed/Fixed/Removed). For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label instead
 
 ### Git Worktrees
 All development work should happen in git worktrees, not on the main branch directly.
