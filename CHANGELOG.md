@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `skillet.__version__` now reports the correct package version instead of hardcoded `"0.1.0"`
+
 ### Added
 - CLI: `skillet lint <path>` command for static SKILL.md validation with `--list-rules` flag
 - CLI: `skillet generate-evals <skill>` command to generate candidate eval files from a SKILL.md
