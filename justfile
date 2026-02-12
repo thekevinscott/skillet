@@ -95,17 +95,32 @@ test-integration:
 test-e2e:
     uv run pytest tests/e2e/
 
-# Run local CI checks (fast, no e2e)
+# Run local CI checks (pre-push hook). Lint/format/typecheck in parallel, then unit tests.
+# Integration tests run only on GitHub CI to keep local pushes fast.
 ci:
-    just lint
-    just format-check
-    just typecheck
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just lint &
+    just format-check &
+    just typecheck &
+    wait
     just test-unit
-    just test-integration
+
+# Run full local CI including integration tests (no e2e)
+ci-local:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just lint &
+    just format-check &
+    just typecheck &
+    wait
+    just test-unit &
+    just test-integration &
+    wait
 
 # Run full local CI including e2e (slow, hits real LLMs)
 ci-full:
-    just ci
+    just ci-local
     just test-e2e
 
 # Watch unit tests only
