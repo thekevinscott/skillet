@@ -12,18 +12,21 @@ Verify that e2e tests and integration tests cover the same behavior and expect t
 
 4. **Same fixture data**: Both test layers should use the same fixture content and setup patterns. An integration test should not test with data that the e2e test never exercises.
 
+5. **`no_mirror` exemption**: Tests decorated with `@pytest.mark.no_mirror` are intentionally layer-specific (e.g., integration tests mocking non-deterministic API responses that have no meaningful e2e equivalent). These tests are exempt from mirror coverage requirements.
+
 ## Procedure
 
 1. List all test files in `tests/e2e/cli/` and `tests/integration/`.
 2. For each e2e test file, find the corresponding integration test file.
 3. Compare the test function names and their assertions.
-4. Flag any scenario that exists in one layer but not the other.
+4. Before flagging a test as `MISSING`, check whether it is decorated with `@pytest.mark.no_mirror`. If it is, report it as `SKIPPED` instead.
 5. Flag any scenario where the two layers expect different outcomes.
 
 ## Output
 
 Report discrepancies as a list:
-- `MISSING`: test exists in one layer but not the other
+- `MISSING`: test exists in one layer but not the other (and is NOT marked `no_mirror`)
+- `SKIPPED`: test exists in one layer only but is marked `@pytest.mark.no_mirror` — no counterpart required
 - `MISMATCH`: test exists in both but expects different outcomes
 - `OK`: test exists in both and expects the same outcome
 
