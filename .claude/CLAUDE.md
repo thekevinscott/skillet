@@ -54,6 +54,15 @@ For more in-depth documentation, ensure the docs cover all public-facing feature
 
 ## Testing
 
+### Red/Green Development
+
+Follow **red/green** (test-first) methodology:
+
+1. **Write the test first** — it must capture the desired behavior
+2. **Run it and confirm it fails (RED)** — do NOT proceed until the test turns red reliably. A test that passes before implementation proves nothing.
+3. **Make the minimal change to pass (GREEN)** — only then write the implementation
+4. Refactor if needed, keeping tests green
+
 ### TDD Order: Outside-In
 
 Tests are written **before** implementation, starting from the outermost layer:
