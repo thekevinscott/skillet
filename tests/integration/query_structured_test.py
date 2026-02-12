@@ -7,10 +7,12 @@ deterministically reproduce each failure.
 See: notes/eval-batch-failures.md
 """
 
+import asyncio
 from collections.abc import AsyncGenerator
 from unittest.mock import patch
 
 import pytest
+from claude_agent_sdk import AssistantMessage, ResultMessage, ToolUseBlock
 from pydantic import BaseModel
 
 from skillet._internal.sdk.query_structured import query_structured
@@ -142,3 +144,73 @@ def describe_query_structured_failure_modes():
 
             with pytest.raises(ValidationError):
                 await query_structured("classify this", GenerateResponse)
+
+
+@pytest.mark.no_mirror
+def describe_generator_consumption():
+    """Verify query_structured fully consumes SDK generator under parallel execution.
+
+    When multiple query_structured calls run via asyncio.gather (as in evaluate()),
+    abandoning async generators causes anyio cancel scope errors. This tests the
+    real composition: judge_response -> query_structured -> SDK mock.
+    """
+
+    @pytest.fixture(autouse=True)
+    def mock_sdk_query():
+        call_count = {"total": 0, "fully_consumed": 0}
+
+        async def mock_query_gen(**kwargs) -> AsyncGenerator:  # noqa: ARG001
+            call_count["total"] += 1
+            for msg in [
+                AssistantMessage(
+                    content=[
+                        ToolUseBlock(
+                            id="tool-1",
+                            name="StructuredOutput",
+                            input={"pass": True, "reasoning": "meets expectations"},
+                        )
+                    ],
+                    model="claude-sonnet-4-20250514",
+                ),
+                ResultMessage(
+                    subtype="result",
+                    duration_ms=100,
+                    duration_api_ms=100,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result=None,
+                    structured_output=None,
+                ),
+            ]:
+                yield msg
+            call_count["fully_consumed"] += 1
+
+        with patch(
+            "skillet._internal.sdk.query_structured.claude_agent_sdk.query",
+            mock_query_gen,
+        ):
+            yield call_count
+
+    @pytest.mark.asyncio
+    async def it_consumes_all_generators_under_parallel_gather(mock_sdk_query):
+        """Multiple parallel judge_response calls must all fully consume generators."""
+        from skillet.eval.judge import judge_response
+
+        tasks = [
+            judge_response(
+                prompt=f"test prompt {i}",
+                response=f"test response {i}",
+                expected="expected behavior",
+            )
+            for i in range(5)
+        ]
+
+        results = await asyncio.gather(*tasks)
+
+        assert all(r["pass"] for r in results)
+        assert mock_sdk_query["total"] == 5
+        assert mock_sdk_query["fully_consumed"] == 5, (
+            f"Only {mock_sdk_query['fully_consumed']}/{mock_sdk_query['total']} "
+            "generators were fully consumed under parallel execution."
+        )

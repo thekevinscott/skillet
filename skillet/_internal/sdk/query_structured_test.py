@@ -19,6 +19,7 @@ class MockQuery:
     def __init__(self):
         self.messages: list = []
         self.captured: dict = {"options": None}
+        self.fully_consumed: bool = False
 
 
 def describe_StructuredOutputError():
@@ -202,3 +203,70 @@ def describe_query_structured():
         assert mock_query.captured["options"] is not None
         assert mock_query.captured["options"].max_turns == 5
         assert mock_query.captured["options"].allowed_tools == ["Read"]
+
+
+def describe_generator_consumption():
+    """Verify query_structured fully consumes the SDK async generator.
+
+    Abandoning the generator (via early return/break from async for) defers
+    cleanup to GC, which may run in a different asyncio.Task -- triggering
+    RuntimeError from anyio's CancelScope. See SDK issues #378, #454.
+    """
+
+    @pytest.fixture(autouse=True)
+    def mock_query():
+        state = MockQuery()
+        state.fully_consumed = False
+
+        async def mock_query_gen(prompt=None, options=None):  # noqa: ARG001
+            state.captured["options"] = options
+            for msg in state.messages:
+                yield msg
+            state.fully_consumed = True
+
+        with patch(
+            "skillet._internal.sdk.query_structured.claude_agent_sdk.query",
+            mock_query_gen,
+        ):
+            yield state
+
+    @pytest.mark.asyncio
+    async def it_consumes_all_messages_after_finding_structured_output(mock_query):
+        class TestModel(BaseModel):
+            name: str
+            value: int
+
+        mock_query.messages.extend(
+            [
+                AssistantMessage(
+                    content=[
+                        ToolUseBlock(
+                            id="tool-1",
+                            name="StructuredOutput",
+                            input={"name": "test", "value": 42},
+                        )
+                    ],
+                    model="claude-sonnet-4-20250514",
+                ),
+                ResultMessage(
+                    subtype="result",
+                    duration_ms=100,
+                    duration_api_ms=100,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result=None,
+                    structured_output=None,
+                ),
+            ]
+        )
+
+        result = await query_structured("test prompt", TestModel)
+
+        assert isinstance(result, TestModel)
+        assert result.name == "test"
+        assert mock_query.fully_consumed, (
+            "SDK generator was not fully consumed. "
+            "Early return from async for abandons the generator, causing "
+            "RuntimeError in anyio cancel scopes under parallel execution."
+        )

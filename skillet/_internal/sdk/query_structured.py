@@ -52,20 +52,22 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
         **options,
     )
 
+    # Fully consume the async generator to avoid anyio cancel scope errors.
+    # Early return/break abandons the generator, deferring cleanup to GC which
+    # may run in a different asyncio.Task -- triggering RuntimeError from anyio's
+    # CancelScope when used under asyncio.gather(). See SDK issues #378, #454.
+    result: T | None = None
+
     async for message in claude_agent_sdk.query(prompt=prompt, options=opts):
-        # The SDK delivers structured output via a synthetic StructuredOutput
-        # tool call in an AssistantMessage, not via ResultMessage.structured_output
-        if isinstance(message, AssistantMessage):
+        if result is None and isinstance(message, AssistantMessage):
             for block in message.content:
                 if isinstance(block, ToolUseBlock) and block.name == "StructuredOutput":
-                    return _validate_with_unwrap(model, block.input)
+                    result = _validate_with_unwrap(model, block.input)
 
-        if isinstance(message, ResultMessage):
-            # Fallback: if the SDK ever populates structured_output directly
+        if result is None and isinstance(message, ResultMessage):
             if message.structured_output is not None:
-                return _validate_with_unwrap(model, message.structured_output)
+                result = _validate_with_unwrap(model, message.structured_output)
 
-            # Canary: check if result contains backticks (shouldn't happen with structured output)
             if message.result and "```" in message.result:
                 raise StructuredOutputError(
                     "Response contains markdown code fences. "
@@ -73,4 +75,7 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
                     f"Raw result: {message.result[:200]}..."
                 )
 
-    raise ValueError("No structured output returned from query")
+    if result is None:
+        raise ValueError("No structured output returned from query")
+
+    return result
