@@ -64,6 +64,8 @@ def run_skill(
     ]
     if args.skip_cache:
         cmd.append("--skip-cache")
+    if args.timeout:
+        cmd.extend(["--timeout", str(args.timeout)])
 
     t0 = time.monotonic()
     for attempt in range(1, 3):
@@ -116,6 +118,12 @@ def main() -> None:
         help="Number of skills to evaluate concurrently (default: 1)",
     )
     parser.add_argument("--skip-cache", action="store_true")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=0,
+        help="Timeout in seconds per eval_skill step (0 = no timeout)",
+    )
     args = parser.parse_args()
 
     skills = json.loads(args.skills_json.read_text())

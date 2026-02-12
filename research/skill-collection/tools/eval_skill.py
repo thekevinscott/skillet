@@ -8,7 +8,10 @@ import argparse
 import asyncio
 import json
 import sys
+import time
 from pathlib import Path
+
+_eval_start_times: dict[str, float] = {}
 
 
 def log(msg: str) -> None:
@@ -18,13 +21,16 @@ def log(msg: str) -> None:
 async def on_eval_status(task: dict, state: str, result: dict | None) -> None:
     src = task["eval_source"]
     iteration = task["iteration"]
+    key = f"{src}#{iteration}"
     if state == "cached":
         log(f"  [cached] {src} #{iteration}")
     elif state == "running":
+        _eval_start_times[key] = time.monotonic()
         log(f"  [running] {src} #{iteration} ...")
     elif state == "done" and result:
+        elapsed = time.monotonic() - _eval_start_times.pop(key, time.monotonic())
         verdict = "PASS" if result["pass"] else "FAIL"
-        log(f"  [{verdict}] {src} #{iteration}")
+        log(f"  [{verdict}] {src} #{iteration} ({elapsed:.0f}s)")
 
 
 async def main() -> None:
@@ -65,6 +71,12 @@ async def main() -> None:
         action="store_true",
         help="Ignore skillet's internal eval cache",
     )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=0,
+        help="Timeout in seconds per step (0 = no timeout)",
+    )
     args = parser.parse_args()
 
     skill_path = args.skill.resolve()
@@ -75,12 +87,16 @@ async def main() -> None:
 
     # Step 1: Generate evals (skip if directory already has YAML files)
     if not any(evals_dir.glob("*.yaml")):
-        log(f"Generating evals for {skill_path} (this makes an LLM call, may take ~30s) ...")
+        log(f"Generating evals for {skill_path} ...")
         evals_dir.mkdir(parents=True, exist_ok=True)
-        result = await generate_evals(
-            skill_path, output_dir=evals_dir, max_per_category=args.max_per_category
+        t0 = time.monotonic()
+        result = await asyncio.wait_for(
+            generate_evals(
+                skill_path, output_dir=evals_dir, max_per_category=args.max_per_category
+            ),
+            timeout=args.timeout or None,
         )
-        log(f"Generated {len(result.candidates)} evals in {evals_dir}")
+        log(f"Generated {len(result.candidates)} evals in {time.monotonic() - t0:.0f}s")
     else:
         log(f"Evals already exist in {evals_dir}, skipping generation")
 
@@ -89,14 +105,20 @@ async def main() -> None:
     if not results_file.exists():
         log(f"Evaluating {evals_dir} ...")
         try:
-            eval_result = await evaluate(
-                name=str(evals_dir),
-                skill_path=skill_path,
-                samples=args.samples,
-                parallel=args.parallel,
-                skip_cache=args.skip_cache,
-                on_status=on_eval_status,
+            eval_result = await asyncio.wait_for(
+                evaluate(
+                    name=str(evals_dir),
+                    skill_path=skill_path,
+                    samples=args.samples,
+                    parallel=args.parallel,
+                    skip_cache=args.skip_cache,
+                    on_status=on_eval_status,
+                ),
+                timeout=args.timeout or None,
             )
+        except TimeoutError:
+            log(f"  (timed out after {args.timeout}s — cached results preserved, re-run to collect)")
+            return
         except (asyncio.CancelledError, RuntimeError) as e:
             if isinstance(e, RuntimeError) and "cancel scope" not in str(e):
                 raise
@@ -119,6 +141,9 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         sys.exit(130)
+    except TimeoutError:
+        print("Error: timed out", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
