@@ -20,9 +20,7 @@ def _doc(
 ) -> SkillDocument:
     if frontmatter is None:
         frontmatter = {"name": "test", "description": "A skill."}
-    return SkillDocument(
-        path=Path(path), content=content, frontmatter=frontmatter, body=body
-    )
+    return SkillDocument(path=Path(path), content=content, frontmatter=frontmatter, body=body)
 
 
 def describe_frontmatter_delimiters_rule():

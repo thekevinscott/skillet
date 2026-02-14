@@ -1,6 +1,11 @@
 """Lint rule registry."""
 
 from skillet.lint.rules.base import AsyncLintRule, LintRule
+from skillet.lint.rules.fields import (
+    CompatibilityFieldRule,
+    LicenseFieldRule,
+    MetadataFieldRule,
+)
 from skillet.lint.rules.frontmatter import FrontmatterRule
 from skillet.lint.rules.naming import (
     FilenameCaseRule,
@@ -8,11 +13,6 @@ from skillet.lint.rules.naming import (
     NameKebabCaseRule,
     NameMatchesFolderRule,
     NameNoReservedRule,
-)
-from skillet.lint.rules.fields import (
-    CompatibilityFieldRule,
-    LicenseFieldRule,
-    MetadataFieldRule,
 )
 from skillet.lint.rules.structure import (
     BodyWordCountRule,

@@ -76,9 +76,7 @@ def describe_lint_skill():
         assert result.findings[0].rule == "test-rule"
 
     @pytest.mark.asyncio
-    async def it_runs_llm_rules_by_default(
-        tmp_path: Path, mock_parse_skill, mock_llm_rules
-    ):
+    async def it_runs_llm_rules_by_default(tmp_path: Path, mock_parse_skill, mock_llm_rules):
         skill = tmp_path / "SKILL.md"
         skill.write_text(VALID_SKILL)
 

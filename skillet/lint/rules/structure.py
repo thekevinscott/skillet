@@ -5,6 +5,9 @@ import re
 from skillet.lint.rules.base import LintRule
 from skillet.lint.types import LintFinding, LintSeverity, SkillDocument
 
+_MAX_DESCRIPTION_LENGTH = 1024
+_MAX_BODY_WORDS = 5000
+
 
 class FrontmatterDelimitersRule(LintRule):
     """Check that YAML frontmatter has --- delimiters."""
@@ -24,7 +27,7 @@ class FrontmatterDelimitersRule(LintRule):
                 )
             ]
         # Find closing delimiter
-        for i, line in enumerate(lines[1:], start=2):
+        for _i, line in enumerate(lines[1:], start=2):
             if line.strip() == "---":
                 return []
         return [
@@ -64,11 +67,11 @@ class DescriptionLengthRule(LintRule):
 
     def check(self, doc: SkillDocument) -> list[LintFinding]:
         desc = doc.frontmatter.get("description", "")
-        if len(desc) > 1024:
+        if len(desc) > _MAX_DESCRIPTION_LENGTH:
             return [
                 LintFinding(
                     rule=self.name,
-                    message=f"Description is {len(desc)} chars (max 1024)",
+                    message=f"Description is {len(desc)} chars (max {_MAX_DESCRIPTION_LENGTH})",
                     severity=LintSeverity.WARNING,
                 )
             ]
@@ -83,11 +86,11 @@ class BodyWordCountRule(LintRule):
 
     def check(self, doc: SkillDocument) -> list[LintFinding]:
         word_count = len(doc.body.split())
-        if word_count > 5000:
+        if word_count > _MAX_BODY_WORDS:
             return [
                 LintFinding(
                     rule=self.name,
-                    message=f"Body is {word_count} words (recommended max 5,000)",
+                    message=f"Body is {word_count} words (recommended max {_MAX_BODY_WORDS:,})",
                     severity=LintSeverity.WARNING,
                 )
             ]
