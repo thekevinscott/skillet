@@ -193,6 +193,104 @@ skillet generate-evals skill/ -o ./my-evals/
 skillet generate-evals skill/ -m 3
 ```
 
+## lint
+
+Lint a SKILL.md file for common issues.
+
+```bash
+skillet lint <path> [options]
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `path` | Yes* | Path to a SKILL.md file (*not required with `--list-rules`) |
+
+### Options
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--no-llm` | bool | false | Skip LLM-assisted lint rules |
+| `--list-rules` | bool | false | List all available rules and exit |
+
+### Rules
+
+Skillet ships with 14 built-in rules across four categories:
+
+#### Naming
+
+| Rule | Severity | Description |
+|------|----------|-------------|
+| `filename-case` | warning | Skill file must be named exactly `SKILL.md` |
+| `folder-kebab-case` | warning | Skill folder name must be kebab-case |
+| `name-kebab-case` | warning | Name field must be kebab-case |
+| `name-matches-folder` | warning | Name field must match the parent folder name |
+| `name-no-reserved` | error | Name must not contain `claude` or `anthropic` |
+
+#### Structure
+
+| Rule | Severity | Description |
+|------|----------|-------------|
+| `frontmatter-valid` | warning | Frontmatter must include `name` and `description` |
+| `frontmatter-delimiters` | error | YAML frontmatter must have `---` delimiters |
+| `frontmatter-no-xml` | error | No XML angle brackets (`< >`) in frontmatter |
+| `description-length` | warning | Description must be under 1,024 characters |
+| `body-word-count` | warning | Skill body should be under 5,000 words |
+| `no-readme` | warning | No `README.md` inside skill folder |
+
+#### Fields
+
+| Rule | Severity | Description |
+|------|----------|-------------|
+| `field-license` | warning | Recommended `license` field should be present |
+| `field-compatibility` | warning | Recommended `compatibility` field should be present |
+| `field-metadata` | warning | Recommended `metadata` field should be present |
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | No issues found |
+| 1 | One or more findings |
+| 2 | Error (file not found, invalid input) |
+
+### Examples
+
+```bash
+# Lint a skill
+skillet lint ~/.claude/skills/my-skill/SKILL.md
+
+# Lint without LLM-assisted checks
+skillet lint --no-llm path/to/SKILL.md
+
+# List all available rules
+skillet lint --list-rules
+```
+
+## compare
+
+Compare baseline vs skill results from cache.
+
+```bash
+skillet compare <name> <skill>
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | Yes | Eval set name or path |
+| `skill` | Yes | Path to skill directory |
+
+Run `skillet eval <name>` and `skillet eval <name> <skill>` first to populate the cache.
+
+### Examples
+
+```bash
+skillet compare browser-fallback ~/.claude/skills/browser-fallback
+```
+
 ## Exit Codes
 
 | Code | Meaning |

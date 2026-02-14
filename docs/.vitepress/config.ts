@@ -28,7 +28,8 @@ export default defineConfig({
       {
         text: 'Guides',
         items: [
-          { text: 'Capture with /skillet:add', link: '/guides/capture-with-slash-command' }
+          { text: 'Capture with /skillet:add', link: '/guides/capture-with-slash-command' },
+          { text: 'Linting Skills', link: '/guides/linting' }
         ]
       },
       {
