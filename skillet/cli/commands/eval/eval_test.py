@@ -48,6 +48,7 @@ def describe_eval_command():
                 "cached_count": 0,
                 "fresh_count": 3,
                 "results": [{"pass": True}, {"pass": True}, {"pass": False}],
+                "per_eval_metrics": [],
             }
             yield mock
 

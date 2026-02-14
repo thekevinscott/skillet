@@ -15,6 +15,20 @@ from .summarize import summarize_responses
 logger = logging.getLogger(__name__)
 
 
+def _print_per_eval_metrics(eval_result: dict, samples: int) -> None:
+    """Print per-eval pass@k and pass^k metrics."""
+    if samples <= 1:
+        return
+    console.print()
+    k = samples
+    for m in eval_result["per_eval_metrics"]:
+        pak = m["pass_at_k"]
+        ppk = m["pass_pow_k"]
+        pak_str = f"{pak:.0%}" if pak is not None else "n/a"
+        ppk_str = f"{ppk:.0%}" if ppk is not None else "n/a"
+        console.print(f"  {m['eval_source']}: pass@{k} {pak_str}, pass^{k} {ppk_str}")
+
+
 async def eval_command(
     name: str,
     skill_path: Path | None = None,
@@ -113,6 +127,8 @@ async def eval_command(
         f"Overall pass rate: [{rate_color}]{eval_result['pass_rate']:.0f}%[/{rate_color}] "
         f"({eval_result['total_pass']}/{eval_result['total_runs']})"
     )
+
+    _print_per_eval_metrics(eval_result, samples)
 
     # Generate summary of failures if any
     failures = [r for r in eval_result["results"] if not r["pass"]]

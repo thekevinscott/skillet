@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- CLI: `skillet eval` now reports per-eval pass@k and pass^k metrics when running with multiple samples, measuring capability and consistency respectively
 - Eval domains: generated evals are now tagged with a domain (`triggering`, `functional`, or `performance`) indicating what aspect of the skill is being tested
 - CLI: `--domain` / `-d` flag on `generate-evals` to filter generated evals to specific domains (e.g., `--domain triggering`)
 

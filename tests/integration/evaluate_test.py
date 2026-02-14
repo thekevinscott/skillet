@@ -169,6 +169,47 @@ def describe_evaluate():
             await evaluate("nonexistent-evals")
 
     @pytest.mark.asyncio
+    async def it_returns_per_eval_pass_at_k_and_pass_pow_k(skillet_env: Path, mock_claude_query):
+        """Returns per-eval pass@k and pass^k metrics when samples > 1."""
+        evals_dir = skillet_env / ".skillet" / "evals" / "metrics-test"
+        evals_dir.mkdir(parents=True)
+        create_eval_file(evals_dir / "001.yaml", prompt="Prompt 1")
+        create_eval_file(evals_dir / "002.yaml", prompt="Prompt 2")
+
+        # 2 evals, 3 samples each = 12 responses (6 prompts + 6 judgments)
+        # Eval 001: pass, fail, pass (2/3)
+        # Eval 002: pass, pass, pass (3/3)
+        mock_claude_query.set_responses(
+            "R1",
+            {"pass": True, "reasoning": "OK"},  # eval 001 sample 1
+            "R2",
+            {"pass": False, "reasoning": "Bad"},  # eval 001 sample 2
+            "R3",
+            {"pass": True, "reasoning": "OK"},  # eval 001 sample 3
+            "R4",
+            {"pass": True, "reasoning": "OK"},  # eval 002 sample 1
+            "R5",
+            {"pass": True, "reasoning": "OK"},  # eval 002 sample 2
+            "R6",
+            {"pass": True, "reasoning": "OK"},  # eval 002 sample 3
+        )
+
+        result = await evaluate("metrics-test", samples=3, parallel=1, skip_cache=True)
+
+        metrics = result["per_eval_metrics"]
+        assert len(metrics) == 2
+
+        # Eval 001: n=3, c=2, k=3 → pass@3 = 1.0, pass^3 = 0.0
+        eval_001 = metrics[0]
+        assert eval_001["pass_at_k"] == 1.0
+        assert eval_001["pass_pow_k"] == 0.0
+
+        # Eval 002: n=3, c=3, k=3 → pass@3 = 1.0, pass^3 = 1.0
+        eval_002 = metrics[1]
+        assert eval_002["pass_at_k"] == 1.0
+        assert eval_002["pass_pow_k"] == 1.0
+
+    @pytest.mark.asyncio
     async def it_handles_llm_errors_gracefully(skillet_env: Path, mock_claude_query):
         """Returns failure result when LLM call fails."""
         evals_dir = skillet_env / ".skillet" / "evals" / "error-test"

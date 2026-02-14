@@ -166,6 +166,39 @@ def describe_skillet_eval():
             f"stderr: {result.stderr}"
         )
 
+    @pytest.mark.asyncio
+    async def it_shows_pass_at_k_metrics_with_multiple_samples(tmp_path: Path):
+        """Shows pass@k and pass^k metrics when samples > 1."""
+        evals_dir, env = _setup_eval_env(tmp_path)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "skillet.cli.main",
+                "eval",
+                str(evals_dir),
+                "--samples",
+                "3",
+                "--parallel",
+                "1",
+                "--skip-cache",
+                "--trust",
+            ],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=300,
+        )
+
+        assert result.returncode == 0, (
+            f"Command failed with code {result.returncode}\n"
+            f"stdout: {result.stdout}\n"
+            f"stderr: {result.stderr}"
+        )
+        assert "pass@3" in result.stdout.lower()
+        assert "pass^3" in result.stdout.lower()
+
     def it_fails_for_nonexistent_eval_directory():
         """Exits with error for a missing eval directory."""
         result = subprocess.run(
