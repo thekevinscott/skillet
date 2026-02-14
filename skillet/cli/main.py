@@ -182,14 +182,36 @@ async def generate_evals_cmd(
     *,
     output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
     max_per_category: Annotated[int, Parameter(name=["--max", "-m"])] = 5,
+    triggering_only: Annotated[bool, Parameter(name=["--triggering-only"])] = False,
+    functional_only: Annotated[bool, Parameter(name=["--functional-only"])] = False,
+    performance_only: Annotated[bool, Parameter(name=["--performance-only"])] = False,
 ):
-    """Generate candidate evals from a SKILL.md."""
+    """Generate candidate evals from a SKILL.md.
+
+    By default, generates evals across all three testing domains:
+    triggering, functional, and performance. Use domain flags to
+    target specific domains.
+    """
     from skillet.cli.commands.generate_evals import generate_evals_command
+    from skillet.generate.types import EvalDomain
+
+    # Build domain set from flags
+    domains: frozenset[EvalDomain] | None = None
+    selected = []
+    if triggering_only:
+        selected.append(EvalDomain.TRIGGERING)
+    if functional_only:
+        selected.append(EvalDomain.FUNCTIONAL)
+    if performance_only:
+        selected.append(EvalDomain.PERFORMANCE)
+    if selected:
+        domains = frozenset(selected)
 
     await generate_evals_command(
         skill,
         output_dir=output,
         max_per_category=max_per_category,
+        domains=domains,
     )
 
 

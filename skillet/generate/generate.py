@@ -8,7 +8,7 @@ from skillet._internal.sdk import query_structured
 from skillet.prompts import load_prompt
 
 from .analyze import SkillAnalysis
-from .types import CandidateEval
+from .types import ALL_DOMAINS, CandidateEval, EvalDomain, SkippedDomain
 
 
 class CandidateResponse(BaseModel):
@@ -21,15 +21,26 @@ class CandidateResponse(BaseModel):
     source: str
     confidence: float
     rationale: str
+    domain: str = "functional"
+
+
+class SkippedDomainResponse(BaseModel):
+    """A domain the model couldn't generate viable evals for."""
+
+    domain: str
+    reason: str
 
 
 class GenerateResponse(BaseModel):
     """LLM response containing generated candidates."""
 
     candidates: list[CandidateResponse]
+    skipped_domains: list[SkippedDomainResponse] = []
 
 
 GENERATE_PROMPT = Path(__file__).parent / "generate.txt"
+
+_VALID_DOMAINS = {d.value for d in EvalDomain}
 
 
 def _try_lint(skill_path: Path) -> list[dict] | None:
@@ -57,8 +68,12 @@ async def generate_candidates(
     *,
     use_lint: bool = True,
     max_per_category: int = 5,
-) -> list[CandidateEval]:
-    """Generate candidate evals using LLM based on skill analysis."""
+    domains: frozenset[EvalDomain] = ALL_DOMAINS,
+) -> tuple[list[CandidateEval], list[SkippedDomain]]:
+    """Generate candidate evals using LLM based on skill analysis.
+
+    Returns a tuple of (candidates, skipped_domains).
+    """
     # Prepare context for LLM
     goals_text = "\n".join(f"- Goal {i + 1}: {g}" for i, g in enumerate(analysis.goals))
     prohibitions_text = "\n".join(
@@ -82,6 +97,10 @@ async def generate_candidates(
 
     categories_text = ", ".join(categories)
 
+    # Build domain instructions
+    domain_names = sorted(d.value for d in domains)
+    domains_text = ", ".join(domain_names)
+
     prompt = load_prompt(
         GENERATE_PROMPT,
         skill_name=analysis.name or "unnamed",
@@ -92,6 +111,7 @@ async def generate_candidates(
         lint_findings=lint_findings_text or "No lint findings",
         categories=categories_text,
         max_per_category=str(max_per_category),
+        domains=domains_text,
     )
 
     # Query LLM with structured output, retrying once if the model
@@ -102,7 +122,7 @@ async def generate_candidates(
     except ValueError:
         response = await query_structured(prompt, GenerateResponse)
 
-    # Convert to CandidateEval objects
+    # Convert to CandidateEval objects, filtering to requested domains
     candidates = [
         CandidateEval(
             prompt=c.prompt,
@@ -112,12 +132,21 @@ async def generate_candidates(
             source=c.source,
             confidence=c.confidence,
             rationale=c.rationale,
+            domain=c.domain if c.domain in _VALID_DOMAINS else "functional",
         )
         for c in response.candidates
+        if c.domain in {d.value for d in domains}
+    ]
+
+    # Convert skipped domains
+    skipped = [
+        SkippedDomain(domain=s.domain, reason=s.reason)
+        for s in response.skipped_domains
+        if s.domain in _VALID_DOMAINS
     ]
 
     # Apply max_per_category limit
-    return _limit_by_category(candidates, max_per_category)
+    return _limit_by_category(candidates, max_per_category), skipped
 
 
 def _limit_by_category(

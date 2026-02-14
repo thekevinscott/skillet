@@ -7,6 +7,7 @@ from rich.table import Table
 
 from skillet.cli import console
 from skillet.generate import generate_evals
+from skillet.generate.types import EvalDomain
 
 
 async def generate_evals_command(
@@ -14,9 +15,13 @@ async def generate_evals_command(
     *,
     output_dir: Path | None = None,
     max_per_category: int = 5,
+    domains: frozenset[EvalDomain] | None = None,
 ) -> None:
     """Run generate-evals with progress spinner."""
     skill_path = Path(skill_path).expanduser().resolve()
+
+    if domains is None:
+        domains = frozenset(EvalDomain)
 
     # Default output alongside the skill
     if output_dir is None:
@@ -33,6 +38,7 @@ async def generate_evals_command(
             skill_path,
             output_dir=output_dir,
             max_per_category=max_per_category,
+            domains=domains,
         )
 
     # Display analysis summary
@@ -43,14 +49,23 @@ async def generate_evals_command(
     console.print(f"  Goals: {len(analysis.get('goals', []))}")
     console.print(f"  Prohibitions: {len(analysis.get('prohibitions', []))}")
     console.print(f"  Examples: {analysis.get('example_count', 0)}")
+
+    # Display skipped domains
+    if result.skipped_domains:
+        console.print()
+        console.print("[bold yellow]Skipped Domains:[/bold yellow]")
+        for skipped in result.skipped_domains:
+            console.print(f"  [yellow]{skipped.domain}[/yellow]: {skipped.reason}")
+
     # Display candidates table
     console.print()
     table = Table(title=f"Generated {len(result.candidates)} Candidates")
     table.add_column("Name", style="cyan")
+    table.add_column("Domain", style="magenta")
     table.add_column("Category", style="green")
     table.add_column("Source")
     for c in result.candidates:
-        table.add_row(c.name, c.category, c.source)
+        table.add_row(c.name, c.domain, c.category, c.source)
     console.print(table)
 
     # Show output location

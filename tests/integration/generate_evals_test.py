@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from skillet.evals.load import REQUIRED_EVAL_FIELDS, load_evals
+from skillet.generate.types import EvalDomain
 
 from .conftest import COMPLEX_SKILL, SAMPLE_GENERATED_EVALS, SAMPLE_SKILL
 
@@ -69,6 +70,124 @@ def describe_generate_evals():
         assert "negative" in categories
 
     @pytest.mark.asyncio
+    async def it_generates_evals_across_domains(tmp_path: Path, mock_claude_query):
+        """Generates evals distributed across triggering, functional, and performance domains."""
+        from skillet import generate_evals
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+
+        result = await generate_evals(skill_dir)
+
+        domains = {c.domain for c in result.candidates}
+        assert "functional" in domains
+        assert "triggering" in domains
+        assert "performance" in domains
+
+    @pytest.mark.asyncio
+    async def it_filters_to_requested_domains(tmp_path: Path, mock_claude_query):
+        """Only returns evals for the requested domains."""
+        from skillet import generate_evals
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+
+        result = await generate_evals(skill_dir, domains=frozenset({EvalDomain.FUNCTIONAL}))
+
+        domains = {c.domain for c in result.candidates}
+        assert domains == {"functional"}
+
+    @pytest.mark.asyncio
+    async def it_reports_skipped_domains(tmp_path: Path, mock_claude_query):
+        """Reports domains the model couldn't generate viable evals for."""
+        from skillet import generate_evals
+
+        response_with_skipped = {
+            "candidates": [
+                {
+                    "prompt": "Test prompt",
+                    "expected": "Expected behavior",
+                    "name": "test-1",
+                    "category": "positive",
+                    "domain": "functional",
+                    "source": "goal:1",
+                    "confidence": 0.85,
+                    "rationale": "Tests core functionality",
+                },
+            ],
+            "skipped_domains": [
+                {
+                    "domain": "performance",
+                    "reason": "This skill only reformats output; "
+                    "no measurable quality improvement over baseline",
+                },
+            ],
+        }
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        mock_claude_query.set_structured_response(response_with_skipped)
+
+        result = await generate_evals(skill_dir)
+
+        assert len(result.skipped_domains) == 1
+        assert result.skipped_domains[0].domain == "performance"
+        assert "reformats" in result.skipped_domains[0].reason
+
+    @pytest.mark.asyncio
+    async def it_does_not_fabricate_evals_for_inapplicable_domains(
+        tmp_path: Path, mock_claude_query
+    ):
+        """Model reports skipped domains rather than fabricating low-quality evals."""
+        from skillet import generate_evals
+
+        # Response where model honestly skips a domain
+        response_with_skip = {
+            "candidates": [
+                {
+                    "prompt": "Test",
+                    "expected": "Result",
+                    "name": "func-1",
+                    "category": "positive",
+                    "domain": "functional",
+                    "source": "goal:1",
+                    "confidence": 0.9,
+                    "rationale": "Core functional test",
+                },
+            ],
+            "skipped_domains": [
+                {
+                    "domain": "triggering",
+                    "reason": "Skill has no clear activation trigger",
+                },
+            ],
+        }
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        mock_claude_query.set_structured_response(response_with_skip)
+
+        result = await generate_evals(skill_dir)
+
+        # Should NOT have any triggering evals
+        triggering_evals = [c for c in result.candidates if c.domain == "triggering"]
+        assert len(triggering_evals) == 0
+
+        # Should have reported skipped domain
+        skipped_names = [s.domain for s in result.skipped_domains]
+        assert "triggering" in skipped_names
+
+    @pytest.mark.asyncio
     async def it_integrates_with_linter_when_available(tmp_path: Path, mock_claude_query):
         """Uses lint findings to target weak spots when linter is available."""
         from skillet import generate_evals
@@ -85,11 +204,13 @@ def describe_generate_evals():
                     "expected": "Clarifies ambiguous instruction",
                     "name": "lint-vague-line5",
                     "category": "ambiguity",
+                    "domain": "functional",
                     "source": "lint:vague-language:5",
                     "confidence": 0.7,
                     "rationale": "Tests handling of vague language found by linter",
                 },
-            ]
+            ],
+            "skipped_domains": [],
         }
         mock_claude_query.set_structured_response(mock_lint_result)
 
@@ -146,12 +267,14 @@ def describe_generate_evals():
                     "expected": "Expected behavior",
                     "name": f"test-{i}",
                     "category": "positive",
+                    "domain": "functional",
                     "source": "goal:1",
                     "confidence": 0.8,
                     "rationale": "Test case",
                 }
                 for i in range(10)
-            ]
+            ],
+            "skipped_domains": [],
         }
         mock_claude_query.set_structured_response(many_candidates)
 
@@ -251,11 +374,13 @@ def describe_generate_evals():
                         "expected": "test",
                         "name": "test",
                         "category": "positive",
+                        "domain": "functional",
                         "source": "goal:1",
                         "confidence": 0.9,
                         "rationale": "test",
                     }
-                ]
+                ],
+                "skipped_domains": [],
             }
         )
 

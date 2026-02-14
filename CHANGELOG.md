@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `skillet.__version__` now reports the correct package version instead of hardcoded `"0.1.0"`
 
 ### Added
+- Eval domains: generated evals now cover triggering, functional, and performance testing areas
+- CLI: `--triggering-only`, `--functional-only`, `--performance-only` flags for `generate-evals` to target specific domains
+- Skipped domain reporting: model reports when a domain isn't viable instead of fabricating low-quality evals
 - CLI: `skillet lint <path>` command for static SKILL.md validation with `--list-rules` flag
 - CLI: `skillet generate-evals <skill>` command to generate candidate eval files from a SKILL.md
 - `query_structured()` SDK helper for type-safe structured output with Pydantic models

@@ -18,6 +18,7 @@ SAMPLE_GENERATED_EVALS = {
             "expected": "Suggests curl with appropriate flags",
             "name": "positive-goal1-browser-fail",
             "category": "positive",
+            "domain": "functional",
             "source": "goal:1",
             "confidence": 0.85,
             "rationale": "Tests the primary goal of suggesting curl on browser failure",
@@ -27,6 +28,7 @@ SAMPLE_GENERATED_EVALS = {
             "expected": "Warns that curl won't execute JavaScript",
             "name": "positive-goal3-js-warning",
             "category": "positive",
+            "domain": "triggering",
             "source": "goal:3",
             "confidence": 0.75,
             "rationale": "Tests handling of JS-heavy pages per prohibition",
@@ -36,11 +38,13 @@ SAMPLE_GENERATED_EVALS = {
             "expected": "Should NOT retry browser operation multiple times",
             "name": "negative-prohibition1-no-retry",
             "category": "negative",
+            "domain": "performance",
             "source": "prohibition:1",
             "confidence": 0.9,
             "rationale": "Tests the prohibition against multiple retries",
         },
-    ]
+    ],
+    "skipped_domains": [],
 }
 
 _TOOL_USE_COUNTER = 0

@@ -21,14 +21,34 @@ ${lint_findings}
 
 Generate candidate eval test cases for this skill. Create up to ${max_per_category} evals for each category: ${categories}.
 
+Distribute evals across the requested testing domains: ${domains}.
+
 For each eval, provide:
 - **prompt**: A realistic user prompt that would trigger (or should NOT trigger) the skill
 - **expected**: What behavior the skill should exhibit
 - **name**: A short identifier (lowercase, hyphens)
 - **category**: "positive", "negative", or "ambiguity"
+- **domain**: One of "triggering", "functional", or "performance"
 - **source**: What goal/prohibition/lint finding this tests (e.g., "goal:1", "prohibition:2", "lint:vague-language:5")
 - **confidence**: How confident you are this is a good test (0.0-1.0)
 - **rationale**: Why this test case is valuable
+
+# Testing Domains
+
+**Triggering** evals test whether the skill activates at the right times:
+- Prompts that SHOULD trigger the skill (positive triggering)
+- Prompts that should NOT trigger the skill (negative triggering)
+- Edge cases near the skill's activation boundary
+
+**Functional** evals test whether the skill produces correct outputs:
+- Test each goal explicitly
+- Include edge cases within the skill's scope
+- Test prohibition compliance (scenarios where the skill should refuse or constrain output)
+
+**Performance** evals test whether the skill improves over no-skill baseline:
+- Prompts where the skill should produce BETTER results than a generic Claude response
+- Test cases where domain-specific instructions lead to measurably higher quality
+- Scenarios that highlight the skill's value-add over baseline behavior
 
 # Guidelines
 
@@ -45,6 +65,14 @@ For each eval, provide:
 - Create prompts that expose ambiguous instructions
 - Test scenarios where the skill's behavior is unclear
 
+# Honesty About Domains
+
+If you cannot generate a meaningful eval for a requested domain, do NOT fabricate one. Instead, add that domain to the `skipped_domains` list with a reason explaining why. For example:
+- A very simple skill might not have meaningful performance differentiation over baseline
+- A skill with no clear activation trigger might not support triggering evals
+
+It is better to skip a domain than to produce low-quality evals that don't actually test the domain.
+
 # Output Format
 
 Return ONLY valid JSON in this exact format:
@@ -55,9 +83,16 @@ Return ONLY valid JSON in this exact format:
       "expected": "Expected skill behavior",
       "name": "short-identifier",
       "category": "positive",
+      "domain": "functional",
       "source": "goal:1",
       "confidence": 0.85,
       "rationale": "Why this is a good test"
+    }
+  ],
+  "skipped_domains": [
+    {
+      "domain": "performance",
+      "reason": "This skill only reformats output; no measurable quality improvement over baseline"
     }
   ]
 }
