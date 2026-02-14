@@ -49,6 +49,7 @@ VALID_CANDIDATES = {
             "expected": "transcribes audio correctly",
             "name": "positive-transcription-basic",
             "category": "positive",
+            "domain": "functional",
             "source": "goal:1",
             "confidence": 0.85,
             "rationale": "Tests basic transcription functionality",

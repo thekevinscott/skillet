@@ -12,7 +12,7 @@ from skillet.generate.generate import (
     _limit_by_category,
     generate_candidates,
 )
-from skillet.generate.types import CandidateEval
+from skillet.generate.types import CandidateEval, EvalDomain
 
 
 @pytest.mark.parametrize(
@@ -82,6 +82,7 @@ def _make_response(*candidates_data: dict) -> GenerateResponse:
             expected=c.get("expected", "test expected"),
             name=c.get("name", "test"),
             category=c.get("category", "positive"),
+            domain=c.get("domain", "triggering"),
             source=c.get("source", "goal:1"),
             confidence=c.get("confidence", 0.8),
             rationale=c.get("rationale", "test rationale"),
@@ -175,3 +176,29 @@ def describe_generate_candidates():
             result = await generate_candidates(analysis, use_lint=True)
 
         assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def it_maps_domain_string_to_enum():
+        """Converts LLM domain string response to EvalDomain enum."""
+        analysis = SkillAnalysis(
+            path=Path("/tmp/SKILL.md"),
+            name="test",
+            goals=["Goal 1"],
+        )
+
+        mock_response = _make_response(
+            {"name": "trig-1", "domain": "triggering"},
+            {"name": "func-1", "domain": "functional"},
+            {"name": "perf-1", "domain": "performance"},
+        )
+
+        with patch(
+            "skillet.generate.generate.query_structured",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ):
+            result = await generate_candidates(analysis)
+
+        assert result[0].domain == EvalDomain.TRIGGERING
+        assert result[1].domain == EvalDomain.FUNCTIONAL
+        assert result[2].domain == EvalDomain.PERFORMANCE

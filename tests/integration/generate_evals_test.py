@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from skillet.evals.load import REQUIRED_EVAL_FIELDS, load_evals
+from skillet.generate.types import EvalDomain
 
 from .conftest import COMPLEX_SKILL, SAMPLE_GENERATED_EVALS, SAMPLE_SKILL
 
@@ -85,6 +86,7 @@ def describe_generate_evals():
                     "expected": "Clarifies ambiguous instruction",
                     "name": "lint-vague-line5",
                     "category": "ambiguity",
+                    "domain": "functional",
                     "source": "lint:vague-language:5",
                     "confidence": 0.7,
                     "rationale": "Tests handling of vague language found by linter",
@@ -146,6 +148,7 @@ def describe_generate_evals():
                     "expected": "Expected behavior",
                     "name": f"test-{i}",
                     "category": "positive",
+                    "domain": "triggering",
                     "source": "goal:1",
                     "confidence": 0.8,
                     "rationale": "Test case",
@@ -251,6 +254,7 @@ def describe_generate_evals():
                         "expected": "test",
                         "name": "test",
                         "category": "positive",
+                        "domain": "triggering",
                         "source": "goal:1",
                         "confidence": 0.9,
                         "rationale": "test",
@@ -313,6 +317,55 @@ def describe_generate_evals():
 
         assert len(result.candidates) > 0
         assert all(c.name for c in result.candidates)
+
+    @pytest.mark.asyncio
+    async def it_assigns_domains_to_candidates(tmp_path: Path, mock_claude_query):
+        """Generated candidates have domain field populated."""
+        from skillet import generate_evals
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+
+        result = await generate_evals(skill_dir)
+
+        domains = {c.domain for c in result.candidates}
+        assert domains <= {EvalDomain.TRIGGERING, EvalDomain.FUNCTIONAL, EvalDomain.PERFORMANCE}
+        assert all(c.domain is not None for c in result.candidates)
+
+    @pytest.mark.asyncio
+    async def it_filters_candidates_by_domain(tmp_path: Path, mock_claude_query):
+        """When domains specified, only matching candidates are returned."""
+        from skillet import generate_evals
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+
+        result = await generate_evals(skill_dir, domains=[EvalDomain.FUNCTIONAL])
+
+        assert len(result.candidates) > 0
+        assert all(c.domain == EvalDomain.FUNCTIONAL for c in result.candidates)
+
+    @pytest.mark.asyncio
+    async def it_returns_all_domains_when_no_filter(tmp_path: Path, mock_claude_query):
+        """Without domain filter, all domains pass through."""
+        from skillet import generate_evals
+
+        skill_dir = tmp_path / "skill"
+        skill_dir.mkdir()
+        (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
+
+        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+
+        result = await generate_evals(skill_dir)
+
+        domains = {c.domain for c in result.candidates}
+        assert len(domains) > 1
 
     @pytest.mark.no_mirror
     @pytest.mark.asyncio

@@ -58,6 +58,8 @@ def _candidate_to_dict(candidate: CandidateEval, skill_name: str | None) -> dict
         "rationale": candidate.rationale,
         "generated": True,
     }
+    if candidate.domain is not None:
+        meta["domain"] = candidate.domain.value
     if skill_name:
         meta["skill_name"] = skill_name
     data["_meta"] = meta
@@ -71,14 +73,20 @@ def _format_yaml_with_comments(data: dict, candidate: CandidateEval) -> str:
     lines = [
         "# Generated eval candidate",
         f"# Category: {candidate.category}",
-        f"# Source: {candidate.source}",
-        f"# Confidence: {candidate.confidence:.0%}",
-        f"# Rationale: {candidate.rationale}",
-        "#",
-        "# Review and edit before using in evaluations.",
-        "# Remove _meta section after review.",
-        "",
     ]
+    if candidate.domain is not None:
+        lines.append(f"# Domain: {candidate.domain.value}")
+    lines.extend(
+        [
+            f"# Source: {candidate.source}",
+            f"# Confidence: {candidate.confidence:.0%}",
+            f"# Rationale: {candidate.rationale}",
+            "#",
+            "# Review and edit before using in evaluations.",
+            "# Remove _meta section after review.",
+            "",
+        ]
+    )
 
     # Serialize without the _meta for cleaner output
     clean_data = {k: v for k, v in data.items() if k != "_meta"}

@@ -8,7 +8,9 @@ from skillet._internal.sdk import query_structured
 from skillet.prompts import load_prompt
 
 from .analyze import SkillAnalysis
-from .types import CandidateEval
+from .filter_by_domain import filter_by_domain
+from .parse_domain import parse_domain
+from .types import CandidateEval, EvalDomain
 
 
 class CandidateResponse(BaseModel):
@@ -18,6 +20,7 @@ class CandidateResponse(BaseModel):
     expected: str
     name: str
     category: str
+    domain: str
     source: str
     confidence: float
     rationale: str
@@ -57,6 +60,7 @@ async def generate_candidates(
     *,
     use_lint: bool = True,
     max_per_category: int = 5,
+    domains: list[EvalDomain] | None = None,
 ) -> list[CandidateEval]:
     """Generate candidate evals using LLM based on skill analysis."""
     # Prepare context for LLM
@@ -109,6 +113,7 @@ async def generate_candidates(
             expected=c.expected,
             name=c.name,
             category=c.category,
+            domain=parse_domain(c.domain),
             source=c.source,
             confidence=c.confidence,
             rationale=c.rationale,
@@ -116,7 +121,8 @@ async def generate_candidates(
         for c in response.candidates
     ]
 
-    # Apply max_per_category limit
+    # Apply domain filter and max_per_category limit
+    candidates = filter_by_domain(candidates, domains)
     return _limit_by_category(candidates, max_per_category)
 
 
