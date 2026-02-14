@@ -10,10 +10,11 @@ Usage:
 """
 
 from .generate_evals import generate_evals
-from .types import CandidateEval, GenerateResult
+from .types import CandidateEval, EvalDomain, GenerateResult
 
 __all__ = [
     "CandidateEval",
+    "EvalDomain",
     "GenerateResult",
     "generate_evals",
 ]

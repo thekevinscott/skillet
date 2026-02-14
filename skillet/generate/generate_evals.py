@@ -5,7 +5,7 @@ from pathlib import Path
 from .analyze import analyze_skill
 from .generate import generate_candidates
 from .resolve_skill_path import resolve_skill_path
-from .types import GenerateResult
+from .types import EvalDomain, GenerateResult
 from .write import write_candidates
 
 
@@ -15,6 +15,7 @@ async def generate_evals(
     output_dir: Path | None = None,
     use_lint: bool = True,
     max_per_category: int = 5,
+    domains: list[EvalDomain] | None = None,
 ) -> GenerateResult:
     """Generate candidate eval files from a SKILL.md.
 
@@ -33,6 +34,7 @@ async def generate_evals(
         analysis,
         use_lint=use_lint,
         max_per_category=max_per_category,
+        domains=domains,
     )
 
     # Build result

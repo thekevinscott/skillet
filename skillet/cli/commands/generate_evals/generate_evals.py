@@ -7,6 +7,23 @@ from rich.table import Table
 
 from skillet.cli import console
 from skillet.generate import generate_evals
+from skillet.generate.types import EvalDomain
+
+
+def _parse_domains(raw: list[str] | None) -> list[EvalDomain] | None:
+    """Parse CLI domain strings into EvalDomain enums."""
+    if raw is None:
+        return None
+    valid = {d.value for d in EvalDomain}
+    domains = []
+    for value in raw:
+        lower = value.lower().strip()
+        if lower not in valid:
+            options = ", ".join(sorted(valid))
+            console.print(f"[red]Error:[/red] unknown domain '{value}'. Must be one of: {options}")
+            raise SystemExit(2)
+        domains.append(EvalDomain(lower))
+    return domains
 
 
 async def generate_evals_command(
@@ -14,9 +31,11 @@ async def generate_evals_command(
     *,
     output_dir: Path | None = None,
     max_per_category: int = 5,
+    domain: list[str] | None = None,
 ) -> None:
     """Run generate-evals with progress spinner."""
     skill_path = Path(skill_path).expanduser().resolve()
+    domains = _parse_domains(domain)
 
     # Default output alongside the skill
     if output_dir is None:
@@ -33,6 +52,7 @@ async def generate_evals_command(
             skill_path,
             output_dir=output_dir,
             max_per_category=max_per_category,
+            domains=domains,
         )
 
     # Display analysis summary
@@ -48,9 +68,11 @@ async def generate_evals_command(
     table = Table(title=f"Generated {len(result.candidates)} Candidates")
     table.add_column("Name", style="cyan")
     table.add_column("Category", style="green")
+    table.add_column("Domain", style="magenta")
     table.add_column("Source")
     for c in result.candidates:
-        table.add_row(c.name, c.category, c.source)
+        domain_str = c.domain.value if c.domain else "-"
+        table.add_row(c.name, c.category, domain_str, c.source)
     console.print(table)
 
     # Show output location

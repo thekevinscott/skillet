@@ -21,11 +21,20 @@ ${lint_findings}
 
 Generate candidate eval test cases for this skill. Create up to ${max_per_category} evals for each category: ${categories}.
 
+Distribute evals across three **domains**:
+
+- **triggering**: Does the skill activate at the right times? Tests whether the skill fires for relevant prompts and stays silent for irrelevant ones.
+- **functional**: Does the skill produce correct outputs? Tests that the skill's behavior matches its goals and respects its prohibitions.
+- **performance**: Does the skill improve over baseline? Tests whether having the skill active produces better outcomes than not having it.
+
+Aim for roughly equal distribution across domains. If a domain is not applicable to this skill (e.g., a simple skill may not have meaningful performance comparisons), omit it rather than fabricating evals. Report only domains where you can produce genuinely useful test cases.
+
 For each eval, provide:
 - **prompt**: A realistic user prompt that would trigger (or should NOT trigger) the skill
 - **expected**: What behavior the skill should exhibit
 - **name**: A short identifier (lowercase, hyphens)
 - **category**: "positive", "negative", or "ambiguity"
+- **domain**: "triggering", "functional", or "performance"
 - **source**: What goal/prohibition/lint finding this tests (e.g., "goal:1", "prohibition:2", "lint:vague-language:5")
 - **confidence**: How confident you are this is a good test (0.0-1.0)
 - **rationale**: Why this test case is valuable
@@ -55,6 +64,7 @@ Return ONLY valid JSON in this exact format:
       "expected": "Expected skill behavior",
       "name": "short-identifier",
       "category": "positive",
+      "domain": "triggering",
       "source": "goal:1",
       "confidence": 0.85,
       "rationale": "Why this is a good test"

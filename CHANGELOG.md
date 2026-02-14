@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Eval domains: generated evals are now tagged with a domain (`triggering`, `functional`, or `performance`) indicating what aspect of the skill is being tested
+- CLI: `--domain` / `-d` flag on `generate-evals` to filter generated evals to specific domains (e.g., `--domain triggering`)
+
 ### Fixed
 - `query_structured()` now defers exceptions to avoid abandoning the SDK async generator, preventing `RuntimeError` from anyio cancel scopes on error paths (validation failures, backtick canary)
 - `skillet.__version__` now reports the correct package version instead of hardcoded `"0.1.0"`

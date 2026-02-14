@@ -179,6 +179,19 @@ skillet generate-evals <skill> [options]
 |------|-------|------|---------|-------------|
 | `--output` | `-o` | path | auto | Output directory for candidate files |
 | `--max` | `-m` | int | 5 | Max evals per category |
+| `--domain` | `-d` | str | all | Filter to specific domain(s): `triggering`, `functional`, `performance` |
+
+### Domains
+
+Each generated eval is tagged with a **domain** indicating what aspect of the skill it tests:
+
+| Domain | Description |
+|--------|-------------|
+| `triggering` | Does the skill activate when it should (and stay silent when it shouldn't)? |
+| `functional` | Does the skill produce correct output once triggered? |
+| `performance` | Does the skill meet quality, latency, or efficiency expectations? |
+
+By default all domains are generated. Use `--domain` to filter to specific ones. The flag can be repeated to select multiple domains.
 
 ### Examples
 
@@ -191,6 +204,12 @@ skillet generate-evals skill/ -o ./my-evals/
 
 # Limit to 3 per category
 skillet generate-evals skill/ -m 3
+
+# Only triggering evals
+skillet generate-evals skill/ -d triggering
+
+# Triggering and functional evals
+skillet generate-evals skill/ -d triggering -d functional
 ```
 
 ## lint

@@ -9,7 +9,7 @@ import yaml
 
 from skillet.evals.load import load_evals
 
-from .types import CandidateEval
+from .types import CandidateEval, EvalDomain
 from .write import _candidate_to_dict, _format_yaml_with_comments, write_candidates
 
 FIXED_DT = datetime(2025, 6, 15, 12, 0, 0, tzinfo=UTC)
@@ -63,6 +63,14 @@ def describe_candidate_to_dict():
         result = _candidate_to_dict(_make_candidate(), None)
         assert "skill_name" not in result["_meta"]
 
+    def it_includes_domain_in_meta_when_set():
+        result = _candidate_to_dict(_make_candidate(domain=EvalDomain.FUNCTIONAL), None)
+        assert result["_meta"]["domain"] == "functional"
+
+    def it_omits_domain_from_meta_when_none():
+        result = _candidate_to_dict(_make_candidate(), None)
+        assert "domain" not in result["_meta"]
+
     def it_uses_frozen_timestamp():
         result = _candidate_to_dict(_make_candidate(), None)
         assert result["timestamp"] == FIXED_DT.isoformat()
@@ -73,6 +81,12 @@ def describe_format_yaml_with_comments():
         data = _candidate_to_dict(_make_candidate(), None)
         output = _format_yaml_with_comments(data, _make_candidate())
         assert output.startswith("# Generated eval candidate")
+
+    def it_includes_domain_in_header_when_set():
+        candidate = _make_candidate(domain=EvalDomain.TRIGGERING)
+        data = _candidate_to_dict(candidate, None)
+        output = _format_yaml_with_comments(data, candidate)
+        assert "# Domain: triggering" in output
 
     def it_includes_confidence_as_percentage():
         data = _candidate_to_dict(_make_candidate(confidence=0.85), None)
