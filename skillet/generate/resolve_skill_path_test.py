@@ -34,12 +34,13 @@ def describe_resolve_skill_path():
         with pytest.raises(SkillError, match="does not exist"):
             resolve_skill_path(nonexistent)
 
-    def it_raises_for_non_skill_md_file(tmp_path: Path):
-        other_file = tmp_path / "README.md"
-        other_file.write_text("# Readme")
+    def it_resolves_any_file(tmp_path: Path):
+        skill_file = tmp_path / "my-custom-skill.txt"
+        skill_file.write_text("# Custom Skill")
 
-        with pytest.raises(SkillError, match=r"Expected SKILL\.md"):
-            resolve_skill_path(other_file)
+        result = resolve_skill_path(skill_file)
+
+        assert result == skill_file
 
     def it_raises_for_directory_without_skill_md(tmp_path: Path):
         (tmp_path / "other.txt").write_text("content")
