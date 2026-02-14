@@ -33,7 +33,7 @@ def _validate_with_unwrap[T: BaseModel](model: type[T], data: Any) -> T:
         raise
 
 
-async def query_structured[T: BaseModel](prompt: str, model: type[T], **options: Any) -> T:
+async def query_structured[T: BaseModel](prompt: str, model: type[T], **options: Any) -> T:  # noqa: C901 - complexity from SDK protocol + error deferral
     """Query Claude and return a validated Pydantic model.
 
     Uses the Claude Agent SDK's structured output feature to guarantee
@@ -53,27 +53,41 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
     )
 
     # Fully consume the async generator to avoid anyio cancel scope errors.
-    # Early return/break abandons the generator, deferring cleanup to GC which
-    # may run in a different asyncio.Task -- triggering RuntimeError from anyio's
-    # CancelScope when used under asyncio.gather(). See SDK issues #378, #454.
+    # Any exception (raise, break, return) inside `async for` abandons the
+    # generator, deferring cleanup to GC which may run in a different
+    # asyncio.Task -- triggering RuntimeError from anyio's CancelScope when
+    # used under asyncio.gather(). See SDK issues #378, #454.
+    #
+    # We catch ALL exceptions inside the loop body and defer them until after
+    # the generator is fully consumed.
     result: T | None = None
+    deferred_error: Exception | None = None
 
     async for message in claude_agent_sdk.query(prompt=prompt, options=opts):
-        if result is None and isinstance(message, AssistantMessage):
-            for block in message.content:
-                if isinstance(block, ToolUseBlock) and block.name == "StructuredOutput":
-                    result = _validate_with_unwrap(model, block.input)
+        if deferred_error is not None:
+            continue
 
-        if result is None and isinstance(message, ResultMessage):
-            if message.structured_output is not None:
-                result = _validate_with_unwrap(model, message.structured_output)
+        try:
+            if result is None and isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, ToolUseBlock) and block.name == "StructuredOutput":
+                        result = _validate_with_unwrap(model, block.input)
 
-            if message.result and "```" in message.result:
-                raise StructuredOutputError(
-                    "Response contains markdown code fences. "
-                    "This indicates structured output was not properly configured. "
-                    f"Raw result: {message.result[:200]}..."
-                )
+            if result is None and isinstance(message, ResultMessage):
+                if message.structured_output is not None:
+                    result = _validate_with_unwrap(model, message.structured_output)
+
+                if message.result and "```" in message.result:
+                    deferred_error = StructuredOutputError(
+                        "Response contains markdown code fences. "
+                        "This indicates structured output was not properly configured. "
+                        f"Raw result: {message.result[:200]}..."
+                    )
+        except Exception as e:
+            deferred_error = e
+
+    if deferred_error is not None:
+        raise deferred_error
 
     if result is None:
         raise ValueError("No structured output returned from query")
