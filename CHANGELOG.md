@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `query_structured()` now defers exceptions to avoid abandoning the SDK async generator, preventing `RuntimeError` from anyio cancel scopes on error paths (validation failures, backtick canary)
 - `skillet.__version__` now reports the correct package version instead of hardcoded `"0.1.0"`
 
 ### Added

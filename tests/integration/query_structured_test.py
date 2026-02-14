@@ -214,3 +214,77 @@ def describe_generator_consumption():
             f"Only {mock_sdk_query['fully_consumed']}/{mock_sdk_query['total']} "
             "generators were fully consumed under parallel execution."
         )
+
+
+@pytest.mark.no_mirror
+def describe_generator_consumption_on_error():
+    """Verify query_structured fully consumes SDK generator even on error paths.
+
+    Exceptions inside the async for loop (ValidationError, StructuredOutputError)
+    must be deferred until after the generator is consumed. Raising inside the
+    loop abandons the generator, triggering anyio cancel scope RuntimeError
+    under parallel execution.
+    """
+
+    @pytest.fixture(autouse=True)
+    def mock_sdk_query():
+        call_count = {"total": 0, "fully_consumed": 0}
+
+        async def mock_query_gen(**kwargs) -> AsyncGenerator:  # noqa: ARG001
+            call_count["total"] += 1
+            for msg in [
+                AssistantMessage(
+                    content=[
+                        ToolUseBlock(
+                            id="tool-1",
+                            name="StructuredOutput",
+                            input={"wrong_field": "invalid"},
+                        )
+                    ],
+                    model="claude-sonnet-4-20250514",
+                ),
+                ResultMessage(
+                    subtype="result",
+                    duration_ms=100,
+                    duration_api_ms=100,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result=None,
+                    structured_output=None,
+                ),
+            ]:
+                yield msg
+            call_count["fully_consumed"] += 1
+
+        with patch(
+            "skillet._internal.sdk.query_structured.claude_agent_sdk.query",
+            mock_query_gen,
+        ):
+            yield call_count
+
+    @pytest.mark.asyncio
+    async def it_consumes_generators_under_parallel_gather_despite_validation_errors(
+        mock_sdk_query,
+    ):
+        """Parallel validation failures must still fully consume all generators."""
+        from pydantic import ValidationError
+
+        class StrictModel(BaseModel):
+            required_field: int
+
+        async def try_query(i: int) -> str:
+            try:
+                await query_structured(f"prompt {i}", StrictModel)
+                return "ok"
+            except ValidationError:
+                return "validation_error"
+
+        results = await asyncio.gather(*[try_query(i) for i in range(5)])
+
+        assert all(r == "validation_error" for r in results)
+        assert mock_sdk_query["total"] == 5
+        assert mock_sdk_query["fully_consumed"] == 5, (
+            f"Only {mock_sdk_query['fully_consumed']}/{mock_sdk_query['total']} "
+            "generators were fully consumed despite ValidationError."
+        )
