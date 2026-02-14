@@ -1,6 +1,6 @@
 """Lint rule registry."""
 
-from skillet.lint.rules.base import LintRule
+from skillet.lint.rules.base import AsyncLintRule, LintRule
 from skillet.lint.rules.frontmatter import FrontmatterRule
 from skillet.lint.rules.naming import (
     FilenameCaseRule,
@@ -39,4 +39,6 @@ ALL_RULES: list[LintRule] = [
     MetadataFieldRule(),
 ]
 
-__all__ = ["ALL_RULES", "LintRule"]
+LLM_RULES: list[AsyncLintRule] = []
+
+__all__ = ["ALL_RULES", "LLM_RULES", "AsyncLintRule", "LintRule"]

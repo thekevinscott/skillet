@@ -29,3 +29,23 @@ class LintRule(ABC):
 
     @abstractmethod
     def check(self, doc: SkillDocument) -> list[LintFinding]: ...
+
+
+class AsyncLintRule(ABC):
+    """A lint rule that requires async execution (e.g. LLM calls)."""
+
+    @property
+    @abstractmethod
+    def name(self) -> str: ...
+
+    @property
+    @abstractmethod
+    def description(self) -> str: ...
+
+    @property
+    def url(self) -> str:
+        """URL to documentation for this rule."""
+        return f"{_DOCS_BASE}#{self.name}"
+
+    @abstractmethod
+    async def check(self, doc: SkillDocument) -> list[LintFinding]: ...
