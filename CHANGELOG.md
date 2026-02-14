@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Lint: async linting infrastructure with `lint_skill_async()` and `--llm` flag for future LLM-assisted rules
+- Lint: structure rules — `frontmatter-delimiters`, `frontmatter-no-xml`, `no-readme`, `body-word-count`, `description-length`
 
 ### Fixed
 - `query_structured()` now defers exceptions to avoid abandoning the SDK async generator, preventing `RuntimeError` from anyio cancel scopes on error paths (validation failures, backtick canary)
