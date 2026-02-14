@@ -6,6 +6,7 @@ from skillet.lint.rules.base import LintRule
 from skillet.lint.types import LintFinding, LintSeverity, SkillDocument
 
 _KEBAB_CASE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+_RESERVED_NAMES = {"claude", "anthropic"}
 
 
 class FilenameCaseRule(LintRule):
@@ -61,4 +62,44 @@ class NameKebabCaseRule(LintRule):
                     severity=LintSeverity.WARNING,
                 )
             ]
+        return []
+
+
+class NameMatchesFolderRule(LintRule):
+    """Check that the name field matches the parent folder name."""
+
+    name = "name-matches-folder"
+    description = "Name field must match the skill folder name"
+
+    def check(self, doc: SkillDocument) -> list[LintFinding]:
+        skill_name = doc.frontmatter.get("name", "")
+        folder = doc.path.parent.name
+        if skill_name and folder and skill_name != folder:
+            return [
+                LintFinding(
+                    rule=self.name,
+                    message=f"Name '{skill_name}' does not match folder '{folder}'",
+                    severity=LintSeverity.WARNING,
+                )
+            ]
+        return []
+
+
+class NameNoReservedRule(LintRule):
+    """Check that the skill name doesn't contain reserved words."""
+
+    name = "name-no-reserved"
+    description = "Name must not contain 'claude' or 'anthropic'"
+
+    def check(self, doc: SkillDocument) -> list[LintFinding]:
+        skill_name = doc.frontmatter.get("name", "").lower()
+        for word in _RESERVED_NAMES:
+            if word in skill_name:
+                return [
+                    LintFinding(
+                        rule=self.name,
+                        message=f"Name must not contain reserved word '{word}'",
+                        severity=LintSeverity.ERROR,
+                    )
+                ]
         return []

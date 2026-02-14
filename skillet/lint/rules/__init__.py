@@ -6,6 +6,8 @@ from skillet.lint.rules.naming import (
     FilenameCaseRule,
     FolderKebabCaseRule,
     NameKebabCaseRule,
+    NameMatchesFolderRule,
+    NameNoReservedRule,
 )
 
 ALL_RULES: list[LintRule] = [
@@ -13,6 +15,8 @@ ALL_RULES: list[LintRule] = [
     FilenameCaseRule(),
     FolderKebabCaseRule(),
     NameKebabCaseRule(),
+    NameMatchesFolderRule(),
+    NameNoReservedRule(),
 ]
 
 __all__ = ["ALL_RULES", "LintRule"]

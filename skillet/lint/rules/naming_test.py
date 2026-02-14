@@ -6,6 +6,8 @@ from skillet.lint.rules.naming import (
     FilenameCaseRule,
     FolderKebabCaseRule,
     NameKebabCaseRule,
+    NameMatchesFolderRule,
+    NameNoReservedRule,
 )
 from skillet.lint.types import SkillDocument
 
@@ -66,3 +68,37 @@ def describe_name_kebab_case_rule():
 
     def it_skips_when_name_missing():
         assert NameKebabCaseRule().check(_doc(name="")) == []
+
+
+def describe_name_matches_folder_rule():
+    def it_passes_when_name_matches_folder():
+        assert NameMatchesFolderRule().check(_doc("my-skill/SKILL.md", name="my-skill")) == []
+
+    def it_warns_when_name_differs_from_folder():
+        findings = NameMatchesFolderRule().check(_doc("my-skill/SKILL.md", name="other-name"))
+        assert len(findings) == 1
+        assert findings[0].rule == "name-matches-folder"
+        assert "other-name" in findings[0].message
+        assert "my-skill" in findings[0].message
+
+    def it_skips_when_name_missing():
+        assert NameMatchesFolderRule().check(_doc(name="")) == []
+
+
+def describe_name_no_reserved_rule():
+    def it_passes_for_normal_name():
+        assert NameNoReservedRule().check(_doc(name="my-skill")) == []
+
+    def it_errors_for_claude_in_name():
+        findings = NameNoReservedRule().check(_doc(name="claude-helper"))
+        assert len(findings) == 1
+        assert findings[0].rule == "name-no-reserved"
+        assert findings[0].severity.value == "error"
+
+    def it_errors_for_anthropic_in_name():
+        findings = NameNoReservedRule().check(_doc(name="anthropic-tools"))
+        assert len(findings) == 1
+
+    def it_is_case_insensitive():
+        findings = NameNoReservedRule().check(_doc(name="Claude-Helper"))
+        assert len(findings) == 1
