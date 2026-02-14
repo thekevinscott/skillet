@@ -210,6 +210,66 @@ async def main():
 asyncio.run(main())
 ```
 
+### generate_evals()
+
+Generate candidate eval files from a SKILL.md.
+
+```python
+async def generate_evals(
+    skill_path: Path,
+    *,
+    output_dir: Path | None = None,
+    use_lint: bool = True,
+    max_per_category: int = 5,
+    domains: list[EvalDomain] | None = None,
+) -> GenerateResult
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skill_path` | Path | required | Path to skill directory or SKILL.md file |
+| `output_dir` | Path | None | Output directory for candidate files |
+| `use_lint` | bool | True | Incorporate lint findings |
+| `max_per_category` | int | 5 | Max evals per category |
+| `domains` | list[EvalDomain] | None | Filter to specific domains (None = all) |
+
+**EvalDomain:**
+
+```python
+from skillet.generate import EvalDomain
+
+EvalDomain.TRIGGERING    # "triggering"
+EvalDomain.FUNCTIONAL    # "functional"
+EvalDomain.PERFORMANCE   # "performance"
+```
+
+**Example:**
+
+```python
+import asyncio
+from pathlib import Path
+from skillet import generate_evals
+from skillet.generate import EvalDomain
+
+async def main():
+    # Generate all domains
+    result = await generate_evals(
+        Path("~/.claude/skills/browser-fallback").expanduser(),
+        output_dir=Path("./candidates"),
+    )
+    print(f"Generated {len(result.candidates)} candidates")
+
+    # Only triggering evals
+    result = await generate_evals(
+        Path("~/.claude/skills/browser-fallback").expanduser(),
+        domains=[EvalDomain.TRIGGERING],
+    )
+
+asyncio.run(main())
+```
+
 ## Exceptions
 
 ```python

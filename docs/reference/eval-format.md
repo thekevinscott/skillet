@@ -33,8 +33,19 @@ Every eval file must include these fields:
 | Field | Type | Description |
 |-------|------|-------------|
 | `actual` | string | Claude's response (for reference, not used in eval) |
+| `domain` | string | What aspect this eval tests: `triggering`, `functional`, or `performance` |
 | `setup` | string | Bash script run before eval **(alpha)** |
 | `teardown` | string | Bash script run after eval **(alpha)** |
+
+### Domains
+
+The `domain` field categorizes what the eval is testing:
+
+- **triggering** — Does the skill activate when it should (and stay silent when it shouldn't)?
+- **functional** — Does the skill produce correct output once triggered?
+- **performance** — Does the skill meet quality, latency, or efficiency expectations?
+
+This field is set automatically by `generate-evals` and can be used with the `--domain` CLI flag to run a subset of evals.
 
 ## Basic Example
 
