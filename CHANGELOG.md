@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `resolve_skill_path` now accepts any file when passed directly, not just `SKILL.md`. Directory resolution still looks for `SKILL.md` by convention
+
 ### Added
 - CLI: `skillet eval` now reports per-eval pass@k and pass^k metrics when running with multiple samples, measuring capability and consistency respectively
 - Eval domains: generated evals are now tagged with a domain (`triggering`, `functional`, or `performance`) indicating what aspect of the skill is being tested
