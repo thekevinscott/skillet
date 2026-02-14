@@ -9,14 +9,26 @@ from skillet.lint.rules.naming import (
     NameMatchesFolderRule,
     NameNoReservedRule,
 )
+from skillet.lint.rules.structure import (
+    BodyWordCountRule,
+    DescriptionLengthRule,
+    FrontmatterDelimitersRule,
+    FrontmatterNoXmlRule,
+    NoReadmeRule,
+)
 
 ALL_RULES: list[LintRule] = [
     FrontmatterRule(),
+    FrontmatterDelimitersRule(),
+    FrontmatterNoXmlRule(),
     FilenameCaseRule(),
     FolderKebabCaseRule(),
     NameKebabCaseRule(),
     NameMatchesFolderRule(),
     NameNoReservedRule(),
+    DescriptionLengthRule(),
+    BodyWordCountRule(),
+    NoReadmeRule(),
 ]
 
 __all__ = ["ALL_RULES", "LintRule"]
