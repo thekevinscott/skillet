@@ -18,3 +18,7 @@ class LintRule(ABC):
 
     @abstractmethod
     def check(self, doc: SkillDocument) -> list[LintFinding]: ...
+
+    async def check_async(self, doc: SkillDocument) -> list[LintFinding]:
+        """Async check for LLM-assisted rules. Defaults to sync check."""
+        return self.check(doc)

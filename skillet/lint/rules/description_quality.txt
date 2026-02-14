@@ -1,0 +1,15 @@
+You are a skill quality reviewer. Analyze this Claude Code skill's description and body for quality issues.
+
+Skill name: ${name}
+Skill description: ${description}
+Skill body (first 2000 chars): ${body}
+
+Evaluate the skill against these criteria:
+
+1. **description_has_what**: Does the description explain WHAT the skill does? (its core function)
+2. **description_has_when**: Does the description explain WHEN to use it? (trigger conditions or situations)
+3. **description_has_triggers**: Does the description include specific trigger phrases a user would say? (e.g., "Use when the user asks to...", "Activate when...")
+4. **description_mentions_file_types**: If the skill relates to specific file types or technologies, does the description mention them? Set to true if the skill is generic and file types don't apply.
+5. **instructions_are_specific**: Are the instructions in the body specific and actionable? (not vague like "do a good job" or "handle errors properly")
+
+For each criterion, provide a boolean pass/fail and a brief explanation.

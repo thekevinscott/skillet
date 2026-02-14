@@ -1,7 +1,7 @@
 """Tests for lint_command."""
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -21,32 +21,51 @@ def describe_lint_command():
         with patch("skillet.cli.commands.lint.lint.console") as mock:
             yield mock
 
-    def it_exits_0_when_no_findings(mock_lint_skill):
+    @pytest.mark.asyncio
+    async def it_exits_0_when_no_findings(mock_lint_skill):
         mock_lint_skill.return_value = LintResult(path=Path("SKILL.md"), findings=[])
 
-        lint_command(Path("SKILL.md"))  # Should not raise
+        await lint_command(Path("SKILL.md"))  # Should not raise
 
-    def it_exits_1_when_findings_exist(mock_lint_skill):
+    @pytest.mark.asyncio
+    async def it_exits_1_when_findings_exist(mock_lint_skill):
         finding = LintFinding(rule="test", message="msg", severity=LintSeverity.WARNING)
         mock_lint_skill.return_value = LintResult(path=Path("SKILL.md"), findings=[finding])
 
         with pytest.raises(SystemExit) as exc:
-            lint_command(Path("SKILL.md"))
+            await lint_command(Path("SKILL.md"))
         assert exc.value.code == 1
 
-    def it_exits_2_on_lint_error(mock_lint_skill):
+    @pytest.mark.asyncio
+    async def it_exits_2_on_lint_error(mock_lint_skill):
         mock_lint_skill.side_effect = LintError("File not found")
 
         with pytest.raises(SystemExit) as exc:
-            lint_command(Path("SKILL.md"))
+            await lint_command(Path("SKILL.md"))
         assert exc.value.code == 2
 
-    def it_prints_findings(mock_lint_skill, mock_console):
+    @pytest.mark.asyncio
+    async def it_prints_findings(mock_lint_skill, mock_console):
         finding = LintFinding(rule="test", message="msg", severity=LintSeverity.WARNING, line=5)
         mock_lint_skill.return_value = LintResult(path=Path("SKILL.md"), findings=[finding])
 
         with pytest.raises(SystemExit):
-            lint_command(Path("SKILL.md"))
+            await lint_command(Path("SKILL.md"))
 
         calls = [str(c) for c in mock_console.print.call_args_list]
         assert any("SKILL.md:5" in c and "warning" in c for c in calls)
+
+    @pytest.mark.asyncio
+    async def it_uses_async_linter_when_llm_flag_set():
+        mock_result = LintResult(path=Path("SKILL.md"), findings=[])
+        with (
+            patch(
+                "skillet.cli.commands.lint.lint.lint_skill_async",
+                new_callable=AsyncMock,
+                return_value=mock_result,
+            ) as mock_async,
+            patch("skillet.cli.commands.lint.lint.console"),
+        ):
+            await lint_command(Path("SKILL.md"), llm=True)
+
+        mock_async.assert_called_once_with(Path("SKILL.md"))

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `skillet.__version__` now reports the correct package version instead of hardcoded `"0.1.0"`
 
 ### Added
+- Lint: 13 new static lint rules covering naming conventions, file structure, frontmatter quality, and recommended fields
+- Lint: LLM-assisted `description-quality` rule (via `--llm` flag) checks description WHAT/WHEN/triggers and instruction specificity
 - CLI: `skillet lint <path>` command for static SKILL.md validation with `--list-rules` flag
 - CLI: `skillet generate-evals <skill>` command to generate candidate eval files from a SKILL.md
 - `query_structured()` SDK helper for type-safe structured output with Pydantic models
