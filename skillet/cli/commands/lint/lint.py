@@ -5,13 +5,16 @@ from pathlib import Path
 
 from skillet.cli import console
 from skillet.errors import LintError
-from skillet.lint import lint_skill
+from skillet.lint import lint_skill, lint_skill_async
 
 
-def lint_command(path: Path) -> None:
+async def lint_command(path: Path, *, llm: bool = False) -> None:
     """Lint a SKILL.md file and display findings."""
     try:
-        result = lint_skill(path)
+        if llm:
+            result = await lint_skill_async(path)
+        else:
+            result = lint_skill(path)
     except LintError as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(2)
