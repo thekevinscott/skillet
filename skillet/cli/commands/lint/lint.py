@@ -8,10 +8,10 @@ from skillet.errors import LintError
 from skillet.lint import lint_skill
 
 
-def lint_command(path: Path) -> None:
+async def lint_command(path: Path, *, include_llm: bool = True) -> None:
     """Lint a SKILL.md file and display findings."""
     try:
-        result = lint_skill(path)
+        result = await lint_skill(path, include_llm=include_llm)
     except LintError as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(2)

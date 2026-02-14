@@ -13,8 +13,11 @@ def _run_lint(*args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def _write_skill(path: Path, content: str) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
+def _write_skill(base: Path, name: str, content: str) -> Path:
+    """Write a SKILL.md inside a properly named folder."""
+    folder = base / name
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "SKILL.md"
     path.write_text(content)
     return path
 
@@ -23,6 +26,10 @@ VALID_SKILL = """\
 ---
 name: test-skill
 description: A test skill for linting.
+license: MIT
+compatibility: claude-code
+metadata:
+  version: 1
 ---
 
 # Instructions
@@ -45,8 +52,8 @@ def describe_skillet_lint():
     """Tests for the `skillet lint` command."""
 
     def it_exits_0_for_valid_skill(tmp_path: Path):
-        skill_path = _write_skill(tmp_path / "SKILL.md", VALID_SKILL)
-        result = _run_lint(str(skill_path))
+        skill_path = _write_skill(tmp_path, "test-skill", VALID_SKILL)
+        result = _run_lint("--no-llm", str(skill_path))
         assert result.returncode == 0, (
             f"Expected exit 0 for valid skill\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
@@ -58,8 +65,8 @@ def describe_skillet_lint():
         )
 
     def it_exits_1_when_findings_exist(tmp_path: Path):
-        skill_path = _write_skill(tmp_path / "SKILL.md", MISSING_NAME_SKILL)
-        result = _run_lint(str(skill_path))
+        skill_path = _write_skill(tmp_path, "test-skill", MISSING_NAME_SKILL)
+        result = _run_lint("--no-llm", str(skill_path))
         assert result.returncode == 1, (
             f"Expected exit 1 for findings\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
@@ -70,3 +77,16 @@ def describe_skillet_lint():
             f"Expected exit 0 for --list-rules\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
         assert "frontmatter-valid" in result.stdout
+        assert "filename-case" in result.stdout
+
+    def it_shows_finding_details_in_output(tmp_path: Path):
+        skill_path = _write_skill(tmp_path, "test-skill", MISSING_NAME_SKILL)
+        result = _run_lint("--no-llm", str(skill_path))
+        assert "frontmatter-valid" in result.stdout or "name" in result.stdout
+
+    def it_accepts_no_llm_flag(tmp_path: Path):
+        skill_path = _write_skill(tmp_path, "test-skill", VALID_SKILL)
+        result = _run_lint("--no-llm", str(skill_path))
+        assert result.returncode == 0, (
+            f"--no-llm should work\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )

@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `skillet.__version__` now reports the correct package version instead of hardcoded `"0.1.0"`
 
 ### Added
-- CLI: `skillet lint <path>` command for static SKILL.md validation with `--list-rules` flag
+- CLI: `skillet lint <path>` command with 14 built-in rules covering naming conventions, frontmatter structure, field presence, and file layout. Supports `--no-llm` to skip LLM-assisted checks and `--list-rules` to list available rules
 - CLI: `skillet generate-evals <skill>` command to generate candidate eval files from a SKILL.md
 - `query_structured()` SDK helper for type-safe structured output with Pydantic models
 - `StructuredOutputError` canary to detect misconfigured structured output (backticks in response)
