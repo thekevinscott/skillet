@@ -8,7 +8,7 @@ from skillet.lint.rules import ALL_RULES, LLM_RULES
 from skillet.lint.types import LintResult
 
 
-async def lint_skill(path: Path, *, include_llm: bool = False) -> LintResult:
+async def lint_skill(path: Path, *, include_llm: bool = True) -> LintResult:
     """Lint a SKILL.md file and return findings."""
     if not path.exists():
         raise LintError(f"File not found: {path}")

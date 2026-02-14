@@ -76,7 +76,7 @@ def describe_lint_skill():
         assert result.findings[0].rule == "test-rule"
 
     @pytest.mark.asyncio
-    async def it_runs_llm_rules_when_include_llm_is_true(
+    async def it_runs_llm_rules_by_default(
         tmp_path: Path, mock_parse_skill, mock_llm_rules
     ):
         skill = tmp_path / "SKILL.md"
@@ -90,13 +90,13 @@ def describe_lint_skill():
         mock_rule.check.return_value = [finding]
         mock_llm_rules.append(mock_rule)
 
-        result = await lint_skill(skill, include_llm=True)
+        result = await lint_skill(skill)
 
         assert len(result.findings) == 1
         assert result.findings[0].rule == "llm-rule"
 
     @pytest.mark.asyncio
-    async def it_skips_llm_rules_by_default(
+    async def it_skips_llm_rules_when_include_llm_is_false(
         tmp_path: Path, mock_parse_skill, mock_llm_rules
     ):
         skill = tmp_path / "SKILL.md"
@@ -111,7 +111,7 @@ def describe_lint_skill():
         ]
         mock_llm_rules.append(mock_rule)
 
-        result = await lint_skill(skill)
+        result = await lint_skill(skill, include_llm=False)
 
         assert result.findings == []
         mock_rule.check.assert_not_called()

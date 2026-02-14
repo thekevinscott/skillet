@@ -8,7 +8,7 @@ from skillet.errors import LintError
 from skillet.lint import lint_skill
 
 
-async def lint_command(path: Path, *, include_llm: bool = False) -> None:
+async def lint_command(path: Path, *, include_llm: bool = True) -> None:
     """Lint a SKILL.md file and display findings."""
     try:
         result = await lint_skill(path, include_llm=include_llm)
