@@ -195,6 +195,7 @@ def query_structured[T: BaseModel](prompt: str, model: type[T]) -> T:
 ## Guidelines
 - Check `uv.lock` for dependency versions - don't ask the user for info you can look up
 - Don't make up installation commands - verify in docs or source code first
+- **Do not chain commands** (e.g., `cmd1 && cmd2`, `cmd1 ; cmd2`, `cmd1 | cmd2`). Chained commands break the permissions system — each command must be run separately so permissions can be evaluated individually
 
 ## Commit Convention
 
