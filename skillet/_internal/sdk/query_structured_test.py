@@ -270,3 +270,79 @@ def describe_generator_consumption():
             "Early return from async for abandons the generator, causing "
             "RuntimeError in anyio cancel scopes under parallel execution."
         )
+
+    @pytest.mark.asyncio
+    async def it_consumes_generator_even_when_backtick_canary_triggers(mock_query):
+        """StructuredOutputError must not abandon the generator.
+
+        Raising inside `async for` breaks the loop, deferring generator cleanup
+        to GC -- which runs in a different asyncio.Task and triggers RuntimeError
+        from anyio's CancelScope.
+        """
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_result = MagicMock(spec=ResultMessage)
+        mock_result.structured_output = None
+        mock_result.result = '```json\n{"data": "test"}\n```'
+        mock_query.messages.extend(
+            [
+                mock_result,
+                # Extra message after the error-triggering one
+                AssistantMessage(
+                    content=[TextBlock(text="trailing")],
+                    model="claude-sonnet-4-20250514",
+                ),
+            ]
+        )
+
+        with pytest.raises(StructuredOutputError):
+            await query_structured("test", TestModel)
+
+        assert mock_query.fully_consumed, (
+            "SDK generator was not fully consumed after StructuredOutputError. "
+            "Raising inside async for abandons the generator, causing "
+            "RuntimeError in anyio cancel scopes."
+        )
+
+    @pytest.mark.asyncio
+    async def it_consumes_generator_even_when_validation_fails(mock_query):
+        """ValidationError must not abandon the generator."""
+
+        class StrictModel(BaseModel):
+            required_field: int
+
+        mock_query.messages.extend(
+            [
+                AssistantMessage(
+                    content=[
+                        ToolUseBlock(
+                            id="tool-1",
+                            name="StructuredOutput",
+                            input={"wrong_field": "not_an_int"},
+                        )
+                    ],
+                    model="claude-sonnet-4-20250514",
+                ),
+                ResultMessage(
+                    subtype="result",
+                    duration_ms=100,
+                    duration_api_ms=100,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="mock-session",
+                    result=None,
+                    structured_output=None,
+                ),
+            ]
+        )
+
+        with pytest.raises(ValidationError):
+            await query_structured("test", StrictModel)
+
+        assert mock_query.fully_consumed, (
+            "SDK generator was not fully consumed after ValidationError. "
+            "Raising inside async for abandons the generator, causing "
+            "RuntimeError in anyio cancel scopes."
+        )
