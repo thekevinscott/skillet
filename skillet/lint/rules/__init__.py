@@ -7,4 +7,6 @@ ALL_RULES: list[LintRule] = [
     FrontmatterRule(),
 ]
 
-__all__ = ["ALL_RULES", "LintRule"]
+LLM_RULES: list[LintRule] = []
+
+__all__ = ["ALL_RULES", "LLM_RULES", "LintRule"]

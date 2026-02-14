@@ -1,12 +1,12 @@
 """Tests for lint_skill."""
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from skillet.errors import LintError
-from skillet.lint.lint_skill import lint_skill
+from skillet.lint.lint_skill import lint_skill, lint_skill_async
 from skillet.lint.types import LintFinding, LintSeverity, SkillDocument
 
 VALID_SKILL = """\
@@ -65,3 +65,40 @@ def describe_lint_skill():
 
         assert len(result.findings) == 1
         assert result.findings[0].rule == "test-rule"
+
+
+def describe_lint_skill_async():
+    @pytest.fixture(autouse=True)
+    def mock_parse_skill():
+        with patch("skillet.lint.lint_skill.parse_skill") as mock:
+            yield mock
+
+    @pytest.fixture(autouse=True)
+    def mock_all_rules():
+        rules: list = []
+        with patch("skillet.lint.lint_skill.ALL_RULES", rules):
+            yield rules
+
+    @pytest.mark.asyncio
+    async def it_raises_lint_error_for_missing_file(tmp_path: Path):
+        with pytest.raises(LintError, match="File not found"):
+            await lint_skill_async(tmp_path / "nonexistent.md")
+
+    @pytest.mark.asyncio
+    async def it_runs_llm_rules(tmp_path: Path, mock_parse_skill):
+        skill = tmp_path / "SKILL.md"
+        skill.write_text(VALID_SKILL)
+
+        mock_parse_skill.return_value = SkillDocument(
+            path=skill, content="", frontmatter={"name": "x"}, body=""
+        )
+        finding = LintFinding(rule="llm-rule", message="llm issue", severity=LintSeverity.WARNING)
+        mock_llm_rule = AsyncMock()
+        mock_llm_rule.check_async.return_value = [finding]
+
+        with patch("skillet.lint.rules.LLM_RULES", [mock_llm_rule]):
+            result = await lint_skill_async(skill)
+
+        assert len(result.findings) == 1
+        assert result.findings[0].rule == "llm-rule"
+        mock_llm_rule.check_async.assert_called_once()
