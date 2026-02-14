@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from skillet.lint.types import LintFinding, SkillDocument
 
-_DOCS_BASE = "https://skillet.run/guide/lint-rules"
+_DOCS_BASE = "https://skillet.run/guides/linting"
 
 # Source: Anthropic's "The Complete Guide to Building Skills for Claude" (Jan 2026)
 GUIDE_REFERENCE = "https://skillet.run/guide/skill-authoring"

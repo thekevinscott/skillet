@@ -92,6 +92,92 @@ Each rule includes a link to its documentation.
 | 1 | One or more findings |
 | 2 | Error (file not found, invalid input) |
 
+## Rule reference
+
+### filename-case
+
+**Severity:** warning
+
+The skill file must be named exactly `SKILL.md`. Other casings like `skill.md` or `Skill.md` are not recognized.
+
+### folder-kebab-case
+
+**Severity:** warning
+
+The parent folder must use kebab-case: lowercase letters, digits, and hyphens only (e.g., `my-skill/`, not `MySkill/` or `my_skill/`).
+
+### name-kebab-case
+
+**Severity:** warning
+
+The `name` field in frontmatter must be kebab-case, matching the same pattern as folder names.
+
+### name-matches-folder
+
+**Severity:** warning
+
+The `name` field must match the parent folder name. For example, if the skill lives in `browser-fallback/SKILL.md`, the name must be `browser-fallback`.
+
+### name-no-reserved
+
+**Severity:** error
+
+The skill name must not contain the words `claude` or `anthropic`. These are reserved to avoid confusion with official Anthropic skills.
+
+### frontmatter-valid
+
+**Severity:** warning
+
+Frontmatter must include both `name` and `description` fields. These are required for skill discovery and loading.
+
+### frontmatter-delimiters
+
+**Severity:** error
+
+The file must start with `---` and have a matching closing `---` delimiter. Without proper delimiters, frontmatter cannot be parsed.
+
+### frontmatter-no-xml
+
+**Severity:** error
+
+Frontmatter values must not contain XML angle brackets (`<` or `>`). These can cause parsing issues in YAML frontmatter.
+
+### description-length
+
+**Severity:** warning
+
+The `description` field must be under 1,024 characters. Longer descriptions may be truncated in skill listings.
+
+### body-word-count
+
+**Severity:** warning
+
+The skill body (everything after frontmatter) should be under 5,000 words. Longer skills consume more context window and may be less effective.
+
+### no-readme
+
+**Severity:** warning
+
+A `README.md` file should not exist alongside `SKILL.md` in the same folder. The skill file itself serves as documentation.
+
+### field-license
+
+**Severity:** warning
+
+The `license` field should be present in frontmatter to declare the skill's license (e.g., `MIT`, `Apache-2.0`).
+
+### field-compatibility
+
+**Severity:** warning
+
+The `compatibility` field should be present to declare what environment the skill targets (e.g., `claude-code`).
+
+### field-metadata
+
+**Severity:** warning
+
+The `metadata` field should be present for additional structured data like version numbers.
+
 ## Example: a clean skill
 
 ```markdown
