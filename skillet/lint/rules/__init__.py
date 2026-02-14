@@ -9,6 +9,11 @@ from skillet.lint.rules.naming import (
     NameMatchesFolderRule,
     NameNoReservedRule,
 )
+from skillet.lint.rules.fields import (
+    CompatibilityFieldRule,
+    LicenseFieldRule,
+    MetadataFieldRule,
+)
 from skillet.lint.rules.structure import (
     BodyWordCountRule,
     DescriptionLengthRule,
@@ -29,6 +34,9 @@ ALL_RULES: list[LintRule] = [
     DescriptionLengthRule(),
     BodyWordCountRule(),
     NoReadmeRule(),
+    LicenseFieldRule(),
+    CompatibilityFieldRule(),
+    MetadataFieldRule(),
 ]
 
 __all__ = ["ALL_RULES", "LintRule"]
