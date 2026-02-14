@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from .generate_evals import generate_evals
-from .types import CandidateEval, GenerateResult
+from .types import CandidateEval, EvalDomain, GenerateResult, SkippedDomain
 
 
 def describe_generate_evals():
@@ -26,13 +26,14 @@ def describe_generate_evals():
                 source="goal:1",
                 confidence=0.9,
                 rationale="Testing",
+                domain="functional",
             )
         ]
 
         with patch(
             "skillet.generate.generate_evals.generate_candidates",
             new_callable=AsyncMock,
-            return_value=mock_candidates,
+            return_value=(mock_candidates, []),
         ):
             result = await generate_evals(skill_file)
 
@@ -49,7 +50,7 @@ def describe_generate_evals():
         with patch(
             "skillet.generate.generate_evals.generate_candidates",
             new_callable=AsyncMock,
-            return_value=[],
+            return_value=([], []),
         ):
             result = await generate_evals(tmp_path)
 
@@ -69,12 +70,13 @@ def describe_generate_evals():
             source="test",
             confidence=0.8,
             rationale="Test",
+            domain="functional",
         )
 
         with patch(
             "skillet.generate.generate_evals.generate_candidates",
             new_callable=AsyncMock,
-            return_value=[mock_candidate],
+            return_value=([mock_candidate], []),
         ):
             await generate_evals(skill_file, output_dir=output_dir)
 
@@ -90,7 +92,7 @@ def describe_generate_evals():
         with patch(
             "skillet.generate.generate_evals.generate_candidates",
             new_callable=AsyncMock,
-            return_value=[],
+            return_value=([], []),
         ):
             await generate_evals(skill_file)
 
@@ -105,7 +107,7 @@ def describe_generate_evals():
         with patch(
             "skillet.generate.generate_evals.generate_candidates",
             new_callable=AsyncMock,
-            return_value=[],
+            return_value=([], []),
         ) as mock_gen:
             await generate_evals(
                 skill_file,
@@ -143,7 +145,7 @@ def describe_generate_evals():
         with patch(
             "skillet.generate.generate_evals.generate_candidates",
             new_callable=AsyncMock,
-            return_value=[],
+            return_value=([], []),
         ):
             result = await generate_evals(skill_file)
 
@@ -152,3 +154,37 @@ def describe_generate_evals():
         assert result.analysis["goals"] == ["Goal one", "Goal two"]
         assert result.analysis["prohibitions"] == ["Don't do bad things"]
         assert result.analysis["example_count"] == 1
+
+    @pytest.mark.asyncio
+    async def it_passes_domains_to_generate_candidates(tmp_path: Path):
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text("# Skill")
+
+        domains = frozenset({EvalDomain.TRIGGERING})
+
+        with patch(
+            "skillet.generate.generate_evals.generate_candidates",
+            new_callable=AsyncMock,
+            return_value=([], []),
+        ) as mock_gen:
+            await generate_evals(skill_file, domains=domains)
+
+        call_kwargs = mock_gen.call_args.kwargs
+        assert call_kwargs["domains"] == domains
+
+    @pytest.mark.asyncio
+    async def it_includes_skipped_domains_in_result(tmp_path: Path):
+        skill_file = tmp_path / "SKILL.md"
+        skill_file.write_text("# Skill")
+
+        skipped = [SkippedDomain(domain="performance", reason="Not applicable")]
+
+        with patch(
+            "skillet.generate.generate_evals.generate_candidates",
+            new_callable=AsyncMock,
+            return_value=([], skipped),
+        ):
+            result = await generate_evals(skill_file)
+
+        assert len(result.skipped_domains) == 1
+        assert result.skipped_domains[0].domain == "performance"

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from rich.console import Console
 
-from skillet.generate.types import CandidateEval, GenerateResult
+from skillet.generate.types import CandidateEval, EvalDomain, GenerateResult
 
 from .generate_evals import generate_evals_command
 
@@ -25,6 +25,7 @@ def _make_result(skill_path: Path) -> GenerateResult:
                 source="goal:1",
                 confidence=0.9,
                 rationale="Test",
+                domain="functional",
             ),
         ],
         analysis={"name": "test-skill", "goals": [], "prohibitions": [], "example_count": 0},
@@ -55,3 +56,22 @@ def describe_generate_evals_command():
         await generate_evals_command(skill_path)
 
         assert mock_generate.call_args.kwargs["output_dir"] == tmp_path / "candidates"
+
+    @pytest.mark.asyncio
+    async def it_defaults_to_all_domains(tmp_path: Path, mock_generate):
+        skill_path = tmp_path / "SKILL.md"
+        skill_path.write_text("# Skill")
+
+        await generate_evals_command(skill_path)
+
+        assert mock_generate.call_args.kwargs["domains"] == frozenset(EvalDomain)
+
+    @pytest.mark.asyncio
+    async def it_passes_specific_domains(tmp_path: Path, mock_generate):
+        skill_path = tmp_path / "SKILL.md"
+        skill_path.write_text("# Skill")
+
+        domains = frozenset({EvalDomain.TRIGGERING})
+        await generate_evals_command(skill_path, domains=domains)
+
+        assert mock_generate.call_args.kwargs["domains"] == domains
