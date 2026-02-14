@@ -149,15 +149,20 @@ async def create(
 
 
 @app.command
-def lint(
+async def lint(
     path: Annotated[Path | None, Parameter(name="path")] = None,
     *,
     list_rules: Annotated[bool, Parameter(name=["--list-rules"])] = False,
+    llm: Annotated[bool, Parameter(name=["--llm"])] = False,
 ):
     """Lint a SKILL.md file for common issues.
 
+    By default, runs only static checks. Use --llm to also run
+    LLM-assisted checks for description quality and instruction clarity.
+
     Examples:
         skillet lint path/to/SKILL.md
+        skillet lint path/to/SKILL.md --llm
         skillet lint --list-rules
     """
     from skillet.cli.commands.lint import lint_command
@@ -173,7 +178,7 @@ def lint(
         console.print("[red]Error:[/red] path is required unless --list-rules is specified")
         raise SystemExit(2)
 
-    lint_command(path)
+    await lint_command(path, llm=llm)
 
 
 @app.command(name="generate-evals")

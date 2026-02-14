@@ -23,6 +23,10 @@ VALID_SKILL = """\
 ---
 name: test-skill
 description: A test skill for linting.
+license: MIT
+compatibility: ">=1.0"
+metadata:
+  author: test
 ---
 
 # Instructions
@@ -40,12 +44,21 @@ description: A test skill without a name.
 Do the thing.
 """
 
+RESERVED_NAME_SKILL = """\
+---
+name: claude-helper
+description: A skill.
+---
+
+Body here.
+"""
+
 
 def describe_skillet_lint():
     """Tests for the `skillet lint` command."""
 
     def it_exits_0_for_valid_skill(tmp_path: Path):
-        skill_path = _write_skill(tmp_path / "SKILL.md", VALID_SKILL)
+        skill_path = _write_skill(tmp_path / "test-skill" / "SKILL.md", VALID_SKILL)
         result = _run_lint(str(skill_path))
         assert result.returncode == 0, (
             f"Expected exit 0 for valid skill\nstdout: {result.stdout}\nstderr: {result.stderr}"
@@ -58,11 +71,22 @@ def describe_skillet_lint():
         )
 
     def it_exits_1_when_findings_exist(tmp_path: Path):
-        skill_path = _write_skill(tmp_path / "SKILL.md", MISSING_NAME_SKILL)
+        skill_path = _write_skill(tmp_path / "test-skill" / "SKILL.md", MISSING_NAME_SKILL)
         result = _run_lint(str(skill_path))
         assert result.returncode == 1, (
             f"Expected exit 1 for findings\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
+
+    def it_shows_finding_details_in_output(tmp_path: Path):
+        skill_path = _write_skill(tmp_path / "test-skill" / "SKILL.md", MISSING_NAME_SKILL)
+        result = _run_lint(str(skill_path))
+        assert "frontmatter-valid" in result.stdout or "name" in result.stdout
+
+    def it_detects_reserved_names(tmp_path: Path):
+        skill_path = _write_skill(tmp_path / "claude-helper" / "SKILL.md", RESERVED_NAME_SKILL)
+        result = _run_lint(str(skill_path))
+        assert result.returncode == 1
+        assert "reserved" in result.stdout.lower() or "name-no-reserved" in result.stdout
 
     def it_lists_rules():
         result = _run_lint("--list-rules")
@@ -70,3 +94,5 @@ def describe_skillet_lint():
             f"Expected exit 0 for --list-rules\nstdout: {result.stdout}\nstderr: {result.stderr}"
         )
         assert "frontmatter-valid" in result.stdout
+        assert "name-kebab-case" in result.stdout
+        assert "frontmatter-delimiters" in result.stdout
