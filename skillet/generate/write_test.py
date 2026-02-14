@@ -24,6 +24,7 @@ def _make_candidate(**overrides: object) -> CandidateEval:
         "source": "goal:1",
         "confidence": 0.85,
         "rationale": "Tests basic arithmetic",
+        "domain": "functional",
     }
     defaults.update(overrides)
     return CandidateEval(**defaults)  # type: ignore[arg-type]
@@ -50,6 +51,7 @@ def describe_candidate_to_dict():
         result = _candidate_to_dict(_make_candidate(), None)
         meta = result["_meta"]
         assert meta["category"] == "positive"
+        assert meta["domain"] == "functional"
         assert meta["source"] == "goal:1"
         assert meta["confidence"] == 0.85
         assert meta["rationale"] == "Tests basic arithmetic"
@@ -93,6 +95,11 @@ def describe_format_yaml_with_comments():
         body = "\n".join(line for line in output.split("\n") if line and not line.startswith("#"))
         parsed = yaml.safe_load(body)
         assert "_meta" not in parsed
+
+    def it_includes_domain_in_header_comment():
+        data = _candidate_to_dict(_make_candidate(domain="triggering"), None)
+        output = _format_yaml_with_comments(data, _make_candidate(domain="triggering"))
+        assert "# Domain: triggering" in output
 
     def it_includes_meta_as_comments():
         data = _candidate_to_dict(_make_candidate(), None)

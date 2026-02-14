@@ -53,6 +53,7 @@ def _candidate_to_dict(candidate: CandidateEval, skill_name: str | None) -> dict
     # Add metadata as comments (stored in _meta for reference)
     meta = {
         "category": candidate.category,
+        "domain": candidate.domain,
         "source": candidate.source,
         "confidence": candidate.confidence,
         "rationale": candidate.rationale,
@@ -70,6 +71,7 @@ def _format_yaml_with_comments(data: dict, candidate: CandidateEval) -> str:
     # Add header comment
     lines = [
         "# Generated eval candidate",
+        f"# Domain: {candidate.domain}",
         f"# Category: {candidate.category}",
         f"# Source: {candidate.source}",
         f"# Confidence: {candidate.confidence:.0%}",
