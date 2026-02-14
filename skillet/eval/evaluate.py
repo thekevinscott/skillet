@@ -233,6 +233,31 @@ async def evaluate(
     total_runs = len(results)
     pass_rate = total_pass / total_runs * 100 if total_runs > 0 else 0
 
+    # Per-eval pass@k and pass^k metrics
+    from collections import defaultdict
+
+    from skillet.metrics.pass_at_k import pass_at_k
+    from skillet.metrics.pass_pow_k import pass_pow_k
+
+    evals_by_source: dict[str, list[dict]] = defaultdict(list)
+    for r in results:
+        evals_by_source[r["eval_source"]].append(r)
+
+    per_eval_metrics = []
+    for source, eval_results in evals_by_source.items():
+        n = len(eval_results)
+        c = sum(1 for r in eval_results if r["pass"])
+        per_eval_metrics.append(
+            {
+                "eval_source": source,
+                "pass_at_k": pass_at_k(n, c, samples),
+                "pass_pow_k": pass_pow_k(n, c, samples),
+                "k": samples,
+                "n": n,
+                "c": c,
+            }
+        )
+
     return {
         "results": results,
         "tasks": tasks,
@@ -243,4 +268,5 @@ async def evaluate(
         "fresh_count": fresh_count,
         "total_evals": total_evals,
         "sampled_evals": len(evals_list),
+        "per_eval_metrics": per_eval_metrics,
     }

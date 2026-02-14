@@ -327,7 +327,7 @@ def describe_evaluate():
             mock_load.return_value = [
                 {"prompt": "p1", "expected": "e1", "_source": "test.md", "_content": "c1"}
             ]
-            mock_run.return_value = {"pass": True, "cached": False}
+            mock_run.return_value = {"pass": True, "cached": False, "eval_source": "test.md"}
 
             await evaluate("test-evals", samples=1)
 
@@ -345,8 +345,8 @@ def describe_evaluate():
             ]
             # 1 pass, 1 fail
             mock_run.side_effect = [
-                {"pass": True, "cached": False},
-                {"pass": False, "cached": False},
+                {"pass": True, "cached": False, "eval_source": "1.md"},
+                {"pass": False, "cached": False, "eval_source": "2.md"},
             ]
 
             result = await evaluate("test-evals", samples=1)
@@ -368,7 +368,7 @@ def describe_evaluate():
             ]
             mock_load.return_value = evals
             mock_sample.return_value = evals[:2]
-            mock_run.return_value = {"pass": True, "cached": False}
+            mock_run.return_value = {"pass": True, "cached": False, "eval_source": "0.md"}
 
             result = await evaluate("test-evals", samples=1, max_evals=2)
 
@@ -387,8 +387,8 @@ def describe_evaluate():
                 {"prompt": "p2", "expected": "e2", "_source": "2.md", "_content": "c2"},
             ]
             mock_run.side_effect = [
-                {"pass": True, "cached": True},
-                {"pass": True, "cached": False},
+                {"pass": True, "cached": True, "eval_source": "1.md"},
+                {"pass": True, "cached": False, "eval_source": "2.md"},
             ]
 
             result = await evaluate("test-evals", samples=1)
@@ -411,7 +411,7 @@ def describe_evaluate():
                     "setup": "echo setup",
                 }
             ]
-            mock_run.return_value = {"pass": True, "cached": False}
+            mock_run.return_value = {"pass": True, "cached": False, "eval_source": "1.md"}
 
             await evaluate("test-evals", samples=1)
 
@@ -435,7 +435,7 @@ def describe_evaluate():
                     "teardown": "echo teardown",
                 }
             ]
-            mock_run.return_value = {"pass": True, "cached": False}
+            mock_run.return_value = {"pass": True, "cached": False, "eval_source": "1.md"}
 
             await evaluate("test-evals", samples=1)
 
