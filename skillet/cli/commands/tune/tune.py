@@ -10,7 +10,7 @@ from skillet.evals import load_evals
 from skillet.tune import TuneResult, tune
 from skillet.tune.result import TuneCallbacks, TuneConfig
 
-from ...display.thresholds import PASS_RATE_YELLOW, get_rate_color
+from ...display.get_rate_color import PASS_RATE_YELLOW, get_rate_color
 from .output_path import get_default_output_path
 from .print_result import print_tune_result
 

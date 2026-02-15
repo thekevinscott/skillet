@@ -6,7 +6,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from skillet.cli import console
-from skillet.cli.display.thresholds import get_rate_color
+from skillet.cli.display.get_rate_color import get_rate_color
 from skillet.show import show
 
 RESPONSE_PREVIEW_LENGTH = 200

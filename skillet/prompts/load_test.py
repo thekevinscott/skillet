@@ -8,7 +8,7 @@ import pytest
 from .load import load_prompt
 
 # Path to judge.txt for testing with a real prompt file
-JUDGE_TXT = Path(__file__).parent.parent / "eval" / "judge.txt"
+JUDGE_TXT = Path(__file__).parent.parent / "eval" / "judge" / "judge.txt"
 
 
 def describe_load_prompt():

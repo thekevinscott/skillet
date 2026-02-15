@@ -7,27 +7,7 @@ import yaml
 from skillet.config import SKILLET_DIR
 from skillet.errors import EmptyFolderError, EvalValidationError
 
-# Required fields for a valid eval file
-REQUIRED_EVAL_FIELDS = {"timestamp", "prompt", "expected", "name"}
-
-
-def validate_eval(eval_data: dict, source: str) -> None:
-    """Validate that an eval has all required fields.
-
-    Args:
-        eval_data: Parsed eval dictionary
-        source: Source filename for error messages
-
-    Raises:
-        EvalValidationError: If required fields are missing or format is invalid
-    """
-    if not isinstance(eval_data, dict):
-        raise EvalValidationError(f"Eval {source} is not a valid YAML dictionary")
-
-    missing = REQUIRED_EVAL_FIELDS - set(eval_data.keys())
-    if missing:
-        missing_str = ", ".join(sorted(missing))
-        raise EvalValidationError(f"Eval {source} missing required fields: {missing_str}")
+from .validate_eval import validate_eval
 
 
 def load_evals(name: str) -> list[dict]:

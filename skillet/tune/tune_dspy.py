@@ -12,8 +12,8 @@ from pathlib import Path
 
 from skillet.evals import load_evals
 from skillet.optimize import evals_to_trainset
+from skillet.skill.get_skill_file import get_skill_file
 
-from .improve import get_skill_file
 from .proposer import propose_instruction
 from .result import (
     RoundResult,

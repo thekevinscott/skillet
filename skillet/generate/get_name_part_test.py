@@ -1,8 +1,8 @@
-"""Tests for sanitize_filename module."""
+"""Tests for generate/get_name_part module."""
 
 import pytest
 
-from .sanitize_filename import get_name_part
+from .get_name_part import get_name_part
 
 
 def describe_get_name_part():

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from .sanitize_filename import get_name_part
+from .get_name_part import get_name_part
 from .types import CandidateEval
 
 

@@ -1,12 +1,14 @@
 """LLM-as-judge for evaluating responses against expected behavior."""
 
-import json
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from skillet._internal.sdk import StructuredOutputError, query_structured
 from skillet.prompts import load_prompt
+
+from .format_prompt import format_prompt
+from .format_tool_calls import format_tool_calls
 
 JUDGE_PROMPT = Path(__file__).parent / "judge.txt"
 
@@ -26,51 +28,15 @@ class Judgment(BaseModel):
     )
 
 
-def format_prompt_for_judge(prompt: str | list[str]) -> str:
-    """Format prompt(s) for the judge, handling multi-turn conversations."""
-    if isinstance(prompt, str):
-        return prompt
-
-    # Multi-turn: format as numbered conversation
-    lines = []
-    for i, p in enumerate(prompt, 1):
-        lines.append(f"Turn {i}: {p}")
-    return "\n".join(lines)
-
-
-def format_tool_calls_for_judge(tool_calls: list[dict]) -> str:
-    """Format tool calls for the judge prompt."""
-    if not tool_calls:
-        return "(no tools used)"
-
-    lines = []
-    for call in tool_calls:
-        input_data = call.get("input", {})
-        input_str = json.dumps(input_data, indent=2)
-        lines.append(f"- {call['name']}: {input_str}")
-
-    return "\n".join(lines)
-
-
 async def judge_response(
     prompt: str | list[str],
     response: str,
     expected: str,
     tool_calls: list[dict] | None = None,
 ) -> dict:
-    """Use Claude as a judge to evaluate if a response meets expectations.
-
-    Args:
-        prompt: The original user prompt, or list of prompts for multi-turn
-        response: Claude's final response to evaluate
-        expected: What the user expected (from the eval file)
-        tool_calls: Optional list of tool calls made during the response
-
-    Returns:
-        dict with 'pass' (bool), 'reasoning' (str), and 'raw' (str)
-    """
-    formatted_prompt = format_prompt_for_judge(prompt)
-    formatted_tools = format_tool_calls_for_judge(tool_calls or [])
+    """Use Claude as a judge to evaluate if a response meets expectations."""
+    formatted_prompt = format_prompt(prompt)
+    formatted_tools = format_tool_calls(tool_calls or [])
 
     judge_prompt = load_prompt(
         JUDGE_PROMPT,

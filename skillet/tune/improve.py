@@ -7,6 +7,7 @@ import yaml
 from skillet._internal.sdk import query_structured
 from skillet._internal.text import summarize_failure_for_tuning
 from skillet.prompts import load_prompt
+from skillet.skill.get_skill_file import get_skill_file
 from skillet.skill.models import SkillContent
 
 IMPROVE_PROMPT = Path(__file__).parent / "improve.txt"
@@ -23,20 +24,6 @@ TUNE_TIPS = [
     "Make the description more specific about when to trigger",
     "Use CAPS for critical words like IMMEDIATELY, NEVER, MUST",
 ]
-
-
-def get_skill_file(skill_path: Path) -> Path:
-    """Get the skill file path, handling both directory and file inputs.
-
-    Args:
-        skill_path: Path to skill directory or direct .md file
-
-    Returns:
-        Path to the actual skill file
-    """
-    if skill_path.is_file():
-        return skill_path
-    return skill_path / "SKILL.md"
 
 
 async def improve_skill(

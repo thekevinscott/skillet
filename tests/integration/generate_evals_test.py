@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from skillet.evals.load import REQUIRED_EVAL_FIELDS, load_evals
+from skillet.evals.load import load_evals
+from skillet.evals.validate_eval import REQUIRED_EVAL_FIELDS
 from skillet.generate.types import EvalDomain
 
 from .conftest import COMPLEX_SKILL, SAMPLE_GENERATED_EVALS, SAMPLE_SKILL

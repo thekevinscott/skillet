@@ -6,7 +6,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from .thresholds import get_rate_color
+from .get_rate_color import get_rate_color
 
 console = Console()
 

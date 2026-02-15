@@ -9,8 +9,9 @@ from pathlib import Path
 from skillet.errors import SkillError
 from skillet.eval import judge_response, run_prompt
 from skillet.evals import load_evals
+from skillet.skill.get_skill_file import get_skill_file
 
-from .improve import TUNE_TIPS, get_skill_file, improve_skill
+from .improve import TUNE_TIPS, improve_skill
 from .result import RoundResult, TuneConfig, TuneResult
 from .results_to_eval_results import results_to_eval_results
 
