@@ -26,6 +26,14 @@ export default defineConfig({
       { text: 'Overview', link: '/' },
       { text: 'Getting Started', link: '/getting-started' },
       {
+        text: 'Concepts',
+        items: [
+          { text: 'Skills vs Agents', link: '/concepts/skills-vs-agents' },
+          { text: 'Capability vs Regression', link: '/concepts/capability-vs-regression' },
+          { text: 'Balanced Problem Sets', link: '/concepts/balanced-problem-sets' }
+        ]
+      },
+      {
         text: 'Guides',
         items: [
           { text: 'Capture with /skillet:add', link: '/guides/capture-with-slash-command' },

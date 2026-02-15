@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - CLI: `skillet show <name>` command to inspect cached eval results. Use `--eval` to view detailed iteration transcripts (response, tool calls, judgment) and `--skill` to view results with a skill loaded instead of baseline
+- Docs: conceptual guides — Skills vs Agents, Capability vs Regression Evals, Balanced Problem Sets
+- README: inline Python API examples for `evaluate()` and `tune()`
 
 ### Changed
 - `resolve_skill_path` now accepts any file when passed directly, not just `SKILL.md`. Directory resolution still looks for `SKILL.md` by convention

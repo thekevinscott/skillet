@@ -128,11 +128,50 @@ prompt: "Write a code review comment for..."
 expected: "Should start with **issue** (blocking):"
 ```
 
+## Python API
+
+```python
+import asyncio
+from pathlib import Path
+from skillet import evaluate
+
+async def main():
+    # Baseline (no skill)
+    baseline = await evaluate("conventional-comments")
+    print(f"Baseline: {baseline['pass_rate']}%")
+
+    # With skill
+    result = await evaluate(
+        "conventional-comments",
+        skill_path=Path("~/.claude/skills/conventional-comments").expanduser(),
+    )
+    print(f"With skill: {result['pass_rate']}%")
+
+asyncio.run(main())
+```
+
+Tune a skill programmatically:
+
+```python
+from skillet import tune
+from skillet.tune import TuneConfig
+
+result = await tune(
+    "conventional-comments",
+    Path("~/.claude/skills/conventional-comments").expanduser(),
+    config=TuneConfig(max_rounds=10, target_pass_rate=90.0),
+)
+print(f"Best pass rate: {result.result.best_pass_rate}%")
+```
+
+See the [Python API reference](https://skillet.run/reference/python-api) for all functions and options.
+
 ## Documentation
 
 Full documentation available at the [docs site](https://skillet.run):
 
 - [Getting Started](https://skillet.run/getting-started)
+- [Concepts](https://skillet.run/concepts/skills-vs-agents) — Skills vs agents, capability vs regression, balanced problem sets
 - [CLI Reference](https://skillet.run/reference/cli)
 - [Eval Format](https://skillet.run/reference/eval-format)
 - [Python API](https://skillet.run/reference/python-api)
