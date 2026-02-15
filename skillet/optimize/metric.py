@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from skillet._internal.async_utils import run_sync
+from skillet._internal.run_sync import run_sync
 from skillet.eval.judge import judge_response
 
 

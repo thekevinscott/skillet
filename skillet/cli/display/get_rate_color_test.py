@@ -1,8 +1,8 @@
-"""Tests for pass rate threshold helpers."""
+"""Tests for cli/display/get_rate_color module."""
 
 import pytest
 
-from skillet.cli.display.thresholds import (
+from skillet.cli.display.get_rate_color import (
     PASS_RATE_GREEN,
     PASS_RATE_YELLOW,
     get_rate_color,

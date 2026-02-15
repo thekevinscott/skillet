@@ -166,6 +166,15 @@ This prevents the host's `.venv` from being invalidated when switching contexts.
 
 ## Code Style
 
+### Module Organization
+
+- **One function per file** — each `.py` file contains a single public function, named to match the file (`get_rate_color.py` contains `get_rate_color()`)
+- **Multi-function files become packages** — when a file has multiple functions, promote it to a directory with `__init__.py` and one file per function
+- **`__init__.py` exports only externally consumed symbols** — internal helpers stay unexported
+- **Drop redundant suffixes inside packages** — `judge/format_prompt.py`, not `judge/format_prompt_for_judge.py`
+- **Dataclass, type, model, and exception files are exempt** — grouping related types in a single file is fine
+- **Co-located tests** — `foo.py` → `foo_test.py` in the same directory
+
 ### Docstrings
 - **Skip `Args:`, `Returns:`, `Raises:` sections** - these are statically analyzable from type hints
 - Use docstrings for *why* and *what*, not *how* the signature works

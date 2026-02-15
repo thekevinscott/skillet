@@ -1,4 +1,4 @@
-"""Sanitize strings for use as filenames."""
+"""Sanitize a candidate name for use as a filename stem."""
 
 import re
 

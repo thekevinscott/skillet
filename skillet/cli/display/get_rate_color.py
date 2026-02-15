@@ -1,4 +1,4 @@
-"""Display thresholds for pass rate coloring."""
+"""Get color for pass rate display."""
 
 # Pass rate thresholds for color coding
 PASS_RATE_GREEN = 80  # >= 80% shows green
