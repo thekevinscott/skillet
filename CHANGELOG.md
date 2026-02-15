@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- CLI: `skillet show <name>` command to inspect cached eval results. Use `--eval` to view detailed iteration transcripts (response, tool calls, judgment) and `--skill` to view results with a skill loaded instead of baseline
 - Docs: conceptual guides — Skills vs Agents, Capability vs Regression Evals, Balanced Problem Sets
 - README: inline Python API examples for `evaluate()` and `tune()`
 
@@ -15,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `resolve_skill_path` now accepts any file when passed directly, not just `SKILL.md`. Directory resolution still looks for `SKILL.md` by convention
 
 ### Added
+- CLI: `skillet eval` now reports per-eval pass@k and pass^k metrics when running with multiple samples, measuring capability and consistency respectively
 - Eval domains: generated evals are now tagged with a domain (`triggering`, `functional`, or `performance`) indicating what aspect of the skill is being tested
 - CLI: `--domain` / `-d` flag on `generate-evals` to filter generated evals to specific domains (e.g., `--domain triggering`)
 
