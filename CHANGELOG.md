@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions
+
 ### Added
 - Convention check: one-public-callable-per-file lint rule enforced in CI (`uv run just check-conventions`). Per-file opt-out via `# skillet: allow-multiple-public-callables`
 - Code-based assertions for eval grading: deterministic `contains`, `not_contains`, `regex`, `starts_with`, `ends_with`, `tool_called`, and `tool_not_called` checks that skip LLM judge when present in eval YAML

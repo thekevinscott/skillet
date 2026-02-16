@@ -2,13 +2,11 @@
 
 from pathlib import Path
 
-from skillet.lint.rules.naming import (
-    FilenameCaseRule,
-    FolderKebabCaseRule,
-    NameKebabCaseRule,
-    NameMatchesFolderRule,
-    NameNoReservedRule,
-)
+from skillet.lint.rules.filename_case import FilenameCaseRule
+from skillet.lint.rules.folder_kebab_case import FolderKebabCaseRule
+from skillet.lint.rules.name_kebab_case import NameKebabCaseRule
+from skillet.lint.rules.name_matches_folder import NameMatchesFolderRule
+from skillet.lint.rules.name_no_reserved import NameNoReservedRule
 from skillet.lint.types import SkillDocument
 
 

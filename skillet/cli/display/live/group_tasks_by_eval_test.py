@@ -1,6 +1,7 @@
 """Tests for group_tasks_by_eval and make_task_key."""
 
-from .group_tasks_by_eval import group_tasks_by_eval, make_task_key
+from .group_tasks_by_eval import group_tasks_by_eval
+from .make_task_key import make_task_key
 
 
 def describe_make_task_key():

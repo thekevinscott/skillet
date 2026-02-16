@@ -2,13 +2,11 @@
 
 from pathlib import Path
 
-from skillet.lint.rules.structure import (
-    BodyWordCountRule,
-    DescriptionLengthRule,
-    FrontmatterDelimitersRule,
-    FrontmatterNoXmlRule,
-    NoReadmeRule,
-)
+from skillet.lint.rules.body_word_count import BodyWordCountRule
+from skillet.lint.rules.description_length import DescriptionLengthRule
+from skillet.lint.rules.frontmatter_delimiters import FrontmatterDelimitersRule
+from skillet.lint.rules.frontmatter_no_xml import FrontmatterNoXmlRule
+from skillet.lint.rules.no_readme import NoReadmeRule
 from skillet.lint.types import SkillDocument
 
 

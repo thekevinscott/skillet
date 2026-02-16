@@ -1,26 +1,11 @@
 """Static analysis of SKILL.md files."""
-# skillet: allow-multiple-public-callables
 
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from .extract_examples import extract_examples
 from .extract_section_items import extract_section_items
 from .parse_frontmatter import parse_frontmatter
-
-
-@dataclass
-class SkillAnalysis:
-    """Results from analyzing a SKILL.md."""
-
-    path: Path
-    name: str | None = None
-    description: str | None = None
-    goals: list[str] = field(default_factory=list)
-    prohibitions: list[str] = field(default_factory=list)
-    examples: list[str] = field(default_factory=list)
-    frontmatter: dict = field(default_factory=dict)
-    body: str = ""
+from .types import SkillAnalysis
 
 
 def analyze_skill(path: Path) -> SkillAnalysis:
