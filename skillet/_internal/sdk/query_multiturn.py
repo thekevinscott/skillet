@@ -1,12 +1,12 @@
 """Multi-turn conversation queries using Claude SDK."""
 
+import sys
 from typing import Any
 
 import claude_agent_sdk
 from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, ToolUseBlock
 
 from .query_result import QueryResult
-from .stderr import _stderr_callback
 
 
 async def query_multiturn(  # noqa: C901 - complexity from SDK protocol handling
@@ -14,7 +14,7 @@ async def query_multiturn(  # noqa: C901 - complexity from SDK protocol handling
     **options: Any,
 ) -> QueryResult:
     """Run a multi-turn conversation and return the final assistant response."""
-    opts = ClaudeAgentOptions(**options, stderr=_stderr_callback)
+    opts = ClaudeAgentOptions(**options, stderr=lambda line: print(line, file=sys.stderr))
     session_id: str | None = None
     response_text = ""
     all_tool_calls: list[dict] = []

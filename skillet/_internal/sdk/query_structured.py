@@ -1,12 +1,11 @@
 """Structured output queries using Claude SDK."""
 
+import sys
 from typing import Any
 
 import claude_agent_sdk
 from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, ResultMessage, ToolUseBlock
 from pydantic import BaseModel, ValidationError
-
-from .stderr import _stderr_callback
 
 
 class StructuredOutputError(Exception):
@@ -48,7 +47,7 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
             "type": "json_schema",
             "schema": model.model_json_schema(),
         },
-        stderr=_stderr_callback,
+        stderr=lambda line: print(line, file=sys.stderr),
         **options,
     )
 
