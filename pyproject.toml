@@ -10,7 +10,7 @@ dependencies = [
     "rich>=13.0",
     "claude-agent-sdk",
     "dspy>=2.6",
-    "cachetta>=0.1.0",
+    "cachetta>=0.6.0",
 ]
 
 [project.scripts]
