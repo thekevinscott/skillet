@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - E2E tests: converted remaining subprocess-based tests (lint, error cases) to curtaincall PTY-based testing with exit code assertions
 
 ### Added
+- Display: compact mode for eval/tune when many evals exceed terminal height — shows a single summary line with status counts instead of per-eval rows
 - CLI: `skillet show <name>` command to inspect cached eval results. Use `--eval` to view detailed iteration transcripts (response, tool calls, judgment) and `--skill` to view results with a skill loaded instead of baseline
 - Docs: conceptual guides — Skills vs Agents, Capability vs Regression Evals, Balanced Problem Sets
 - README: inline Python API examples for `evaluate()` and `tune()`
