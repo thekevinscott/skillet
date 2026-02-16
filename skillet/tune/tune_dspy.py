@@ -140,9 +140,6 @@ async def tune_dspy(
             current_skill_content = new_instruction
             temp_skill_path.write_text(new_instruction + "\n")
 
-            # Save improved skill to original file (for interrupt safety)
-            original_skill_file.write_text(new_instruction + "\n")
-
             if callbacks.on_improved:
                 await callbacks.on_improved(new_instruction, original_skill_file)
 

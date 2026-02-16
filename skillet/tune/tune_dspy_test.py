@@ -206,6 +206,66 @@ def describe_tune_dspy():
         assert history[0]["instruction"] == "Original instruction"
 
     @pytest.mark.asyncio
+    async def it_does_not_modify_original_file_during_iteration(
+        skill_file,
+        mock_run_tune_eval,
+        mock_propose_instruction,
+    ):
+        """Original file must stay untouched until tuning finalizes."""
+        original_content = skill_file.read_text()
+
+        # Track file content after each propose_instruction call
+        contents_during_iteration: list[str] = []
+        real_return = "Improved instruction"
+
+        def capture_and_return(**kwargs):  # noqa: ARG001
+            contents_during_iteration.append(skill_file.read_text())
+            return real_return
+
+        mock_propose_instruction.side_effect = capture_and_return
+
+        # Fail twice, then succeed — gives two mid-iteration writes to check
+        mock_run_tune_eval.side_effect = [
+            (50.0, [FAIL_RESULT]),
+            (50.0, [FAIL_RESULT]),
+            (100.0, [PASS_RESULT]),
+        ]
+
+        config = TuneConfig(max_rounds=5)
+        result = await tune_dspy(
+            name="test-evals",
+            skill_path=skill_file,
+            config=config,
+        )
+
+        # During iteration, original file should NOT have been modified
+        for content in contents_during_iteration:
+            assert content == original_content, "Original skill file was modified during iteration"
+
+        # After finalization, file should be updated with best_skill
+        assert skill_file.read_text() == result.best_skill + "\n"
+
+    @pytest.mark.asyncio
+    async def it_updates_original_file_after_max_rounds_exhausted(
+        skill_file,
+        mock_run_tune_eval,
+        mock_propose_instruction,
+    ):
+        """Even on failure, the best skill should be written at the end."""
+        mock_run_tune_eval.return_value = (50.0, [FAIL_RESULT])
+        mock_propose_instruction.return_value = "New instruction"
+
+        config = TuneConfig(max_rounds=2)
+        result = await tune_dspy(
+            name="test-evals",
+            skill_path=skill_file,
+            config=config,
+        )
+
+        assert result.result.success is False
+        assert skill_file.read_text() == result.best_skill + "\n"
+
+    @pytest.mark.asyncio
     async def it_preserves_claude_path_structure_in_temp(skill_file, mock_run_tune_eval):
         # Verify temp path preserves .claude structure
         await tune_dspy(
