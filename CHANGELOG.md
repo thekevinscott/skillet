@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CONTRIBUTING.md with development setup, testing, code style, and PR guidelines
 
 ### Changed
+- Patch releases now support switchable strategy via `RELEASE_STRATEGY` repo variable: `nightly` (default, current behavior) or `immediate` (release on every push to main). Includes `[no-release]` commit message flag to skip releases in immediate mode
 - CLI: removed short flags that collided across commands — `-t` from `eval --tools` (conflicts with `tune --target`), `-p` from `create --prompt` (conflicts with `eval/tune --parallel`), `-m` from `generate-evals --max` (conflicts with `eval --max-evals`). Use the long form instead
 - Coverage threshold raised from 55% to 85% to match actual coverage floor
 - `evaluate()` returns `EvaluateResult` dataclass instead of `dict`
