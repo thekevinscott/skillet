@@ -1,12 +1,15 @@
 """Evaluation functionality."""
 
-from .evaluate import evaluate, run_single_eval
+from .evaluate import EvaluateResult, IterationResult, PerEvalMetric, evaluate, run_single_eval
 from .isolated_home import isolated_home
 from .judge import judge_response
 from .run_prompt import run_prompt
 from .run_script import run_script
 
 __all__ = [
+    "EvaluateResult",
+    "IterationResult",
+    "PerEvalMetric",
     "evaluate",
     "isolated_home",
     "judge_response",

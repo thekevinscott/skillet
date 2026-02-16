@@ -8,6 +8,7 @@ import pytest
 
 from skillet.errors import SkillError
 from skillet.skill.create import create_skill
+from skillet.skill.result import CreateSkillResult
 
 
 def describe_create_skill():
@@ -56,10 +57,11 @@ def describe_create_skill():
             output_dir = Path(tmpdir)
             result = await create_skill("my-skill", output_dir)
 
-            assert result["skill_dir"] == output_dir / "my-skill"
-            assert result["skill_dir"].exists()
-            assert (result["skill_dir"] / "SKILL.md").exists()
-            assert result["eval_count"] == 1
+            assert isinstance(result, CreateSkillResult)
+            assert result.skill_dir == output_dir / "my-skill"
+            assert result.skill_dir.exists()
+            assert (result.skill_dir / "SKILL.md").exists()
+            assert result.eval_count == 1
 
     @pytest.mark.asyncio
     async def it_writes_skill_content():
@@ -78,9 +80,9 @@ def describe_create_skill():
             output_dir = Path(tmpdir)
             result = await create_skill("test", output_dir)
 
-            content = (result["skill_dir"] / "SKILL.md").read_text()
+            content = (result.skill_dir / "SKILL.md").read_text()
             assert "name: test" in content
-            assert result["skill_content"] == "---\nname: test\n---\n# Test"
+            assert result.skill_content == "---\nname: test\n---\n# Test"
 
     @pytest.mark.asyncio
     async def it_overwrites_existing_skill_when_flag_set():
@@ -103,7 +105,7 @@ def describe_create_skill():
 
             result = await create_skill("existing", output_dir, overwrite=True)
 
-            content = (result["skill_dir"] / "SKILL.md").read_text()
+            content = (result.skill_dir / "SKILL.md").read_text()
             assert "# New Skill" in content
             assert "# Old content" not in content
 

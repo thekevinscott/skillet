@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from skillet import compare
+from skillet.compare.result import CompareResult
 from skillet.errors import EmptyFolderError
 
 from .conftest import create_eval_file
@@ -49,10 +50,11 @@ def describe_compare():
 
             result = compare("compare-test", skill_file)
 
-        assert result["name"] == "compare-test"
-        assert result["overall_baseline"] == 50.0  # 1/2 pass
-        assert result["overall_skill"] == 100.0  # 2/2 pass
-        assert len(result["results"]) == 2
+        assert isinstance(result, CompareResult)
+        assert result.name == "compare-test"
+        assert result.overall_baseline == 50.0  # 1/2 pass
+        assert result.overall_skill == 100.0  # 2/2 pass
+        assert len(result.results) == 2
 
     @pytest.mark.asyncio
     async def it_reports_missing_baseline_cache(skillet_env: Path):
@@ -77,8 +79,8 @@ def describe_compare():
 
             result = compare("missing-baseline", skill_file)
 
-        assert len(result["missing_baseline"]) == 1
-        assert result["overall_baseline"] is None
+        assert len(result.missing_baseline) == 1
+        assert result.overall_baseline is None
 
     @pytest.mark.asyncio
     async def it_reports_missing_skill_cache(skillet_env: Path):
@@ -103,8 +105,8 @@ def describe_compare():
 
             result = compare("missing-skill", skill_file)
 
-        assert len(result["missing_skill"]) == 1
-        assert result["overall_skill"] is None
+        assert len(result.missing_skill) == 1
+        assert result.overall_skill is None
 
     @pytest.mark.asyncio
     async def it_raises_error_for_nonexistent_evals(skillet_env: Path):
@@ -144,8 +146,7 @@ def describe_compare():
             result = compare("per-eval", skill_file)
 
         # Verify per-eval results are present
-        assert len(result["results"]) == 2
+        assert len(result.results) == 2
         # Each result should have baseline and skill pass rates
-        for r in result["results"]:
-            assert "baseline" in r
-            assert "skill" in r
+        for r in result.results:
+            assert r.baseline is not None or r.skill is not None

@@ -6,6 +6,7 @@ from pathlib import Path
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.eval import evaluate
+from skillet.eval.evaluate.result import EvaluateResult
 
 from ...display.get_rate_color import get_rate_color
 from .get_scripts_from_evals import get_scripts_from_evals
@@ -15,18 +16,18 @@ from .summarize import summarize_responses
 logger = logging.getLogger(__name__)
 
 
-def _print_per_eval_metrics(eval_result: dict, samples: int) -> None:
+def _print_per_eval_metrics(eval_result: EvaluateResult, samples: int) -> None:
     """Print per-eval pass@k and pass^k metrics."""
     if samples <= 1:
         return
     console.print()
     k = samples
-    for m in eval_result["per_eval_metrics"]:
-        pak = m["pass_at_k"]
-        ppk = m["pass_pow_k"]
+    for m in eval_result.per_eval_metrics:
+        pak = m.pass_at_k
+        ppk = m.pass_pow_k
         pak_str = f"{pak:.0%}" if pak is not None else "n/a"
         ppk_str = f"{ppk:.0%}" if ppk is not None else "n/a"
-        console.print(f"  {m['eval_source']}: pass@{k} {pak_str}, pass^{k} {ppk_str}")
+        console.print(f"  {m.eval_source}: pass@{k} {pak_str}, pass^{k} {ppk_str}")
 
 
 async def eval_command(
@@ -98,17 +99,17 @@ async def eval_command(
         await display.stop()
 
     # Print results info
-    if max_evals and eval_result["sampled_evals"] < eval_result["total_evals"]:
+    if max_evals and eval_result.sampled_evals < eval_result.total_evals:
         console.print(
-            f"Evals: {eval_result['sampled_evals']} "
-            f"[dim](sampled from {eval_result['total_evals']})[/dim]"
+            f"Evals: {eval_result.sampled_evals} "
+            f"[dim](sampled from {eval_result.total_evals})[/dim]"
         )
     else:
-        console.print(f"Evals: {eval_result['sampled_evals']}")
+        console.print(f"Evals: {eval_result.sampled_evals}")
     console.print(f"Samples: {samples} per eval")
     console.print(f"Parallel: {parallel}")
     console.print(f"Tools: {', '.join(allowed_tools) if allowed_tools else 'all'}")
-    console.print(f"Total runs: {eval_result['total_runs']}")
+    console.print(f"Total runs: {eval_result.total_runs}")
     console.print()
 
     # Show final status
@@ -116,23 +117,23 @@ async def eval_command(
 
     # Stats
     console.print()
-    if eval_result["cached_count"] > 0:
+    if eval_result.cached_count > 0:
         console.print(
-            f"Cache: [blue]{eval_result['cached_count']} cached[/blue], "
-            f"{eval_result['fresh_count']} fresh"
+            f"Cache: [blue]{eval_result.cached_count} cached[/blue], "
+            f"{eval_result.fresh_count} fresh"
         )
 
-    rate_color = get_rate_color(eval_result["pass_rate"])
+    rate_color = get_rate_color(eval_result.pass_rate)
     console.print(
-        f"Overall pass rate: [{rate_color}]{eval_result['pass_rate']:.0f}%[/{rate_color}] "
-        f"({eval_result['total_pass']}/{eval_result['total_runs']})"
+        f"Overall pass rate: [{rate_color}]{eval_result.pass_rate:.0f}%[/{rate_color}] "
+        f"({eval_result.total_pass}/{eval_result.total_runs})"
     )
 
     _print_per_eval_metrics(eval_result, samples)
 
     # Generate summary of failures if any
-    failures = [r for r in eval_result["results"] if not r["pass"]]
-    if failures and eval_result["fresh_count"] > 0:
+    failures = [r for r in eval_result.results if not r.passed]
+    if failures and eval_result.fresh_count > 0:
         console.print()
         console.print("[bold]What Claude did instead:[/bold]")
         summary = await summarize_responses(failures)

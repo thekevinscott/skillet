@@ -6,6 +6,7 @@ import pytest
 
 from skillet import create_skill
 from skillet.errors import EmptyFolderError, EvalValidationError, SkillError
+from skillet.skill.result import CreateSkillResult
 
 from .conftest import create_eval_file
 
@@ -39,8 +40,9 @@ def describe_create_skill():
         result = await create_skill("test-skill", output_dir)
 
         # Assert
-        assert result["eval_count"] == 2
-        skill_path = result["skill_dir"] / "SKILL.md"
+        assert isinstance(result, CreateSkillResult)
+        assert result.eval_count == 2
+        skill_path = result.skill_dir / "SKILL.md"
         assert skill_path.exists()
 
         content = skill_path.read_text()
@@ -67,7 +69,7 @@ def describe_create_skill():
         result = await create_skill("canary-test", output_dir)
 
         # If this marker appears, we know the mock is being used
-        content = (result["skill_dir"] / "SKILL.md").read_text()
+        content = (result.skill_dir / "SKILL.md").read_text()
         assert unique_marker in content, "Mock response not found - real API may have been called!"
 
     @pytest.mark.asyncio
@@ -82,8 +84,8 @@ def describe_create_skill():
 
         result = await create_skill("single-eval", output_dir)
 
-        assert result["eval_count"] == 1
-        assert (result["skill_dir"] / "SKILL.md").exists()
+        assert result.eval_count == 1
+        assert (result.skill_dir / "SKILL.md").exists()
 
     @pytest.mark.asyncio
     async def it_finds_evals_in_nested_directories(skillet_env: Path, mock_claude_query):
@@ -101,7 +103,7 @@ def describe_create_skill():
 
         result = await create_skill("nested-evals", output_dir)
 
-        assert result["eval_count"] == 2
+        assert result.eval_count == 2
 
     @pytest.mark.asyncio
     async def it_passes_extra_prompt_to_draft(skillet_env: Path, mock_claude_query):
@@ -185,13 +187,13 @@ def describe_create_skill():
 
         # Create skill first time
         result1 = await create_skill("overwrite-skill", output_dir)
-        first_content = (result1["skill_dir"] / "SKILL.md").read_text()
+        first_content = (result1.skill_dir / "SKILL.md").read_text()
 
         # Create again with overwrite and different response
         mock_claude_query.set_response("---\nname: updated\n---\nUpdated content")
         result2 = await create_skill("overwrite-skill", output_dir, overwrite=True)
 
-        second_content = (result2["skill_dir"] / "SKILL.md").read_text()
+        second_content = (result2.skill_dir / "SKILL.md").read_text()
         assert second_content != first_content
         assert "Updated content" in second_content
 

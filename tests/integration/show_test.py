@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from skillet.show.result import ShowResult
+
 from .conftest import create_eval_file
 
 
@@ -66,15 +68,16 @@ def describe_show():
 
         result = show("my-evals")
 
-        assert result["name"] == "my-evals"
-        assert len(result["evals"]) == 1
+        assert isinstance(result, ShowResult)
+        assert result.name == "my-evals"
+        assert len(result.evals) == 1
 
-        eval_result = result["evals"][0]
-        assert eval_result["source"] == "001.yaml"
-        assert eval_result["pass_rate"] == 50.0
-        assert len(eval_result["iterations"]) == 2
-        assert eval_result["iterations"][0]["pass"] is True
-        assert eval_result["iterations"][1]["pass"] is False
+        eval_result = result.evals[0]
+        assert eval_result.source == "001.yaml"
+        assert eval_result.pass_rate == 50.0
+        assert len(eval_result.iterations) == 2
+        assert eval_result.iterations[0]["pass"] is True
+        assert eval_result.iterations[1]["pass"] is False
 
     def it_filters_to_a_single_eval_with_eval_source(skillet_env: Path):
         from skillet.show import show
@@ -121,9 +124,9 @@ def describe_show():
 
         result = show("filter-test", eval_source="001.yaml")
 
-        assert len(result["evals"]) == 1
-        assert result["evals"][0]["source"] == "001.yaml"
-        assert result["evals"][0]["iterations"][0]["response"] == "Response for eval 001"
+        assert len(result.evals) == 1
+        assert result.evals[0].source == "001.yaml"
+        assert result.evals[0].iterations[0]["response"] == "Response for eval 001"
 
     def it_returns_skill_results_when_skill_path_is_provided(skillet_env: Path):
         from skillet.show import show
@@ -177,12 +180,12 @@ def describe_show():
 
         # Without skill_path -> baseline
         baseline_result = show("skill-test")
-        assert baseline_result["evals"][0]["pass_rate"] == 0.0
+        assert baseline_result.evals[0].pass_rate == 0.0
 
         # With skill_path -> skill results
         skill_result = show("skill-test", skill_path=skill_dir)
-        assert skill_result["evals"][0]["pass_rate"] == 100.0
-        assert skill_result["evals"][0]["iterations"][0]["response"] == "skill response"
+        assert skill_result.evals[0].pass_rate == 100.0
+        assert skill_result.evals[0].iterations[0]["response"] == "skill response"
 
     def it_returns_empty_iterations_when_no_cache_exists(skillet_env: Path):
         from skillet.show import show
@@ -194,7 +197,7 @@ def describe_show():
 
         result = show("no-cache")
 
-        assert result["name"] == "no-cache"
-        assert len(result["evals"]) == 1
-        assert result["evals"][0]["iterations"] == []
-        assert result["evals"][0]["pass_rate"] is None
+        assert result.name == "no-cache"
+        assert len(result.evals) == 1
+        assert result.evals[0].iterations == []
+        assert result.evals[0].pass_rate is None
