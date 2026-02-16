@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - CONTRIBUTING.md with development setup, testing, code style, and PR guidelines
 
+### Changed
+- Eval script confirmation prompt now shows full script content (up to 10 lines) instead of only the first line
+- Cache hashing uses SHA-256 instead of MD5 (invalidates existing eval caches)
+- Prompt template loading uses `safe_substitute` — unrecognized `$`-patterns in eval content pass through instead of raising
+- Isolated eval HOME copies only root-level credential files from `~/.claude` instead of symlinking the entire directory
+- Bandit subprocess suppressions (B603, B607) scoped to inline comments instead of global skip list
+
 ### Fixed
 - Bump cachetta minimum to 0.6.0 for pickle deserialization security fix
 

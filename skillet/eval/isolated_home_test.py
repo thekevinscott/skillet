@@ -21,26 +21,46 @@ def describe_isolated_home():
         # After context exits, directory should be gone
         assert not temp_path.exists()
 
-    def it_symlinks_claude_dir_if_exists(monkeypatch):
+    def it_copies_claude_files_into_real_directory(monkeypatch):
+        """Root-level files from ~/.claude are copied (not symlinked)."""
         with tempfile.TemporaryDirectory() as fake_home:
-            # Create a fake .claude directory
             claude_dir = Path(fake_home) / ".claude"
             claude_dir.mkdir()
-            (claude_dir / "config.json").write_text("{}")
+            (claude_dir / "config.json").write_text('{"key": "value"}')
+            (claude_dir / "credentials").write_text("token123")
 
             monkeypatch.setenv("HOME", fake_home)
             with isolated_home() as home_dir:
                 isolated_claude = Path(home_dir) / ".claude"
                 assert isolated_claude.exists()
-                assert isolated_claude.is_symlink()
-                assert isolated_claude.resolve() == claude_dir.resolve()
+                assert isolated_claude.is_dir()
+                assert not isolated_claude.is_symlink()
+                # Files were copied
+                assert (isolated_claude / "config.json").read_text() == '{"key": "value"}'
+                assert (isolated_claude / "credentials").read_text() == "token123"
 
-    def it_does_not_create_symlink_when_claude_dir_missing(monkeypatch):
-        """Test that no symlink is created when ~/.claude doesn't exist."""
+    def it_excludes_subdirectories_from_claude_copy(monkeypatch):
+        """Subdirectories like commands/ and agents/ are not copied."""
         with tempfile.TemporaryDirectory() as fake_home:
-            # Do NOT create a .claude directory
+            claude_dir = Path(fake_home) / ".claude"
+            claude_dir.mkdir()
+            (claude_dir / "config.json").write_text("{}")
+            (claude_dir / "commands").mkdir()
+            (claude_dir / "commands" / "cmd.py").write_text("pass")
+            (claude_dir / "agents").mkdir()
+            (claude_dir / "agents" / "agent.py").write_text("pass")
+
             monkeypatch.setenv("HOME", fake_home)
             with isolated_home() as home_dir:
                 isolated_claude = Path(home_dir) / ".claude"
-                # Should not exist since there's no real .claude to link to
+                assert (isolated_claude / "config.json").exists()
+                assert not (isolated_claude / "commands").exists()
+                assert not (isolated_claude / "agents").exists()
+
+    def it_does_not_create_claude_dir_when_missing(monkeypatch):
+        """No .claude directory is created when ~/.claude doesn't exist."""
+        with tempfile.TemporaryDirectory() as fake_home:
+            monkeypatch.setenv("HOME", fake_home)
+            with isolated_home() as home_dir:
+                isolated_claude = Path(home_dir) / ".claude"
                 assert not isolated_claude.exists()

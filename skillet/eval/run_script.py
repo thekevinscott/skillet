@@ -13,23 +13,12 @@ def run_script(
     cwd: str | None = None,
     timeout: int = DEFAULT_SCRIPT_TIMEOUT,
 ) -> tuple[int, str, str]:
-    """Run a setup or teardown script with the isolated HOME.
-
-    Args:
-        script: Shell script to execute
-        home_dir: HOME directory to use
-        cwd: Working directory for script execution
-        timeout: Maximum time in seconds before killing the script
-
-    Returns:
-        Tuple of (return_code, stdout, stderr)
-        Returns (-1, "", error_message) on timeout
-    """
+    """Run a setup or teardown script with the isolated HOME."""
     env = os.environ.copy()
     env["HOME"] = home_dir
 
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec B603 B607
             ["bash", "-c", script],
             env=env,
             cwd=cwd,

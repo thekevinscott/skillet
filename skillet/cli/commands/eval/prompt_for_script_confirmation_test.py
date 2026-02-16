@@ -87,17 +87,32 @@ def describe_prompt_for_script_confirmation():
         calls = [str(call) for call in mock_console.print.call_args_list]
         assert any("2" in call for call in calls)
 
-    def it_truncates_long_script_lines(mock_console):
-        """Long script lines are truncated to 60 chars."""
+    def it_shows_all_lines_of_multiline_script(mock_console):
+        """All lines of a multi-line script are displayed."""
         mock_console.input.return_value = "n"
-        long_script = "x" * 100
-        scripts = [("001.yaml", "setup", long_script)]
+        script = "echo line1\necho line2\necho line3"
+        scripts = [("001.yaml", "setup", script)]
         prompt_for_script_confirmation(scripts)
         calls = [str(call) for call in mock_console.print.call_args_list]
-        # Should contain truncated version with "..."
-        assert any("..." in call for call in calls)
-        # Should not contain the full 100 char string
-        assert not any(long_script in call for call in calls)
+        assert any("echo line1" in call for call in calls)
+        assert any("echo line2" in call for call in calls)
+        assert any("echo line3" in call for call in calls)
+
+    def it_caps_display_at_max_lines(mock_console):
+        """Scripts exceeding MAX_DISPLAY_LINES show a truncation indicator."""
+        mock_console.input.return_value = "n"
+        lines = [f"echo {i}" for i in range(15)]
+        script = "\n".join(lines)
+        scripts = [("001.yaml", "setup", script)]
+        prompt_for_script_confirmation(scripts)
+        calls = [str(call) for call in mock_console.print.call_args_list]
+        # First 10 lines shown
+        assert any("echo 0" in call for call in calls)
+        assert any("echo 9" in call for call in calls)
+        # Line 10 (11th) not shown directly
+        assert not any("echo 10" in call and "cyan" in call for call in calls)
+        # Truncation indicator shown
+        assert any("5 more lines" in call for call in calls)
 
     def it_shows_trust_flag_hint(mock_console):
         """Hint about --trust flag is displayed."""
