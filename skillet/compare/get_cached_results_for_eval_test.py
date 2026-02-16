@@ -2,13 +2,17 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
+import pytest
+
+import skillet.config
 from skillet.compare.get_cached_results_for_eval import get_cached_results_for_eval
 
 
 def describe_get_cached_results_for_eval():
-    """Tests for get_cached_results_for_eval function."""
+    @pytest.fixture(autouse=True)
+    def mock_cache_dir(monkeypatch):
+        monkeypatch.setattr(skillet.config, "CACHE_DIR", Path("/tmp/fake-cache"))
 
     def it_returns_empty_for_nonexistent_cache():
         eval_item = {"_source": "test.yaml", "_content": "prompt: test\nexpected: result"}
@@ -17,11 +21,8 @@ def describe_get_cached_results_for_eval():
 
     def it_uses_baseline_path_when_no_skill():
         eval_item = {"_source": "test.yaml", "_content": "prompt: test"}
-        with patch(
-            "skillet.compare.get_cached_results_for_eval.CACHE_DIR", Path("/tmp/fake-cache")
-        ):
-            result = get_cached_results_for_eval("myevals", eval_item, None)
-            assert result == []
+        result = get_cached_results_for_eval("myevals", eval_item, None)
+        assert result == []
 
     def it_uses_skill_hash_path_when_skill_provided():
         eval_item = {"_source": "test.yaml", "_content": "prompt: test"}
@@ -29,8 +30,5 @@ def describe_get_cached_results_for_eval():
             skill_path = Path(tmpdir)
             (skill_path / "SKILL.md").write_text("# Test skill")
 
-            with patch(
-                "skillet.compare.get_cached_results_for_eval.CACHE_DIR", Path("/tmp/fake-cache")
-            ):
-                result = get_cached_results_for_eval("myevals", eval_item, skill_path)
-                assert result == []
+            result = get_cached_results_for_eval("myevals", eval_item, skill_path)
+            assert result == []
