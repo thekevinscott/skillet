@@ -110,10 +110,13 @@ Best skill saved to ~/.claude/skills/conventional-comments/SKILL.md
 ## Commands
 
 ```bash
-skillet eval <name>              # baseline eval (no skill)
-skillet eval <name> <skill>      # eval with skill
+skillet eval <name> [skill]         # run evals (baseline or with skill)
 skillet create <name>               # create skill from evals
-skillet tune <name> <skill>      # iteratively improve skill
+skillet tune <name> <skill>         # iteratively improve skill
+skillet compare <name> <skill>      # compare baseline vs skill from cache
+skillet show <name>                 # inspect cached eval results
+skillet lint <path>                 # lint a SKILL.md for common issues
+skillet generate-evals <skill>      # generate candidate evals from a skill
 ```
 
 ## Evals
@@ -161,7 +164,7 @@ result = await tune(
     Path("~/.claude/skills/conventional-comments").expanduser(),
     config=TuneConfig(max_rounds=10, target_pass_rate=90.0),
 )
-print(f"Best pass rate: {result.result.best_pass_rate}%")
+print(f"Final pass rate: {result.result.final_pass_rate}%")
 ```
 
 See the [Python API reference](https://skillet.run/reference/python-api) for all functions and options.

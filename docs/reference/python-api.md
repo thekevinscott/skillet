@@ -64,6 +64,7 @@ async def evaluate(
     "fresh_count": int,
     "total_evals": int,
     "sampled_evals": int,
+    "per_eval_metrics": list[dict],  # Per-eval pass@k and pass^k metrics
 }
 ```
 
@@ -154,7 +155,7 @@ async def main():
             target_pass_rate=90.0,
         ),
     )
-    print(f"Final pass rate: {result.result.best_pass_rate}%")
+    print(f"Final pass rate: {result.result.final_pass_rate}%")
     print(f"Rounds: {len(result.rounds)}")
 
 asyncio.run(main())
@@ -266,6 +267,88 @@ async def main():
         Path("~/.claude/skills/browser-fallback").expanduser(),
         domains=[EvalDomain.TRIGGERING],
     )
+
+asyncio.run(main())
+```
+
+### show()
+
+Retrieve cached eval results without re-running evals.
+
+```python
+def show(
+    name: str,
+    eval_source: str | None = None,
+    skill_path: Path | None = None,
+) -> dict
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | str | required | Eval set name |
+| `eval_source` | str | None | Filter to a specific eval file |
+| `skill_path` | Path | None | Show results with skill instead of baseline |
+
+**Returns:**
+
+```python
+{
+    "name": str,
+    "evals": list[{
+        "source": str,
+        "iterations": list[dict],
+        "pass_rate": float | None,
+    }],
+}
+```
+
+**Example:**
+
+```python
+from skillet.show import show
+
+results = show("conventional-comments")
+for eval_result in results["evals"]:
+    rate = eval_result["pass_rate"]
+    print(f"{eval_result['source']}: {rate:.0f}%" if rate is not None else "no data")
+```
+
+### lint_skill()
+
+Lint a SKILL.md file for common issues.
+
+```python
+async def lint_skill(
+    path: Path,
+    *,
+    include_llm: bool = True,
+) -> LintResult
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `path` | Path | required | Path to SKILL.md file |
+| `include_llm` | bool | True | Include LLM-assisted lint rules |
+
+**Returns:**
+
+A `LintResult` with `path` and `findings` (list of `LintFinding`, each with `rule`, `message`, `severity`, and optional `line`).
+
+**Example:**
+
+```python
+import asyncio
+from pathlib import Path
+from skillet.lint import lint_skill
+
+async def main():
+    result = await lint_skill(Path("~/.claude/skills/my-skill/SKILL.md").expanduser())
+    for finding in result.findings:
+        print(f"[{finding.severity.value}] {finding.rule}: {finding.message}")
 
 asyncio.run(main())
 ```

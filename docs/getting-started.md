@@ -117,6 +117,14 @@ The `tune` command iteratively:
 3. Generates an improved skill
 4. Repeats until target pass rate or max rounds
 
+## Configuration
+
+By default, Skillet stores evals, cache, and tune results in `~/.skillet/`. Set the `SKILLET_DIR` environment variable to use a different location:
+
+```bash
+export SKILLET_DIR=/path/to/my/skillet
+```
+
 ## Next Steps
 
 - [CLI Reference](/reference/cli) — All commands and flags

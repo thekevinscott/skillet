@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Docs: `result.result.best_pass_rate` in README and Python API reference corrected to `result.result.final_pass_rate`
+- Docs: added missing `show` command to CLI reference, all 7 commands to README
+- Docs: added `per_eval_metrics` to `evaluate()` return schema, `show()` and `lint_skill()` to Python API reference
+- Docs: documented `SKILLET_DIR` environment variable in getting-started guide and CLI reference
+
 ### Changed
 - Eval cache now uses [cachetta](https://pypi.org/project/cachetta/) for persistence instead of bespoke YAML serialization. Existing cached results will be invalidated
 - E2E tests: converted remaining subprocess-based tests (lint, error cases) to curtaincall PTY-based testing with exit code assertions
