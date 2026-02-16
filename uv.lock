@@ -1806,7 +1806,7 @@ crypto = [
 
 [[package]]
 name = "pyskillet"
-version = "0.2.22.dev6"
+version = "0.2.23.dev7"
 source = { editable = "." }
 dependencies = [
     { name = "cachetta" },
@@ -1835,7 +1835,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7" },
-    { name = "cachetta", specifier = ">=0.1.0" },
+    { name = "cachetta", specifier = ">=0.6.0" },
     { name = "claude-agent-sdk" },
     { name = "curtaincall", marker = "extra == 'dev'", specifier = ">=0.3.0" },
     { name = "cyclopts", specifier = ">=3.0" },

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - CONTRIBUTING.md with development setup, testing, code style, and PR guidelines
 
+### Fixed
+- Bump cachetta minimum to 0.6.0 for pickle deserialization security fix
+
 ### Changed
 - CLI: removed short flags that collided across commands — `-t` from `eval --tools` (conflicts with `tune --target`), `-p` from `create --prompt` (conflicts with `eval/tune --parallel`), `-m` from `generate-evals --max` (conflicts with `eval --max-evals`). Use the long form instead
 - Coverage threshold raised from 55% to 85% to match actual coverage floor
