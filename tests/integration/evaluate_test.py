@@ -6,6 +6,7 @@ import pytest
 
 from skillet import evaluate
 from skillet.errors import EmptyFolderError
+from skillet.eval.evaluate.result import EvaluateResult, IterationResult
 
 from .conftest import create_eval_file
 
@@ -31,10 +32,12 @@ def describe_evaluate():
 
         result = await evaluate("test-evals", samples=1, parallel=1, skip_cache=True)
 
-        assert result["total_runs"] == 2
-        assert result["sampled_evals"] == 2
-        assert result["pass_rate"] == 100.0
-        assert len(result["results"]) == 2
+        assert isinstance(result, EvaluateResult)
+        assert result.total_runs == 2
+        assert result.sampled_evals == 2
+        assert result.pass_rate == 100.0
+        assert len(result.results) == 2
+        assert all(isinstance(r, IterationResult) for r in result.results)
 
     @pytest.mark.asyncio
     async def it_evaluates_with_skill_path(skillet_env: Path, mock_claude_query):
@@ -63,8 +66,8 @@ def describe_evaluate():
             skip_cache=True,
         )
 
-        assert result["total_runs"] == 1
-        assert result["pass_rate"] == 100.0
+        assert result.total_runs == 1
+        assert result.pass_rate == 100.0
 
     @pytest.mark.asyncio
     async def it_handles_failing_judgments(skillet_env: Path, mock_claude_query):
@@ -84,9 +87,9 @@ def describe_evaluate():
 
         result = await evaluate("failing-test", samples=1, parallel=1, skip_cache=True)
 
-        assert result["total_runs"] == 2
-        assert result["pass_rate"] == 0.0
-        assert all(not r["pass"] for r in result["results"])
+        assert result.total_runs == 2
+        assert result.pass_rate == 0.0
+        assert all(not r.passed for r in result.results)
 
     @pytest.mark.asyncio
     async def it_respects_max_evals_parameter(skillet_env: Path, mock_claude_query):
@@ -106,9 +109,9 @@ def describe_evaluate():
 
         result = await evaluate("many-evals", max_evals=2, samples=1, parallel=1, skip_cache=True)
 
-        assert result["sampled_evals"] == 2
-        assert result["total_evals"] == 5
-        assert result["total_runs"] == 2
+        assert result.sampled_evals == 2
+        assert result.total_evals == 5
+        assert result.total_runs == 2
 
     @pytest.mark.asyncio
     async def it_respects_samples_parameter(skillet_env: Path, mock_claude_query):
@@ -129,8 +132,8 @@ def describe_evaluate():
 
         result = await evaluate("samples-test", samples=3, parallel=1, skip_cache=True)
 
-        assert result["sampled_evals"] == 1
-        assert result["total_runs"] == 3
+        assert result.sampled_evals == 1
+        assert result.total_runs == 3
 
     @pytest.mark.asyncio
     async def it_calls_on_status_callback(skillet_env: Path, mock_claude_query):
@@ -196,18 +199,18 @@ def describe_evaluate():
 
         result = await evaluate("metrics-test", samples=3, parallel=1, skip_cache=True)
 
-        metrics = result["per_eval_metrics"]
+        metrics = result.per_eval_metrics
         assert len(metrics) == 2
 
-        # Eval 001: n=3, c=2, k=3 → pass@3 = 1.0, pass^3 = 0.0
+        # Eval 001: n=3, c=2, k=3 -> pass@3 = 1.0, pass^3 = 0.0
         eval_001 = metrics[0]
-        assert eval_001["pass_at_k"] == 1.0
-        assert eval_001["pass_pow_k"] == 0.0
+        assert eval_001.pass_at_k == 1.0
+        assert eval_001.pass_pow_k == 0.0
 
-        # Eval 002: n=3, c=3, k=3 → pass@3 = 1.0, pass^3 = 1.0
+        # Eval 002: n=3, c=3, k=3 -> pass@3 = 1.0, pass^3 = 1.0
         eval_002 = metrics[1]
-        assert eval_002["pass_at_k"] == 1.0
-        assert eval_002["pass_pow_k"] == 1.0
+        assert eval_002.pass_at_k == 1.0
+        assert eval_002.pass_pow_k == 1.0
 
     @pytest.mark.asyncio
     async def it_handles_llm_errors_gracefully(skillet_env: Path, mock_claude_query):
@@ -224,6 +227,6 @@ def describe_evaluate():
         result = await evaluate("error-test", samples=1, parallel=1, skip_cache=True)
 
         # Should still return results, but marked as failed
-        assert result["total_runs"] == 1
-        assert result["pass_rate"] == 0.0
-        assert not result["results"][0]["pass"]
+        assert result.total_runs == 1
+        assert result.pass_rate == 0.0
+        assert not result.results[0].passed

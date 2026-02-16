@@ -49,13 +49,13 @@ async def create_command(
 
     # Output summary with tree
     console.print()
-    tree = Tree(f"[bold green]Created[/bold green] [cyan]{result['skill_dir']}/[/cyan]")
-    tree.add(f"SKILL.md [dim](draft from {result['eval_count']} evals)[/dim]")
+    tree = Tree(f"[bold green]Created[/bold green] [cyan]{result.skill_dir}/[/cyan]")
+    tree.add(f"SKILL.md [dim](draft from {result.eval_count} evals)[/dim]")
     console.print(tree)
 
     # Next steps
     console.print()
     console.print("[bold]Next steps:[/bold]")
-    console.print(f"  1. Edit [cyan]{result['skill_dir']}/SKILL.md[/cyan]")
-    console.print(f"  2. Run: [bold]skillet eval {name} {result['skill_dir']}[/bold]")
-    console.print(f"  3. Compare: [bold]skillet compare {name} {result['skill_dir']}[/bold]")
+    console.print(f"  1. Edit [cyan]{result.skill_dir}/SKILL.md[/cyan]")
+    console.print(f"  2. Run: [bold]skillet eval {name} {result.skill_dir}[/bold]")
+    console.print(f"  3. Compare: [bold]skillet compare {name} {result.skill_dir}[/bold]")

@@ -8,6 +8,7 @@ import pytest
 
 from skillet.cli.commands.create.create import create_command
 from skillet.errors import SkillError
+from skillet.skill.result import CreateSkillResult
 
 
 def describe_create_command():
@@ -27,10 +28,11 @@ def describe_create_command():
             mock_load.return_value = [
                 {"_source": "eval1.yaml", "prompt": "test", "expected": "result"}
             ]
-            mock_create.return_value = {
-                "skill_dir": Path(tmpdir) / "my-skill",
-                "eval_count": 1,
-            }
+            mock_create.return_value = CreateSkillResult(
+                skill_dir=Path(tmpdir) / "my-skill",
+                skill_content="# My Skill",
+                eval_count=1,
+            )
 
             await create_command("my-skill", Path(tmpdir))
 
@@ -68,10 +70,11 @@ def describe_create_command():
                 {"_source": "eval1.yaml", "prompt": "test", "expected": "result"}
             ]
             mock_console.input.return_value = "y"
-            mock_create.return_value = {
-                "skill_dir": skill_dir,
-                "eval_count": 1,
-            }
+            mock_create.return_value = CreateSkillResult(
+                skill_dir=skill_dir,
+                skill_content="# My Skill",
+                eval_count=1,
+            )
 
             await create_command("my-skill", Path(tmpdir))
 
@@ -114,10 +117,11 @@ def describe_create_command():
             mock_load.return_value = [
                 {"_source": "eval1.yaml", "prompt": "test", "expected": "result"}
             ]
-            mock_create.return_value = {
-                "skill_dir": Path(tmpdir) / "my-skill",
-                "eval_count": 1,
-            }
+            mock_create.return_value = CreateSkillResult(
+                skill_dir=Path(tmpdir) / "my-skill",
+                skill_content="# My Skill",
+                eval_count=1,
+            )
 
             await create_command("my-skill", Path(tmpdir), extra_prompt="Custom")
 

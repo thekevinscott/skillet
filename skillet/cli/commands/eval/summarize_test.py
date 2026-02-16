@@ -6,6 +6,7 @@ import pytest
 
 from skillet.cli.commands.eval.models import Summary
 from skillet.cli.commands.eval.summarize import summarize_responses
+from skillet.eval.evaluate.result import IterationResult
 
 
 def describe_summarize_responses():
@@ -25,8 +26,22 @@ def describe_summarize_responses():
     @pytest.mark.asyncio
     async def it_returns_formatted_bullets(mock_query_structured):
         results = [
-            {"prompt": "test1", "response": "wrong answer 1", "expected": "correct"},
-            {"prompt": "test2", "response": "wrong answer 2", "expected": "correct"},
+            IterationResult(
+                eval_idx=0,
+                eval_source="test1.yaml",
+                iteration=1,
+                response="wrong answer 1",
+                passed=False,
+                judgment={"reasoning": "bad"},
+            ),
+            IterationResult(
+                eval_idx=1,
+                eval_source="test2.yaml",
+                iteration=1,
+                response="wrong answer 2",
+                passed=False,
+                judgment={"reasoning": "bad"},
+            ),
         ]
 
         summary = await summarize_responses(results)
@@ -37,7 +52,16 @@ def describe_summarize_responses():
 
     @pytest.mark.asyncio
     async def it_formats_results_as_yaml(mock_query_structured):
-        results = [{"prompt": "test", "response": "answer", "expected": "expected"}]
+        results = [
+            IterationResult(
+                eval_idx=0,
+                eval_source="test.yaml",
+                iteration=1,
+                response="answer",
+                passed=False,
+                judgment={"reasoning": "wrong"},
+            ),
+        ]
 
         await summarize_responses(results)
 

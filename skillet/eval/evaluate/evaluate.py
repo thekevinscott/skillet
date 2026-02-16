@@ -6,6 +6,7 @@ from pathlib import Path
 
 from skillet.evals import load_evals
 
+from .result import EvaluateResult, IterationResult, PerEvalMetric
 from .run_single_eval import run_single_eval
 
 
@@ -18,22 +19,8 @@ async def evaluate(
     parallel: int = 3,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
-) -> dict:
-    """Evaluate evals in parallel, with caching.
-
-    Args:
-        name: Name of the eval set to evaluate
-        skill_path: Optional path to skill directory
-        samples: Number of iterations per eval
-        max_evals: Maximum number of evals to run (random sample)
-        allowed_tools: List of tools to allow
-        parallel: Number of parallel workers
-        on_status: Optional callback for status updates (task, state, result)
-        skip_cache: If True, skip reading from cache (still writes to cache)
-
-    Returns:
-        dict with results, pass_rate, and summary statistics
-    """
+) -> EvaluateResult:
+    """Evaluate evals in parallel, with caching."""
     import random
 
     evals_list = load_evals(name)
@@ -73,12 +60,27 @@ async def evaluate(
             )
 
     # Run all tasks
-    results = await asyncio.gather(*[run_with_semaphore(t) for t in tasks])
+    raw_results = await asyncio.gather(*[run_with_semaphore(t) for t in tasks])
+
+    # Convert raw dicts to IterationResult dataclasses
+    results = [
+        IterationResult(
+            eval_idx=r["eval_idx"],
+            eval_source=r["eval_source"],
+            iteration=r["iteration"],
+            response=r["response"],
+            passed=r["pass"],
+            tool_calls=r.get("tool_calls"),
+            judgment=r.get("judgment"),
+            cached=r.get("cached", False),
+        )
+        for r in raw_results
+    ]
 
     # Calculate stats
-    cached_count = sum(1 for r in results if r.get("cached"))
+    cached_count = sum(1 for r in results if r.cached)
     fresh_count = len(results) - cached_count
-    total_pass = sum(1 for r in results if r["pass"])
+    total_pass = sum(1 for r in results if r.passed)
     total_runs = len(results)
     pass_rate = total_pass / total_runs * 100 if total_runs > 0 else 0
 
@@ -88,34 +90,34 @@ async def evaluate(
     from skillet.metrics.pass_at_k import pass_at_k
     from skillet.metrics.pass_pow_k import pass_pow_k
 
-    evals_by_source: dict[str, list[dict]] = defaultdict(list)
+    evals_by_source: dict[str, list[IterationResult]] = defaultdict(list)
     for r in results:
-        evals_by_source[r["eval_source"]].append(r)
+        evals_by_source[r.eval_source].append(r)
 
     per_eval_metrics = []
     for source, eval_results in evals_by_source.items():
         n = len(eval_results)
-        c = sum(1 for r in eval_results if r["pass"])
+        c = sum(1 for r in eval_results if r.passed)
         per_eval_metrics.append(
-            {
-                "eval_source": source,
-                "pass_at_k": pass_at_k(n, c, samples),
-                "pass_pow_k": pass_pow_k(n, c, samples),
-                "k": samples,
-                "n": n,
-                "c": c,
-            }
+            PerEvalMetric(
+                eval_source=source,
+                pass_at_k=pass_at_k(n, c, samples),
+                pass_pow_k=pass_pow_k(n, c, samples),
+                k=samples,
+                n=n,
+                c=c,
+            )
         )
 
-    return {
-        "results": results,
-        "tasks": tasks,
-        "pass_rate": pass_rate,
-        "total_runs": total_runs,
-        "total_pass": total_pass,
-        "cached_count": cached_count,
-        "fresh_count": fresh_count,
-        "total_evals": total_evals,
-        "sampled_evals": len(evals_list),
-        "per_eval_metrics": per_eval_metrics,
-    }
+    return EvaluateResult(
+        results=results,
+        tasks=tasks,
+        pass_rate=pass_rate,
+        total_runs=total_runs,
+        total_pass=total_pass,
+        cached_count=cached_count,
+        fresh_count=fresh_count,
+        total_evals=total_evals,
+        sampled_evals=len(evals_list),
+        per_eval_metrics=per_eval_metrics,
+    )

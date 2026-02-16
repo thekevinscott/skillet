@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from skillet.cli.commands.eval.eval import eval_command
+from skillet.eval.evaluate.result import EvaluateResult, IterationResult
 
 
 def describe_eval_command():
@@ -39,17 +40,40 @@ def describe_eval_command():
     def mock_evaluate():
         """Mock evaluate function."""
         with patch("skillet.cli.commands.eval.eval.evaluate") as mock:
-            mock.return_value = {
-                "sampled_evals": 1,
-                "total_evals": 1,
-                "total_runs": 3,
-                "total_pass": 2,
-                "pass_rate": 66.7,
-                "cached_count": 0,
-                "fresh_count": 3,
-                "results": [{"pass": True}, {"pass": True}, {"pass": False}],
-                "per_eval_metrics": [],
-            }
+            mock.return_value = EvaluateResult(
+                sampled_evals=1,
+                total_evals=1,
+                total_runs=3,
+                total_pass=2,
+                pass_rate=66.7,
+                cached_count=0,
+                fresh_count=3,
+                results=[
+                    IterationResult(
+                        eval_idx=0,
+                        eval_source="test.yaml",
+                        iteration=1,
+                        response="r1",
+                        passed=True,
+                    ),
+                    IterationResult(
+                        eval_idx=0,
+                        eval_source="test.yaml",
+                        iteration=2,
+                        response="r2",
+                        passed=True,
+                    ),
+                    IterationResult(
+                        eval_idx=0,
+                        eval_source="test.yaml",
+                        iteration=3,
+                        response="r3",
+                        passed=False,
+                    ),
+                ],
+                per_eval_metrics=[],
+                tasks=[],
+            )
             yield mock
 
     @pytest.fixture(autouse=True)
@@ -143,4 +167,4 @@ def describe_eval_command():
         # Should be called with the failing results
         call_args = mock_summarize.call_args[0][0]
         assert len(call_args) == 1
-        assert call_args[0]["pass"] is False
+        assert call_args[0].passed is False

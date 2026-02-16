@@ -8,6 +8,7 @@ from rich.table import Table
 from skillet.cli import console
 from skillet.cli.display.get_rate_color import get_rate_color
 from skillet.show import show
+from skillet.show.result import ShowResult
 
 RESPONSE_PREVIEW_LENGTH = 200
 
@@ -22,36 +23,36 @@ def show_command(name: str, eval_source: str | None = None, skill_path: Path | N
         _print_summary(result)
 
 
-def _print_summary(result: dict):
+def _print_summary(result: ShowResult):
     """Print summary table of all evals."""
-    table = Table(title=f"Cached Results: {result['name']}")
+    table = Table(title=f"Cached Results: {result.name}")
     table.add_column("Eval", style="cyan")
     table.add_column("Iterations", justify="right")
     table.add_column("Pass Rate", justify="right")
 
-    for eval_data in result["evals"]:
-        count = len(eval_data["iterations"])
-        if eval_data["pass_rate"] is not None:
-            color = get_rate_color(eval_data["pass_rate"])
-            rate_str = f"[{color}]{eval_data['pass_rate']:.0f}%[/{color}]"
+    for eval_data in result.evals:
+        count = len(eval_data.iterations)
+        if eval_data.pass_rate is not None:
+            color = get_rate_color(eval_data.pass_rate)
+            rate_str = f"[{color}]{eval_data.pass_rate:.0f}%[/{color}]"
         else:
             rate_str = "[dim]-[/dim]"
 
-        table.add_row(eval_data["source"], str(count), rate_str)
+        table.add_row(eval_data.source, str(count), rate_str)
 
     console.print(table)
 
 
-def _print_detail(result: dict):
+def _print_detail(result: ShowResult):
     """Print detailed iteration results for filtered evals."""
-    for eval_data in result["evals"]:
-        console.print(f"\n[bold cyan]{eval_data['source']}[/bold cyan]")
+    for eval_data in result.evals:
+        console.print(f"\n[bold cyan]{eval_data.source}[/bold cyan]")
 
-        if not eval_data["iterations"]:
+        if not eval_data.iterations:
             console.print("[dim]No cached results[/dim]")
             continue
 
-        for it in eval_data["iterations"]:
+        for it in eval_data.iterations:
             status = "[green]PASS[/green]" if it.get("pass") else "[red]FAIL[/red]"
             console.print(f"\n  Iteration {it.get('iteration', '?')}  {status}")
 

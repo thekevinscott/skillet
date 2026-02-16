@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from skillet.cli.commands.compare import compare_command, format_delta
+from skillet.compare.result import CompareEvalResult, CompareResult
 
 
 def describe_format_delta():
@@ -42,17 +43,22 @@ def describe_compare_command():
     """Tests for compare_command function."""
 
     def it_prints_comparison_table(capsys):
-        mock_result = {
-            "name": "test-evals",
-            "results": [
-                {"source": "001.yaml", "baseline": 80.0, "skill": 90.0},
-                {"source": "002.yaml", "baseline": 60.0, "skill": 70.0},
+        mock_result = CompareResult(
+            name="test-evals",
+            skill_path=Path("/tmp"),
+            results=[
+                CompareEvalResult(source="001.yaml", baseline=80.0, skill=90.0),
+                CompareEvalResult(source="002.yaml", baseline=60.0, skill=70.0),
             ],
-            "overall_baseline": 70.0,
-            "overall_skill": 80.0,
-            "missing_baseline": [],
-            "missing_skill": [],
-        }
+            overall_baseline=70.0,
+            overall_skill=80.0,
+            baseline_total=4,
+            baseline_pass=3,
+            skill_total=4,
+            skill_pass=3,
+            missing_baseline=[],
+            missing_skill=[],
+        )
 
         with (
             tempfile.TemporaryDirectory() as tmpdir,
@@ -68,14 +74,19 @@ def describe_compare_command():
             assert "Overall" in captured.out
 
     def it_warns_about_missing_baseline(capsys):
-        mock_result = {
-            "name": "test-evals",
-            "results": [{"source": "001.yaml", "baseline": None, "skill": 90.0}],
-            "overall_baseline": None,
-            "overall_skill": 90.0,
-            "missing_baseline": ["001.yaml"],
-            "missing_skill": [],
-        }
+        mock_result = CompareResult(
+            name="test-evals",
+            skill_path=Path("/tmp"),
+            results=[CompareEvalResult(source="001.yaml", baseline=None, skill=90.0)],
+            overall_baseline=None,
+            overall_skill=90.0,
+            baseline_total=0,
+            baseline_pass=0,
+            skill_total=1,
+            skill_pass=1,
+            missing_baseline=["001.yaml"],
+            missing_skill=[],
+        )
 
         with (
             tempfile.TemporaryDirectory() as tmpdir,
@@ -90,14 +101,19 @@ def describe_compare_command():
             assert "skillet eval" in captured.out
 
     def it_warns_about_missing_skill(capsys):
-        mock_result = {
-            "name": "test-evals",
-            "results": [{"source": "001.yaml", "baseline": 80.0, "skill": None}],
-            "overall_baseline": 80.0,
-            "overall_skill": None,
-            "missing_baseline": [],
-            "missing_skill": ["001.yaml"],
-        }
+        mock_result = CompareResult(
+            name="test-evals",
+            skill_path=Path("/tmp"),
+            results=[CompareEvalResult(source="001.yaml", baseline=80.0, skill=None)],
+            overall_baseline=80.0,
+            overall_skill=None,
+            baseline_total=1,
+            baseline_pass=1,
+            skill_total=0,
+            skill_pass=0,
+            missing_baseline=[],
+            missing_skill=["001.yaml"],
+        )
 
         with (
             tempfile.TemporaryDirectory() as tmpdir,

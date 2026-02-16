@@ -7,14 +7,11 @@ from skillet.evals import load_evals
 
 from .calculate_pass_rate import calculate_pass_rate
 from .get_cached_results_for_eval import get_cached_results_for_eval
+from .result import CompareEvalResult, CompareResult
 
 
-def compare(name: str, skill_path: Path) -> dict:
-    """Compare baseline vs skill results from cache.
-
-    Returns:
-        dict with per-eval results, overall stats, and warnings
-    """
+def compare(name: str, skill_path: Path) -> CompareResult:
+    """Compare baseline vs skill results from cache."""
     evals = load_evals(name)
 
     if not evals:
@@ -49,27 +46,27 @@ def compare(name: str, skill_path: Path) -> dict:
             skill_pass += sum(1 for it in skill_iters if it.get("pass"))
 
         results.append(
-            {
-                "source": eval_item["_source"],
-                "baseline": baseline_rate,
-                "skill": skill_rate,
-            }
+            CompareEvalResult(
+                source=eval_item["_source"],
+                baseline=baseline_rate,
+                skill=skill_rate,
+            )
         )
 
     # Calculate overall rates
     overall_baseline = baseline_pass / baseline_total * 100 if baseline_total > 0 else None
     overall_skill = skill_pass / skill_total * 100 if skill_total > 0 else None
 
-    return {
-        "name": name,
-        "skill_path": skill_path,
-        "results": results,
-        "overall_baseline": overall_baseline,
-        "overall_skill": overall_skill,
-        "baseline_total": baseline_total,
-        "baseline_pass": baseline_pass,
-        "skill_total": skill_total,
-        "skill_pass": skill_pass,
-        "missing_baseline": missing_baseline,
-        "missing_skill": missing_skill,
-    }
+    return CompareResult(
+        name=name,
+        skill_path=skill_path,
+        results=results,
+        overall_baseline=overall_baseline,
+        overall_skill=overall_skill,
+        baseline_total=baseline_total,
+        baseline_pass=baseline_pass,
+        skill_total=skill_total,
+        skill_pass=skill_pass,
+        missing_baseline=missing_baseline,
+        missing_skill=missing_skill,
+    )

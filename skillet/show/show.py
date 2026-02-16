@@ -5,8 +5,10 @@ from pathlib import Path
 from skillet._internal.cache import get_all_cached_results
 from skillet.evals import load_evals
 
+from .result import ShowEvalResult, ShowResult
 
-def show(name: str, eval_source: str | None = None, skill_path: Path | None = None) -> dict:
+
+def show(name: str, eval_source: str | None = None, skill_path: Path | None = None) -> ShowResult:
     """Return cached results for an eval set, grouped by eval source."""
     evals = load_evals(name)
     cached = get_all_cached_results(name, skill_path=skill_path)
@@ -22,11 +24,11 @@ def show(name: str, eval_source: str | None = None, skill_path: Path | None = No
         pass_rate = pass_count / total * 100 if total > 0 else None
 
         eval_results.append(
-            {
-                "source": source,
-                "iterations": iterations,
-                "pass_rate": pass_rate,
-            }
+            ShowEvalResult(
+                source=source,
+                iterations=iterations,
+                pass_rate=pass_rate,
+            )
         )
 
-    return {"name": name, "evals": eval_results}
+    return ShowResult(name=name, evals=eval_results)
