@@ -2,7 +2,8 @@
 
 from pathlib import Path
 
-from .get_cache_dir import CACHE_DIR
+from skillet import config
+
 from .get_cached_iterations import get_cached_iterations
 from .hash_directory import hash_directory
 from .normalize_cache_name import normalize_cache_name
@@ -13,7 +14,7 @@ def get_all_cached_results(name: str, skill_path: Path | None = None) -> dict[st
 
     Returns: {"001.yaml": [iter1, iter2, ...], "002.yaml": [...], ...}
     """
-    cache_base = CACHE_DIR / normalize_cache_name(name)
+    cache_base = config.CACHE_DIR / normalize_cache_name(name)
     if not cache_base.exists():
         return {}
 
