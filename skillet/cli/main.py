@@ -98,8 +98,8 @@ async def tune(
     Runs evals, analyzes failures, improves the skill, and repeats
     until the target pass rate is reached or max rounds hit.
 
-    The original skill file is NOT modified. All iterations are tracked
-    and the best version is saved in the output JSON.
+    The skill file is updated with the best version after tuning completes.
+    All iterations are also saved in the output JSON.
 
     Results are saved to ~/.skillet/tunes/{eval_name}/{timestamp}.json by default.
 

@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docs: conceptual guides — Skills vs Agents, Capability vs Regression Evals, Balanced Problem Sets
 - README: inline Python API examples for `evaluate()` and `tune()`
 
+### Fixed
+- `skillet tune` no longer overwrites the original skill file during iteration — the file is only updated with the best version after tuning completes
+
 ### Changed
 - `resolve_skill_path` now accepts any file when passed directly, not just `SKILL.md`. Directory resolution still looks for `SKILL.md` by convention
 - Dev dependency: added `curtaincall>=0.2.0` for PTY-based terminal testing of CLI output
