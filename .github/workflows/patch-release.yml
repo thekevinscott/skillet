@@ -9,12 +9,33 @@ on:
   workflow_dispatch:
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.decide.outputs.should_release }}
+    steps:
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          STRATEGY: ${{ vars.RELEASE_STRATEGY }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "schedule" ] && [ "$STRATEGY" != "immediate" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "push" ] && [ "$STRATEGY" = "immediate" ]; then
+            case "$COMMIT_MSG" in
+              *'[no-release]'*) echo "should_release=false" >> "$GITHUB_OUTPUT" ;;
+              *) echo "should_release=true" >> "$GITHUB_OUTPUT" ;;
+            esac
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'schedule' && vars.RELEASE_STRATEGY != 'immediate') ||
-      (github.event_name == 'push' && vars.RELEASE_STRATEGY == 'immediate'
-       && !contains(github.event.head_commit.message, '[no-release]'))
+    needs: check
+    if: needs.check.outputs.should_release == 'true'
     uses: ./.github/workflows/publish.yml
     with:
       bump_type: patch
