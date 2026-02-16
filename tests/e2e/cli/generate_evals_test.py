@@ -1,7 +1,5 @@
 """End-to-end tests for the `skillet generate-evals` command."""
 
-import subprocess
-import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -10,7 +8,7 @@ from curtaincall import Terminal, expect
 
 PIRATE_FIXTURES = Path(__file__).parent.parent / "__fixtures__" / "tune-test"
 COMPLEX_SKILL_FIXTURES = Path(__file__).parent.parent.parent / "__fixtures__"
-SKILLET = f"{sys.executable} -m skillet.cli.main"
+SKILLET = "skillet"
 
 VALID_SKILL = """\
 ---
@@ -73,39 +71,22 @@ def describe_skillet_generate_evals():
         yaml_files = list(output_dir.rglob("*.yaml"))
         assert len(yaml_files) > 0, "No eval files generated"
 
-    def it_fails_for_nonexistent_skill_path():
+    def it_fails_for_nonexistent_skill_path(
+        terminal: Callable[..., Terminal],
+    ):
         """Exits with error for a missing skill path."""
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "skillet.cli.main",
-                "generate-evals",
-                "/nonexistent/path/SKILL.md",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
+        term = terminal(f"{SKILLET} generate-evals /nonexistent/path/SKILL.md")
+        expect(term).to_have_exited()
+        assert term.exit_code != 0
 
-        assert result.returncode != 0
-
-    def it_fails_for_directory_without_skill_md(tmp_path: Path):
+    def it_fails_for_directory_without_skill_md(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
         """Exits with error when directory lacks SKILL.md."""
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "skillet.cli.main",
-                "generate-evals",
-                str(tmp_path),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-
-        assert result.returncode != 0
+        term = terminal(f"{SKILLET} generate-evals {tmp_path}")
+        expect(term).to_have_exited()
+        assert term.exit_code != 0
 
     @pytest.mark.asyncio
     async def it_assigns_domains_to_generated_evals(

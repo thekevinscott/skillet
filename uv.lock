@@ -524,15 +524,15 @@ wheels = [
 
 [[package]]
 name = "curtaincall"
-version = "0.2.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pexpect" },
     { name = "pyte" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/90/c67430f4abd9dfdfc11103ea89aef303e4a787d2a4111451e478bfbcf9ee/curtaincall-0.2.0.tar.gz", hash = "sha256:7c63c32e018235a0ac908f1baae78d1f55d48f51f0868ac3ea7789c4869dc60d", size = 67500 }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/12/056a3c89fcbc135b15a7cef872472a73bdad3594ddfccbe11b9a028b2f5f/curtaincall-0.3.0.tar.gz", hash = "sha256:afc9e9ce00a256982d69a737976527d38217082ca79fcafcf381fa2cd2bba041", size = 68784 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dc/74/7227d5a32e7c705c197cdd6afe6a3815427c580293a4509f607a002fffc0/curtaincall-0.2.0-py3-none-any.whl", hash = "sha256:40d3f5a2fe38063b96982c7b598ad3e0e8450dd48da7ed576d8e1e2332f11d59", size = 20754 },
+    { url = "https://files.pythonhosted.org/packages/f8/52/1092ca83246b88a880f2fe35e38919b9e069c0ce97708880c4234ab72c32/curtaincall-0.3.0-py3-none-any.whl", hash = "sha256:4a754fa4a8ad726a00ec24ebb545f8f5a34a0f8d159936845d125bfeb2dfb652", size = 21504 },
 ]
 
 [[package]]
@@ -1806,7 +1806,7 @@ crypto = [
 
 [[package]]
 name = "pyskillet"
-version = "0.2.22.dev5"
+version = "0.2.22.dev6"
 source = { editable = "." }
 dependencies = [
     { name = "cachetta" },
@@ -1837,7 +1837,7 @@ requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7" },
     { name = "cachetta", specifier = ">=0.1.0" },
     { name = "claude-agent-sdk" },
-    { name = "curtaincall", marker = "extra == 'dev'", specifier = ">=0.2.0" },
+    { name = "curtaincall", marker = "extra == 'dev'", specifier = ">=0.3.0" },
     { name = "cyclopts", specifier = ">=3.0" },
     { name = "dspy", specifier = ">=2.6" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0" },

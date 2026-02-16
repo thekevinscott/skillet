@@ -1,7 +1,5 @@
 """End-to-end tests for the `skillet eval` command."""
 
-import subprocess
-import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -9,7 +7,7 @@ import pytest
 from curtaincall import Terminal, expect
 
 PIRATE_FIXTURES = Path(__file__).parent.parent / "__fixtures__" / "tune-test"
-SKILLET = f"{sys.executable} -m skillet.cli.main"
+SKILLET = "skillet"
 
 
 def _setup_eval_env(tmp_path: Path) -> Path:
@@ -98,20 +96,10 @@ def describe_skillet_eval():
         expect(term.get_by_text("pass@3")).to_be_visible()
         expect(term.get_by_text("pass^3")).to_be_visible()
 
-    def it_fails_for_nonexistent_eval_directory():
+    def it_fails_for_nonexistent_eval_directory(
+        terminal: Callable[..., Terminal],
+    ):
         """Exits with error for a missing eval directory."""
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "skillet.cli.main",
-                "eval",
-                "/nonexistent/path/to/evals",
-                "--trust",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-
-        assert result.returncode != 0
+        term = terminal(f"{SKILLET} eval /nonexistent/path/to/evals --trust")
+        expect(term).to_have_exited()
+        assert term.exit_code != 0
