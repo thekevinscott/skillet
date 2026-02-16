@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Code-based assertions for eval grading: deterministic `contains`, `not_contains`, `regex`, `starts_with`, `ends_with`, `tool_called`, and `tool_not_called` checks that skip LLM judge when present in eval YAML
 - CONTRIBUTING.md with development setup, testing, code style, and PR guidelines
 
 ### Fixed

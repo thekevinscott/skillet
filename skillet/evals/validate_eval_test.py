@@ -33,3 +33,57 @@ def describe_validate_eval():
         with pytest.raises(EvalValidationError, match="expected") as exc_info:
             validate_eval(eval_data, "test.yaml")
         assert "name" in str(exc_info.value)
+
+    def it_passes_with_valid_assertions():
+        eval_data = {
+            "timestamp": "2024-01-01",
+            "prompt": "test",
+            "expected": "expected",
+            "name": "test",
+            "assertions": [{"type": "contains", "value": "hello"}],
+        }
+        validate_eval(eval_data, "test.yaml")
+
+    def it_raises_for_non_list_assertions():
+        eval_data = {
+            "timestamp": "2024-01-01",
+            "prompt": "test",
+            "expected": "expected",
+            "name": "test",
+            "assertions": "not a list",
+        }
+        with pytest.raises(EvalValidationError, match="must be a list"):
+            validate_eval(eval_data, "test.yaml")
+
+    def it_raises_for_assertion_missing_type():
+        eval_data = {
+            "timestamp": "2024-01-01",
+            "prompt": "test",
+            "expected": "expected",
+            "name": "test",
+            "assertions": [{"value": "hello"}],
+        }
+        with pytest.raises(EvalValidationError, match="missing required field 'type'"):
+            validate_eval(eval_data, "test.yaml")
+
+    def it_raises_for_assertion_missing_value():
+        eval_data = {
+            "timestamp": "2024-01-01",
+            "prompt": "test",
+            "expected": "expected",
+            "name": "test",
+            "assertions": [{"type": "contains"}],
+        }
+        with pytest.raises(EvalValidationError, match="missing required field 'value'"):
+            validate_eval(eval_data, "test.yaml")
+
+    def it_raises_for_invalid_assertion_type():
+        eval_data = {
+            "timestamp": "2024-01-01",
+            "prompt": "test",
+            "expected": "expected",
+            "name": "test",
+            "assertions": [{"type": "invalid_type", "value": "x"}],
+        }
+        with pytest.raises(EvalValidationError, match="invalid type 'invalid_type'"):
+            validate_eval(eval_data, "test.yaml")

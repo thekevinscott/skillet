@@ -2,7 +2,7 @@
 
 from .evaluate import EvaluateResult, IterationResult, PerEvalMetric, evaluate, run_single_eval
 from .isolated_home import isolated_home
-from .judge import judge_response
+from .judge import judge_response, run_assertions
 from .run_prompt import run_prompt
 from .run_script import run_script
 
@@ -13,6 +13,7 @@ __all__ = [
     "evaluate",
     "isolated_home",
     "judge_response",
+    "run_assertions",
     "run_prompt",
     "run_script",
     "run_single_eval",

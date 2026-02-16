@@ -155,6 +155,39 @@ def describe_skillet_eval():
         expect(term.get_by_text(re.compile(r"\d+ evals"))).to_be_visible(timeout=300)
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
 
+    @pytest.mark.asyncio
+    async def it_evaluates_with_code_assertions(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
+        """Runs eval with code-based assertions instead of LLM judge."""
+        evals_dir = tmp_path / "evals" / "assertions"
+        evals_dir.mkdir(parents=True)
+
+        # Create a skill that always says "Ahoy" in pirate style
+        skill_dir = tmp_path / "skills"
+        skill_dir.mkdir()
+        skill_file = skill_dir / "pirate.md"
+        pirate_skill = PIRATE_FIXTURES / ".claude" / "commands" / "pirate.md"
+        skill_file.write_text(pirate_skill.read_text())
+
+        # Eval with assertions: checks the response contains pirate-like language
+        eval_file = evals_dir / "001-greeting.yaml"
+        eval_file.write_text(
+            "timestamp: 2025-01-02T00:00:00Z\n"
+            'prompt: "/pirate Say hello"\n'
+            'expected: "Response uses pirate language"\n'
+            "name: pirate\n"
+            "assertions:\n"
+            "  - type: regex\n"
+            '    value: "(?i)(ahoy|arr|matey|ye|pirate|sail|sea|ship|captain)"\n'
+        )
+
+        term = terminal(
+            f"{SKILLET} eval {evals_dir} {skill_file} --samples 1 --parallel 1 --skip-cache --trust"
+        )
+        expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
+
     def it_fails_for_nonexistent_eval_directory(
         terminal: Callable[..., Terminal],
     ):
