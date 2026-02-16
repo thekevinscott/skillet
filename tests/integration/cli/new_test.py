@@ -7,16 +7,6 @@ import pytest
 from skillet.errors import EmptyFolderError, EvalValidationError, SkillError
 from skillet.skill.create import create_skill
 
-VALID_SKILL_RESPONSE = """---
-name: test-skill
-description: A test skill for integration testing
----
-
-# Test Skill
-
-Instructions for the test skill.
-"""
-
 
 def _create_eval_file(path: Path, **overrides) -> None:
     """Create a valid eval YAML file with optional field overrides."""
@@ -32,21 +22,15 @@ def _create_eval_file(path: Path, **overrides) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
-@pytest.fixture
-def skillet_env(tmp_path: Path, monkeypatch):
-    """Set up isolated SKILLET_DIR for testing."""
-    skillet_dir = tmp_path / ".skillet"
-    skillet_dir.mkdir()
-    (skillet_dir / "evals").mkdir()
+VALID_SKILL_RESPONSE = """---
+name: test-skill
+description: A test skill for integration testing
+---
 
-    # Patch SKILLET_DIR in all modules that import it
-    import skillet.config
-    import skillet.evals.load
+# Test Skill
 
-    monkeypatch.setattr(skillet.config, "SKILLET_DIR", skillet_dir)
-    monkeypatch.setattr(skillet.evals.load, "SKILLET_DIR", skillet_dir)
-
-    return tmp_path
+Instructions for the test skill.
+"""
 
 
 def describe_create_skill():
