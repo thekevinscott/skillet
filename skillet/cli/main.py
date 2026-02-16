@@ -1,4 +1,5 @@
 """skillet CLI - evaluation-driven Claude Code skill development."""
+# skillet: allow-multiple-public-callables
 
 from pathlib import Path
 from typing import Annotated

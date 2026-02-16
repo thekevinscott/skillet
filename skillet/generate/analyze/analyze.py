@@ -1,4 +1,5 @@
 """Static analysis of SKILL.md files."""
+# skillet: allow-multiple-public-callables
 
 from dataclasses import dataclass, field
 from pathlib import Path

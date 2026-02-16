@@ -1,4 +1,5 @@
 """LLM-as-judge for evaluating responses against expected behavior."""
+# skillet: allow-multiple-public-callables
 
 from pathlib import Path
 

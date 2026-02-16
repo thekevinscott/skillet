@@ -1,4 +1,5 @@
 """Lint rules for skill naming conventions."""
+# skillet: allow-multiple-public-callables
 
 import re
 

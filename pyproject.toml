@@ -84,7 +84,7 @@ local_scheme = "no-local-version"
 packages = ["skillet"]
 
 [tool.pytest.ini_options]
-testpaths = ["skillet"]
+testpaths = ["skillet", "scripts"]
 python_files = ["*_test.py"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

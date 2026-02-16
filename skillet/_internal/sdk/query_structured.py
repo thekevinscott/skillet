@@ -1,4 +1,5 @@
 """Structured output queries using Claude SDK."""
+# skillet: allow-multiple-public-callables
 
 import sys
 from typing import Any

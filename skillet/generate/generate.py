@@ -1,4 +1,5 @@
 """LLM-based eval generation from skill analysis."""
+# skillet: allow-multiple-public-callables
 
 from pathlib import Path
 
