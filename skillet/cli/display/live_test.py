@@ -1,10 +1,19 @@
 """Tests for cli/display/live module."""
 
-from unittest.mock import patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
+from rich.console import Console, ConsoleDimensions
 
-from skillet.cli.display.live import CACHED, FAIL, PASS, PENDING, RUNNING, LiveDisplay
+from skillet.cli.display.live import (
+    CACHED,
+    DISPLAY_OVERHEAD,
+    FAIL,
+    PASS,
+    PENDING,
+    RUNNING,
+    LiveDisplay,
+)
 
 
 def describe_status_symbols():
@@ -227,3 +236,76 @@ def describe_LiveDisplay():
         assert "0%" in captured.out
         # Verify get_rate_color is called with correct pass rate
         mock_get_rate_color.assert_called_with(0.0)
+
+
+def describe_compact_display():
+    """Tests for compact display mode."""
+
+    def _make_tasks(eval_count: int, samples: int = 1) -> list[dict]:
+        tasks = []
+        for i in range(eval_count):
+            for s in range(samples):
+                tasks.append({"eval_idx": i, "iteration": s, "eval_source": f"eval-{i}.yaml"})
+        return tasks
+
+    def _patch_terminal_height(height: int):
+        """Mock Rich Console.size for unit tests (curtaincall is for e2e only)."""
+        return patch.object(
+            Console,
+            "size",
+            new_callable=PropertyMock,
+            return_value=ConsoleDimensions(80, height),
+        )
+
+    def it_compacts_when_evals_exceed_terminal_height():
+        with _patch_terminal_height(15):
+            tasks = _make_tasks(eval_count=15)
+            display = LiveDisplay(tasks)
+            assert display._should_compact() is True
+
+    def it_uses_detailed_mode_when_evals_fit():
+        with _patch_terminal_height(30):
+            tasks = _make_tasks(eval_count=5)
+            display = LiveDisplay(tasks)
+            assert display._should_compact() is False
+
+    def it_compacts_at_exact_boundary():
+        """Compacts when evals == available rows + 1."""
+        with _patch_terminal_height(10):
+            available = 10 - DISPLAY_OVERHEAD
+            tasks = _make_tasks(eval_count=available + 1)
+            display = LiveDisplay(tasks)
+            assert display._should_compact() is True
+
+    def it_builds_compact_table_with_single_row():
+        with _patch_terminal_height(10):
+            tasks = _make_tasks(eval_count=8, samples=2)
+            display = LiveDisplay(tasks)
+
+            display.status["0:0"] = {"state": "done", "result": {"pass": True}}
+            display.status["0:1"] = {"state": "done", "result": {"pass": True}}
+            display.status["1:0"] = {"state": "done", "result": {"pass": False}}
+            display.status["1:1"] = {"state": "running", "result": None}
+            display.status["2:0"] = {"state": "cached", "result": {"pass": True}}
+            display.status["2:1"] = {"state": "cached", "result": {"pass": False}}
+            # Rest stay pending
+
+            table = display._build_table()
+            # Compact mode: single summary row instead of 8 eval rows
+            assert table.row_count == 1
+
+    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    def it_finalize_prints_compact_summary(_mock_rate_color, capsys):
+        """finalize() should print a summary line instead of per-eval rows."""
+        with _patch_terminal_height(10):
+            tasks = _make_tasks(eval_count=8)
+            display = LiveDisplay(tasks)
+
+            for key in display.status:
+                display.status[key] = {"state": "done", "result": {"pass": True}}
+
+            display.finalize()
+            captured = capsys.readouterr()
+            assert "8 evals" in captured.out
+            # Should NOT contain individual eval filenames
+            assert "eval-0.yaml" not in captured.out
