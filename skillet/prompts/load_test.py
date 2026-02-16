@@ -22,9 +22,13 @@ def describe_load_prompt():
         assert "resp" in result
         assert "exp" in result
 
-    def it_raises_on_missing_variable():
-        with pytest.raises(KeyError):
-            load_prompt(JUDGE_TXT, prompt="test")  # missing response, tools, expected
+    def it_passes_through_unrecognized_dollar_patterns():
+        """Unrecognized $-patterns like $HOME pass through unchanged."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            txt_path = Path(tmpdir) / "test.txt"
+            txt_path.write_text("Run $HOME/bin and ${name}")
+            result = load_prompt(txt_path, name="World")
+            assert result == "Run $HOME/bin and World"
 
     def it_raises_on_missing_file():
         with pytest.raises(FileNotFoundError):

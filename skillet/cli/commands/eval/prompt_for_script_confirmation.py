@@ -2,8 +2,8 @@
 
 from skillet.cli import console
 
-# Maximum line length for script preview before truncation
-MAX_SCRIPT_LINE_LENGTH = 60
+# Maximum lines to display before showing a "... and N more lines" indicator
+MAX_DISPLAY_LINES = 10
 
 
 def prompt_for_script_confirmation(scripts: list[tuple[str, str, str]]) -> bool:
@@ -21,11 +21,13 @@ def prompt_for_script_confirmation(scripts: list[tuple[str, str, str]]) -> bool:
 
     for source, script_type, script in scripts:
         console.print(f"  [dim]{source}[/dim] ({script_type}):")
-        # Show first line or truncated script
-        first_line = script.split("\n")[0]
-        if len(first_line) > MAX_SCRIPT_LINE_LENGTH:
-            first_line = first_line[: MAX_SCRIPT_LINE_LENGTH - 3] + "..."
-        console.print(f"    [cyan]{first_line}[/cyan]")
+        lines = script.split("\n")
+        visible = lines[:MAX_DISPLAY_LINES]
+        for line in visible:
+            console.print(f"    [cyan]{line}[/cyan]")
+        remaining = len(lines) - MAX_DISPLAY_LINES
+        if remaining > 0:
+            console.print(f"    [dim]... and {remaining} more lines[/dim]")
 
     console.print()
     console.print("[dim]Use --trust to skip this prompt in the future.[/dim]")

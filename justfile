@@ -62,9 +62,9 @@ check-changelog base_ref='origin/main':
     fi
 
 # Run security scan
-# B404, B603, B607: subprocess used for running setup/teardown scripts in evals
+# B603, B607 scoped to inline nosec in run_script.py
 security:
-    uv run bandit -r skillet/ --skip B101,B105,B311,B324,B404,B603,B607 -x '*_test.py'
+    uv run bandit -r skillet/ --skip B101,B105,B311,B404 -x '*_test.py'
 
 # Run type checker
 typecheck:

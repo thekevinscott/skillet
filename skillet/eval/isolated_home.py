@@ -2,6 +2,7 @@
 
 import logging
 import os
+import shutil
 import tempfile
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -17,8 +18,9 @@ def isolated_home() -> Generator[str, None, None]:
     Creates a temporary HOME directory for isolated eval execution,
     and ensures cleanup after the eval completes.
 
-    Symlinks ~/.claude to the isolated HOME so Claude CLI can find
-    credentials while still isolating other HOME contents like ~/.skillet.
+    Copies only root-level *files* from ~/.claude (credentials, config)
+    into the isolated HOME, without exposing subdirectories like
+    commands/, agents/, or projects/.
 
     Yields:
         Path to the temporary HOME directory
@@ -26,13 +28,14 @@ def isolated_home() -> Generator[str, None, None]:
     real_home = os.environ.get("HOME", "")
 
     with tempfile.TemporaryDirectory(prefix="skillet-eval-") as home_dir:
-        # Symlink ~/.claude for credentials
         real_claude_dir = Path(real_home) / ".claude"
-        if real_claude_dir.exists():
+        if real_claude_dir.is_dir():
             isolated_claude_dir = Path(home_dir) / ".claude"
+            isolated_claude_dir.mkdir()
             try:
-                isolated_claude_dir.symlink_to(real_claude_dir)
+                for item in real_claude_dir.iterdir():
+                    if item.is_file():
+                        shutil.copy2(item, isolated_claude_dir / item.name)
             except OSError as e:
-                # Log warning but continue - eval might work without .claude
-                logger.warning(f"Could not symlink .claude directory: {e}")
+                logger.warning(f"Could not copy .claude files: {e}")
         yield home_dir
