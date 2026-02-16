@@ -1,13 +1,20 @@
-name: Patch Release (Nightly)
+name: Patch Release
 
 on:
   schedule:
     # Run at 2:00 AM UTC every day
     - cron: '0 2 * * *'
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && vars.RELEASE_STRATEGY != 'immediate') ||
+      (github.event_name == 'push' && vars.RELEASE_STRATEGY == 'immediate'
+       && !contains(github.event.head_commit.message, '[no-release]'))
     uses: ./.github/workflows/publish.yml
     with:
       bump_type: patch
