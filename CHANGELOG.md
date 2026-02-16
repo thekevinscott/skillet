@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- CONTRIBUTING.md with development setup, testing, code style, and PR guidelines
+
 ### Changed
 - CLI: removed short flags that collided across commands — `-t` from `eval --tools` (conflicts with `tune --target`), `-p` from `create --prompt` (conflicts with `eval/tune --parallel`), `-m` from `generate-evals --max` (conflicts with `eval --max-evals`). Use the long form instead
+- Coverage threshold raised from 55% to 85% to match actual coverage floor
 
 ### Fixed
 - Docs: `result.result.best_pass_rate` in README and Python API reference corrected to `result.result.final_pass_rate`
