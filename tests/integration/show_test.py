@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import yaml
-
 from .conftest import create_eval_file
 
 
@@ -15,8 +13,8 @@ def _populate_cache(
     iterations: list[dict],
     skill_path: Path | None = None,
 ):
-    """Write iteration YAML files into a cache directory."""
-    from skillet._internal.cache import eval_cache_key, hash_directory
+    """Write iteration files into a cache directory."""
+    from skillet._internal.cache import eval_cache_key, hash_directory, save_iteration
 
     eval_key = eval_cache_key(eval_source, eval_content)
     base = skillet_dir / "cache" / name / eval_key
@@ -27,11 +25,8 @@ def _populate_cache(
         skill_hash = hash_directory(skill_path)
         cache_dir = base / "skills" / skill_hash
 
-    cache_dir.mkdir(parents=True)
-
     for it in iterations:
-        with (cache_dir / f"iter-{it['iteration']}.yaml").open("w") as f:
-            yaml.dump(it, f, default_flow_style=False)
+        save_iteration(cache_dir, it["iteration"], it)
 
 
 def describe_show():

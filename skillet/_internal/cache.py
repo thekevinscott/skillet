@@ -1,14 +1,20 @@
 """Caching for eval results."""
 
 import hashlib
+from datetime import timedelta
 from pathlib import Path
 
-import yaml
+from cachetta import Cachetta, read_cache, write_cache
 
 from skillet._internal.lock import cache_lock  # noqa: F401
 from skillet.config import SKILLET_DIR
 
 CACHE_DIR = SKILLET_DIR / "cache"
+
+_iter_cache = Cachetta(
+    path=lambda cache_dir, iteration: cache_dir / f"iter-{iteration}.cache",
+    duration=timedelta(days=36500),
+)
 
 
 def hash_content(content: str) -> str:
@@ -69,20 +75,18 @@ def get_cached_iterations(cache_dir: Path) -> list[dict]:
         return []
 
     results = []
-    for f in sorted(cache_dir.glob("iter-*.yaml")):
-        with f.open() as fp:
-            results.append(yaml.safe_load(fp))
+    for f in sorted(cache_dir.glob("iter-*.cache")):
+        iteration = int(f.stem.split("-")[1])
+        with read_cache(_iter_cache, cache_dir, iteration) as data:
+            if data is not None:
+                results.append(data)
 
     return results
 
 
 def save_iteration(cache_dir: Path, iteration: int, result: dict):
     """Save a single iteration result to cache."""
-    cache_dir.mkdir(parents=True, exist_ok=True)
-
-    cache_file = cache_dir / f"iter-{iteration}.yaml"
-    with cache_file.open("w") as f:
-        yaml.dump(result, f, default_flow_style=False)
+    write_cache(_iter_cache, result, cache_dir, iteration)
 
 
 def get_all_cached_results(name: str, skill_path: Path | None = None) -> dict[str, list[dict]]:

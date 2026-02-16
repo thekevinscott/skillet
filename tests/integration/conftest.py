@@ -1,6 +1,7 @@
 """Fixtures for integration tests."""
 
 from collections.abc import AsyncGenerator
+from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -110,6 +111,32 @@ def create_eval_file(path: Path, **overrides) -> None:
 
     lines = [f"{k}: {v!r}" if isinstance(v, str) else f"{k}: {v}" for k, v in defaults.items()]
     path.write_text("\n".join(lines) + "\n")
+
+
+@pytest.fixture(autouse=True)
+def mock_cachetta():
+    """Mock cachetta to avoid depending on its pickle serialization."""
+    cache_store: dict[str, object] = {}
+
+    def mock_write(cache, data, *args, **kwargs):
+        path = cache._get_path(*args, **kwargs)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()  # Stub file so glob finds it
+        cache_store[str(path)] = data
+
+    @contextmanager
+    def mock_read(cache=None, *args, **kwargs):
+        if cache is None:
+            yield None
+        else:
+            path = cache._get_path(*args, **kwargs)
+            yield cache_store.get(str(path))
+
+    with (
+        patch("cachetta.write_cache", side_effect=mock_write),
+        patch("cachetta.read_cache", mock_read),
+    ):
+        yield
 
 
 @pytest.fixture

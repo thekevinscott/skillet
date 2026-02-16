@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Eval cache now uses [cachetta](https://pypi.org/project/cachetta/) for persistence instead of bespoke YAML serialization. Existing cached results will be invalidated
+
 ### Added
 - CLI: `skillet show <name>` command to inspect cached eval results. Use `--eval` to view detailed iteration transcripts (response, tool calls, judgment) and `--skill` to view results with a skill loaded instead of baseline
 - Docs: conceptual guides — Skills vs Agents, Capability vs Regression Evals, Balanced Problem Sets
