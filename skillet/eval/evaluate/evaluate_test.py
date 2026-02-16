@@ -414,6 +414,26 @@ def describe_evaluate():
             assert result.total_evals == 10
 
     @pytest.mark.asyncio
+    async def it_skips_load_evals_when_evals_list_provided():
+        with (
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
+        ):
+            evals = [{"prompt": "p1", "expected": "e1", "_source": "test.md", "_content": "c1"}]
+            mock_run.return_value = {
+                "pass": True,
+                "cached": False,
+                "eval_source": "test.md",
+                "eval_idx": 0,
+                "iteration": 1,
+                "response": "r",
+            }
+
+            await evaluate("test-evals", samples=1, evals_list=evals)
+
+            mock_load.assert_not_called()
+
+    @pytest.mark.asyncio
     async def it_tracks_cached_vs_fresh_counts():
         with (
             patch(f"{_EVAL}.load_evals") as mock_load,

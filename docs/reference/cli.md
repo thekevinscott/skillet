@@ -32,6 +32,7 @@ The `name` argument accepts:
 | `--parallel` | `-p` | int | 3 | Number of parallel workers |
 | `--skip-cache` | | bool | false | Skip reading from cache (still writes) |
 | `--trust` | | bool | false | Skip confirmation for setup/teardown scripts |
+| `--no-summary` | | bool | false | Skip the failure summary LLM call |
 
 ### Examples
 
@@ -59,6 +60,9 @@ skillet eval my-skill --skip-cache
 
 # Skip script confirmation prompts
 skillet eval my-skill --trust
+
+# Skip failure summary (saves one LLM call)
+skillet eval my-skill --no-summary
 
 # Restrict available tools
 skillet eval my-skill --tools "Read,Write,Bash"

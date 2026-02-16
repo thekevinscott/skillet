@@ -30,7 +30,7 @@ def _print_per_eval_metrics(eval_result: EvaluateResult, samples: int) -> None:
         console.print(f"  {m.eval_source}: pass@{k} {pak_str}, pass^{k} {ppk_str}")
 
 
-async def eval_command(
+async def eval_command(  # noqa: PLR0913
     name: str,
     skill_path: Path | None = None,
     samples: int = 3,
@@ -39,6 +39,7 @@ async def eval_command(
     parallel: int = 3,
     skip_cache: bool = False,
     trust: bool = False,
+    no_summary: bool = False,
 ):
     """Run eval command with display."""
     from skillet.evals import load_evals
@@ -85,15 +86,16 @@ async def eval_command(
 
     try:
         # Run the evaluation with live updates
+        # Pass evals_list to avoid redundant load_evals() call inside evaluate()
         eval_result = await evaluate(
             name,
             skill_path=skill_path,
             samples=samples,
-            max_evals=max_evals,
             allowed_tools=allowed_tools,
             parallel=parallel,
             on_status=on_status,
             skip_cache=skip_cache,
+            evals_list=evals,
         )
     finally:
         await display.stop()
@@ -133,7 +135,7 @@ async def eval_command(
 
     # Generate summary of failures if any
     failures = [r for r in eval_result.results if not r.passed]
-    if failures and eval_result.fresh_count > 0:
+    if failures and eval_result.fresh_count > 0 and not no_summary:
         console.print()
         console.print("[bold]What Claude did instead:[/bold]")
         summary = await summarize_responses(failures)

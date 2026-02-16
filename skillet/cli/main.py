@@ -12,7 +12,7 @@ app = App(
 
 
 @app.command
-async def eval(
+async def eval(  # noqa: PLR0913
     name: str,
     skill: Annotated[Path | None, Parameter(name="skill")] = None,
     *,
@@ -22,6 +22,7 @@ async def eval(
     parallel: Annotated[int, Parameter(name=["--parallel", "-p"])] = 3,
     skip_cache: Annotated[bool, Parameter(name=["--skip-cache"])] = False,
     trust: Annotated[bool, Parameter(name=["--trust"])] = False,
+    no_summary: Annotated[bool, Parameter(name=["--no-summary"])] = False,
 ):
     """Evaluate Claude against captured evals.
 
@@ -48,6 +49,7 @@ async def eval(
         skillet eval my-skill -p 5                                 # 5 parallel workers
         skillet eval my-skill --skip-cache                         # ignore cached results
         skillet eval my-skill --trust                              # skip script confirmation
+        skillet eval my-skill --no-summary                           # skip failure summary
     """
     from skillet.cli.commands.eval import eval_command
 
@@ -61,6 +63,7 @@ async def eval(
         parallel=parallel,
         skip_cache=skip_cache,
         trust=trust,
+        no_summary=no_summary,
     )
 
 

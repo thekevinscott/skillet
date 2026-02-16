@@ -1,11 +1,13 @@
 """Hash directory contents."""
 
+import functools
 from pathlib import Path
 
 from .hash_content import hash_content
 from .hash_file import hash_file
 
 
+@functools.lru_cache(maxsize=32)
 def hash_directory(path: Path) -> str:
     """Return hash of all files in directory (sorted, concatenated)."""
     if not path.is_dir():

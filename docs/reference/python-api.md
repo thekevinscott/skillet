@@ -35,6 +35,7 @@ async def evaluate(
     parallel: int = 3,
     on_status: Callable | None = None,
     skip_cache: bool = False,
+    evals_list: list[dict] | None = None,
 ) -> dict
 ```
 
@@ -50,6 +51,7 @@ async def evaluate(
 | `parallel` | int | 3 | Parallel workers |
 | `on_status` | Callable | None | Progress callback |
 | `skip_cache` | bool | False | Ignore cached results |
+| `evals_list` | list[dict] | None | Pre-loaded evals (skips `load_evals()` call) |
 
 **Returns:**
 
@@ -100,6 +102,7 @@ async def tune(
     skill_path: Path,
     config: TuneConfig | None = None,
     callbacks: TuneCallbacks | None = None,
+    evals_list: list[dict] | None = None,
 ) -> TuneResult
 ```
 
@@ -111,6 +114,7 @@ async def tune(
 | `skill_path` | Path | required | Path to skill |
 | `config` | TuneConfig | None | Tuning options |
 | `callbacks` | TuneCallbacks | None | Progress callbacks |
+| `evals_list` | list[dict] | None | Pre-loaded evals (skips `load_evals()` call) |
 
 **TuneConfig:**
 

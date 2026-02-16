@@ -168,3 +168,9 @@ def describe_eval_command():
         call_args = mock_summarize.call_args[0][0]
         assert len(call_args) == 1
         assert call_args[0].passed is False
+
+    @pytest.mark.asyncio
+    async def it_skips_summary_when_no_summary_flag_set(mock_summarize):
+        """Skips summarize_responses when no_summary=True."""
+        await eval_command("my-evals", no_summary=True)
+        mock_summarize.assert_not_called()

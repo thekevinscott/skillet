@@ -129,6 +129,7 @@ async def tune_command(  # noqa: C901 - complexity from inline display callbacks
         skill_path,
         config=config,
         callbacks=callbacks,
+        evals_list=evals,
     )
 
     print_tune_result(result)
