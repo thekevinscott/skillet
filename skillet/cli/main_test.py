@@ -1,5 +1,7 @@
 """Tests for cli/main module."""
 
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -99,6 +101,48 @@ def describe_create_command():
             # Output dir should include .claude/skills
             assert ".claude" in str(call_kwargs["output_dir"])
             assert "skills" in str(call_kwargs["output_dir"])
+
+
+def _get_param_line(help_text: str, long_flag: str) -> str:
+    """Extract the parameter table line for a given long flag from help output."""
+    for line in help_text.splitlines():
+        if long_flag in line:
+            return line
+    raise ValueError(f"{long_flag} not found in help output")
+
+
+def describe_short_flag_uniqueness():
+    """Each short flag letter has a single consistent meaning across commands."""
+
+    @pytest.fixture
+    def help_output():
+        """Get --help output for each command."""
+        commands = ["eval", "tune", "create", "generate-evals"]
+        outputs = {}
+        for cmd in commands:
+            result = subprocess.run(
+                [sys.executable, "-m", "skillet.cli.main", cmd, "--help"],
+                capture_output=True,
+                text=True,
+            )
+            outputs[cmd] = result.stdout
+        return outputs
+
+    def it_reserves_t_for_target_on_tune(help_output):
+        """-t means --target on tune; --tools on eval has no short flag."""
+        assert " -t" in _get_param_line(help_output["tune"], "--target")
+        assert " -t" not in _get_param_line(help_output["eval"], "--tools")
+
+    def it_reserves_p_for_parallel(help_output):
+        """-p means --parallel on eval/tune; --prompt on create has no short flag."""
+        assert " -p" in _get_param_line(help_output["eval"], "--parallel")
+        assert " -p" in _get_param_line(help_output["tune"], "--parallel")
+        assert " -p" not in _get_param_line(help_output["create"], "--prompt")
+
+    def it_reserves_m_for_max_evals(help_output):
+        """-m means --max-evals on eval; --max on generate-evals has no short flag."""
+        assert " -m" in _get_param_line(help_output["eval"], "--max-evals")
+        assert " -m" not in _get_param_line(help_output["generate-evals"], "--max ")
 
 
 def describe_main_function():
