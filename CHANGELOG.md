@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- CLI: removed short flags that collided across commands — `-t` from `eval --tools` (conflicts with `tune --target`), `-p` from `create --prompt` (conflicts with `eval/tune --parallel`), `-m` from `generate-evals --max` (conflicts with `eval --max-evals`). Use the long form instead
+
 ### Fixed
 - Docs: `result.result.best_pass_rate` in README and Python API reference corrected to `result.result.final_pass_rate`
 - Docs: added missing `show` command to CLI reference, all 7 commands to README

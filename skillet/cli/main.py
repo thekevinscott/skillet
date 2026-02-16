@@ -18,7 +18,7 @@ async def eval(
     *,
     samples: Annotated[int, Parameter(name=["--samples", "-s"])] = 3,
     max_evals: Annotated[int | None, Parameter(name=["--max-evals", "-m"])] = None,
-    tools: Annotated[str | None, Parameter(name=["--tools", "-t"])] = None,
+    tools: Annotated[str | None, Parameter(name=["--tools"])] = None,
     parallel: Annotated[int, Parameter(name=["--parallel", "-p"])] = 3,
     skip_cache: Annotated[bool, Parameter(name=["--skip-cache"])] = False,
     trust: Annotated[bool, Parameter(name=["--trust"])] = False,
@@ -128,7 +128,7 @@ async def create(
     name: str,
     *,
     dir: Annotated[Path | None, Parameter(name=["--dir", "-d"])] = None,
-    prompt: Annotated[str | None, Parameter(name=["--prompt", "-p"])] = None,
+    prompt: Annotated[str | None, Parameter(name=["--prompt"])] = None,
 ):
     """Create a new skill from captured evals.
 
@@ -139,7 +139,7 @@ async def create(
         skillet create browser-fallback                  # ~/.claude/skills/browser-fallback/
         skillet create browser-fallback -d .             # ./.claude/skills/browser-fallback/
         skillet create browser-fallback -d /tmp/myproj
-        skillet create browser-fallback -p "Be concise"
+        skillet create browser-fallback --prompt "Be concise"
     """
     from skillet.cli.commands.create import create_command
 
@@ -209,7 +209,7 @@ async def generate_evals_cmd(
     skill: Path,
     *,
     output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
-    max_per_category: Annotated[int, Parameter(name=["--max", "-m"])] = 5,
+    max_per_category: Annotated[int, Parameter(name=["--max"])] = 5,
     domain: Annotated[list[str] | None, Parameter(name=["--domain", "-d"])] = None,
 ):
     """Generate candidate evals from a SKILL.md.

@@ -28,7 +28,7 @@ The `name` argument accepts:
 |------|-------|------|---------|-------------|
 | `--samples` | `-s` | int | 3 | Number of iterations per eval |
 | `--max-evals` | `-m` | int | all | Maximum evals to run (randomly sampled) |
-| `--tools` | `-t` | str | all | Comma-separated list of allowed tools |
+| `--tools` | | str | all | Comma-separated list of allowed tools |
 | `--parallel` | `-p` | int | 3 | Number of parallel workers |
 | `--skip-cache` | | bool | false | Skip reading from cache (still writes) |
 | `--trust` | | bool | false | Skip confirmation for setup/teardown scripts |
@@ -61,7 +61,7 @@ skillet eval my-skill --skip-cache
 skillet eval my-skill --trust
 
 # Restrict available tools
-skillet eval my-skill -t "Read,Write,Bash"
+skillet eval my-skill --tools "Read,Write,Bash"
 ```
 
 ## tune
@@ -137,7 +137,7 @@ skillet create <name> [options]
 | Flag | Short | Type | Default | Description |
 |------|-------|------|---------|-------------|
 | `--dir` | `-d` | path | `~` | Base directory for output |
-| `--prompt` | `-p` | str | none | Extra prompt to customize generation |
+| `--prompt` | | str | none | Extra prompt to customize generation |
 
 Output is written to `<dir>/.claude/skills/<name>/SKILL.md`.
 
@@ -156,7 +156,7 @@ skillet create browser-fallback -d .
 skillet create browser-fallback -d /path/to/project
 
 # Add extra instructions
-skillet create browser-fallback -p "Be concise, max 20 lines"
+skillet create browser-fallback --prompt "Be concise, max 20 lines"
 ```
 
 ## generate-evals
@@ -178,7 +178,7 @@ skillet generate-evals <skill> [options]
 | Flag | Short | Type | Default | Description |
 |------|-------|------|---------|-------------|
 | `--output` | `-o` | path | auto | Output directory for candidate files |
-| `--max` | `-m` | int | 5 | Max evals per category |
+| `--max` | | int | 5 | Max evals per category |
 | `--domain` | `-d` | str | all | Filter to specific domain(s): `triggering`, `functional`, `performance` |
 
 ### Domains
@@ -203,7 +203,7 @@ skillet generate-evals ~/.claude/skills/browser-fallback
 skillet generate-evals skill/ -o ./my-evals/
 
 # Limit to 3 per category
-skillet generate-evals skill/ -m 3
+skillet generate-evals skill/ --max 3
 
 # Only triggering evals
 skillet generate-evals skill/ -d triggering
