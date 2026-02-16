@@ -1,16 +1,18 @@
-"""End-to-end tests for the `skillet show` command."""
+"""End-to-end tests for the `skillet show` command using curtaincall."""
 
 import hashlib
 import shutil
-import subprocess
 import sys
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from pathlib import Path
 
 import pytest
 import yaml
+from curtaincall import Terminal, expect
 
 from skillet._internal.cache import CACHE_DIR
+
+SKILLET = f"{sys.executable} -m skillet.cli.main"
 
 
 def _populate_cache(
@@ -69,46 +71,31 @@ def cache_dir(tmp_path: Path) -> Generator[tuple[Path, Path], None, None]:
 
 
 def describe_skillet_show():
-    def it_displays_cached_results(cache_dir: tuple[Path, Path]):
+    def it_displays_cached_results(
+        terminal: Callable[..., Terminal],
+        cache_dir: tuple[Path, Path],
+    ):
         """Shows cached eval results via the CLI."""
         evals_dir, _cache_base = cache_dir
 
-        result = subprocess.run(
-            [sys.executable, "-m", "skillet.cli.main", "show", str(evals_dir)],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        assert result.returncode == 0, (
-            f"show failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        assert "001.yaml" in result.stdout
+        term = terminal(f"{SKILLET} show {evals_dir}")
+        expect(term.get_by_text("001.yaml")).to_be_visible()
 
-    def it_displays_detail_view_with_eval_flag(cache_dir: tuple[Path, Path]):
+    def it_displays_detail_view_with_eval_flag(
+        terminal: Callable[..., Terminal],
+        cache_dir: tuple[Path, Path],
+    ):
         """Shows iteration details when --eval is specified."""
         evals_dir, _cache_base = cache_dir
 
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "skillet.cli.main",
-                "show",
-                str(evals_dir),
-                "--eval",
-                "001.yaml",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        assert result.returncode == 0, (
-            f"show --eval failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        assert "I fetched the page" in result.stdout
-        assert "WebFetch" in result.stdout
+        term = terminal(f"{SKILLET} show {evals_dir} --eval 001.yaml")
+        expect(term.get_by_text("I fetched the page")).to_be_visible()
+        expect(term.get_by_text("WebFetch")).to_be_visible()
 
-    def it_displays_skill_results_with_skill_flag(tmp_path: Path):
+    def it_displays_skill_results_with_skill_flag(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
         """Shows skill cache results when --skill is specified."""
         from skillet._internal.cache import hash_directory
 
@@ -148,26 +135,8 @@ def describe_skillet_show():
         )
 
         try:
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "skillet.cli.main",
-                    "show",
-                    str(evals_dir),
-                    "--skill",
-                    str(skill_dir),
-                    "--eval",
-                    "001.yaml",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            assert result.returncode == 0, (
-                f"show --skill failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
-            )
-            assert "skill-enhanced response" in result.stdout
+            term = terminal(f"{SKILLET} show {evals_dir} --skill {skill_dir} --eval 001.yaml")
+            expect(term.get_by_text("skill-enhanced response")).to_be_visible()
         finally:
             if cache_base.exists():
                 shutil.rmtree(cache_base)

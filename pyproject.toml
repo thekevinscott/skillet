@@ -27,6 +27,7 @@ dev = [
     "pre-commit>=4.0",
     "bandit>=1.7",
     "ty>=0.0.1a7",
+    "curtaincall>=0.2.0",
 ]
 
 [tool.ruff]
