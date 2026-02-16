@@ -10,7 +10,7 @@ from .result import EvaluateResult, IterationResult, PerEvalMetric
 from .run_single_eval import run_single_eval
 
 
-async def evaluate(
+async def evaluate(  # noqa: PLR0913
     name: str,
     skill_path: Path | None = None,
     samples: int = 3,
@@ -19,11 +19,13 @@ async def evaluate(
     parallel: int = 3,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
+    evals_list: list[dict] | None = None,
 ) -> EvaluateResult:
     """Evaluate evals in parallel, with caching."""
     import random
 
-    evals_list = load_evals(name)
+    if evals_list is None:
+        evals_list = load_evals(name)
     total_evals = len(evals_list)
 
     # Sample evals if requested

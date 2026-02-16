@@ -17,10 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `compare()` returns `CompareResult` dataclass instead of `dict`
 - `show()` returns `ShowResult` dataclass instead of `dict`
 - `create_skill()` returns `CreateSkillResult` dataclass instead of `dict`
+- Performance: `hash_directory()` caches results per-process, eliminating redundant file reads across eval iterations
+- Performance: `evaluate()` and `tune()` accept optional `evals_list` parameter, avoiding redundant YAML loading
+- Performance: package imports now use lazy loading; `import skillet` no longer triggers heavy DSPy/numpy imports
+- **Breaking:** `evals_to_trainset()` now accepts `list[dict]` (from `load_evals()`) instead of an eval name string
 
 ### Added
 - `show` function exported from `skillet` package
 - Result dataclass types: `EvaluateResult`, `IterationResult`, `PerEvalMetric`, `CompareResult`, `CompareEvalResult`, `ShowResult`, `ShowEvalResult`, `CreateSkillResult`
+- `skillet eval --no-summary` flag to skip the failure summary LLM call
 
 ### Fixed
 - Docs: `result.result.best_pass_rate` in README and Python API reference corrected to `result.result.final_pass_rate`

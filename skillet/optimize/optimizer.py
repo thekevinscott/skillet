@@ -5,6 +5,8 @@ from pathlib import Path
 import dspy
 from dspy.teleprompt.teleprompt import Teleprompter
 
+from skillet.evals import load_evals
+
 from .loaders import evals_to_trainset
 from .metric import create_skillet_metric
 from .skill_module import SkillModule
@@ -50,7 +52,7 @@ def optimize_skill(
     skill = SkillModule.from_file(skill_path)
 
     # Load evals as training data
-    trainset = evals_to_trainset(eval_name)
+    trainset = evals_to_trainset(load_evals(eval_name))
 
     # Use default optimizer if none provided
     if optimizer is None:

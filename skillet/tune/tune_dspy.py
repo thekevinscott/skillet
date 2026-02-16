@@ -30,26 +30,9 @@ async def tune_dspy(
     skill_path: Path,
     config: TuneConfig | None = None,
     callbacks: TuneCallbacks | None = None,
+    evals_list: list[dict] | None = None,
 ) -> TuneResult:
-    """Tune a skill using DSPy's MIPROv2-inspired instruction generation.
-
-    Uses DSPy's GroundedProposer to generate instruction candidates based on:
-    - The current skill content
-    - Training examples from evals
-    - Previous instruction attempts with their scores
-
-    But uses Skillet's native eval system (Claude Agent SDK) to measure pass rates,
-    ensuring accurate measurement of how the skill performs in Claude Code.
-
-    Args:
-        name: Name of eval set (path to evals directory)
-        skill_path: Path to skill file or directory
-        config: Tuning configuration (max_rounds, target_pass_rate, samples, parallel)
-        callbacks: Progress callbacks for UI updates
-
-    Returns:
-        TuneResult with all rounds and the best skill content
-    """
+    """Tune a skill using DSPy's MIPROv2-inspired instruction generation."""
     # Use defaults if not provided
     config = config or TuneConfig()
     callbacks = callbacks or TuneCallbacks()
@@ -57,8 +40,8 @@ async def tune_dspy(
     # Load skill and evals
     original_skill_file = get_skill_file(skill_path)
     original_skill_content = original_skill_file.read_text()
-    evals = load_evals(name)
-    trainset = evals_to_trainset(name)
+    evals = evals_list if evals_list is not None else load_evals(name)
+    trainset = evals_to_trainset(evals)
 
     # Create result tracker
     tune_result = TuneResult.create(

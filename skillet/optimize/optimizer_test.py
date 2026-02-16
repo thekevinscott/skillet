@@ -3,11 +3,20 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from skillet.optimize.optimizer import optimize_skill
 
 
 def describe_optimize_skill():
     """Tests for optimize_skill function."""
+
+    @pytest.fixture(autouse=True)
+    def mock_load_evals():
+        """Mock load_evals to avoid filesystem access."""
+        with patch("skillet.optimize.optimizer.load_evals") as mock:
+            mock.return_value = [{"prompt": "p", "expected": "e"}]
+            yield mock
 
     @patch("skillet.optimize.optimizer.evals_to_trainset")
     @patch("skillet.optimize.optimizer.SkillModule")
@@ -32,11 +41,13 @@ def describe_optimize_skill():
 
     @patch("skillet.optimize.optimizer.evals_to_trainset")
     @patch("skillet.optimize.optimizer.SkillModule")
-    def it_loads_evals_as_trainset(mock_skill_module, mock_evals_to_trainset):
+    def it_loads_evals_as_trainset(mock_skill_module, mock_evals_to_trainset, mock_load_evals):
         """Should load evals and convert to trainset."""
         mock_module = MagicMock()
         mock_module.get_optimized_skill.return_value = "optimized"
         mock_skill_module.from_file.return_value = mock_module
+        evals_data = [{"prompt": "p", "expected": "e"}]
+        mock_load_evals.return_value = evals_data
         mock_evals_to_trainset.return_value = []
 
         mock_optimizer = MagicMock()
@@ -48,7 +59,8 @@ def describe_optimize_skill():
             optimizer=mock_optimizer,
         )
 
-        mock_evals_to_trainset.assert_called_once_with("my-evals")
+        mock_load_evals.assert_called_once_with("my-evals")
+        mock_evals_to_trainset.assert_called_once_with(evals_data)
 
     @patch("skillet.optimize.optimizer.evals_to_trainset")
     @patch("skillet.optimize.optimizer.SkillModule")
