@@ -1,4 +1,5 @@
 """Lint rules for skill file structure."""
+# skillet: allow-multiple-public-callables
 
 import re
 

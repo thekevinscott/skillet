@@ -66,6 +66,10 @@ check-changelog base_ref='origin/main':
 security:
     uv run bandit -r skillet/ --skip B101,B105,B311,B404 -x '*_test.py'
 
+# Check one-callable-per-file convention
+check-conventions:
+    uv run python scripts/check_one_function_per_file.py
+
 # Run type checker
 typecheck:
     uv run ty check skillet/
@@ -103,6 +107,7 @@ ci:
     just lint &
     just format-check &
     just typecheck &
+    just check-conventions &
     wait
     just test-unit
 
@@ -113,6 +118,7 @@ ci-local:
     just lint &
     just format-check &
     just typecheck &
+    just check-conventions &
     wait
     just test-unit &
     just test-integration &

@@ -32,3 +32,6 @@ jobs:
 
       - name: Format check
         run: uv run just format-check
+
+      - name: Check conventions
+        run: uv run just check-conventions

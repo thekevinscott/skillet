@@ -1,4 +1,5 @@
 """Group eval tasks by eval index with attached status."""
+# skillet: allow-multiple-public-callables
 
 from typing import TypedDict
 
