@@ -12,12 +12,12 @@ from skillet._internal.cache import (
 from skillet._internal.lock import cache_lock
 
 from ..isolated_home import isolated_home
-from ..judge import judge_response
+from ..judge import judge_response, run_assertions
 from ..run_prompt import run_prompt
 from ..run_script import run_script
 
 
-async def run_single_eval(  # noqa: C901, PLR0912 - orchestration with cache/script/eval logic
+async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with cache/script/eval logic
     task: dict,
     name: str,
     skill_path: Path | None,
@@ -91,12 +91,19 @@ async def run_single_eval(  # noqa: C901, PLR0912 - orchestration with cache/scr
             if task.get("teardown"):
                 run_script(task["teardown"], home_dir, script_cwd)
 
-            judgment = await judge_response(
-                prompt=task["prompt"],
-                response=query_result.text,
-                expected=task["expected"],
-                tool_calls=query_result.tool_calls,
-            )
+            if task.get("assertions"):
+                judgment = run_assertions(
+                    response=query_result.text,
+                    assertions=task["assertions"],
+                    tool_calls=query_result.tool_calls,
+                )
+            else:
+                judgment = await judge_response(
+                    prompt=task["prompt"],
+                    response=query_result.text,
+                    expected=task["expected"],
+                    tool_calls=query_result.tool_calls,
+                )
 
             result = {
                 "eval_idx": task["eval_idx"],

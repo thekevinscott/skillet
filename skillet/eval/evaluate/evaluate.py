@@ -10,7 +10,7 @@ from .result import EvaluateResult, IterationResult, PerEvalMetric
 from .run_single_eval import run_single_eval
 
 
-async def evaluate(  # noqa: PLR0913
+async def evaluate(  # noqa: PLR0913, C901
     name: str,
     skill_path: Path | None = None,
     samples: int = 3,
@@ -50,6 +50,8 @@ async def evaluate(  # noqa: PLR0913
                 task["setup"] = eval_data["setup"]
             if eval_data.get("teardown"):
                 task["teardown"] = eval_data["teardown"]
+            if eval_data.get("assertions"):
+                task["assertions"] = eval_data["assertions"]
             tasks.append(task)
 
     # Run with semaphore for parallelism control

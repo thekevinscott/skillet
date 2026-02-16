@@ -287,6 +287,61 @@ def describe_run_single_eval():
             assert "prompt failed" in done_calls[0][1]["response"]
 
     @pytest.mark.asyncio
+    async def it_uses_assertions_instead_of_judge():
+        with (
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.run_assertions") as mock_assertions,
+            patch(f"{_RSE}.save_iteration"),
+        ):
+            mock_run.return_value = QueryResult(text="The answer is 4", tool_calls=[])
+            mock_assertions.return_value = {"pass": True, "reasoning": "All assertions passed"}
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+                "assertions": [{"type": "contains", "value": "4"}],
+            }
+
+            result = await run_single_eval(task, "test-evals", None, None)
+
+            assert result["pass"] is True
+            mock_assertions.assert_called_once()
+            mock_judge.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def it_falls_back_to_judge_without_assertions():
+        with (
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.run_assertions") as mock_assertions,
+            patch(f"{_RSE}.save_iteration"),
+        ):
+            mock_run.return_value = QueryResult(text="response", tool_calls=[])
+            mock_judge.return_value = {"pass": True, "reasoning": "OK"}
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+            }
+
+            result = await run_single_eval(task, "test-evals", None, None)
+
+            assert result["pass"] is True
+            mock_judge.assert_called_once()
+            mock_assertions.assert_not_called()
+
+    @pytest.mark.asyncio
     async def it_calculates_script_cwd_from_skill_path():
         """Test that script_cwd is derived from skill path."""
         from pathlib import Path
@@ -497,6 +552,37 @@ def describe_evaluate():
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("setup") == "echo setup"
+
+    @pytest.mark.asyncio
+    async def it_includes_assertions_in_task():
+        with (
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
+        ):
+            assertions = [{"type": "contains", "value": "hello"}]
+            mock_load.return_value = [
+                {
+                    "prompt": "p1",
+                    "expected": "e1",
+                    "_source": "1.md",
+                    "_content": "c1",
+                    "assertions": assertions,
+                }
+            ]
+            mock_run.return_value = {
+                "pass": True,
+                "cached": False,
+                "eval_source": "1.md",
+                "eval_idx": 0,
+                "iteration": 1,
+                "response": "r",
+            }
+
+            await evaluate("test-evals", samples=1)
+
+            call_args = mock_run.call_args
+            task = call_args[0][0]
+            assert task.get("assertions") == assertions
 
     @pytest.mark.asyncio
     async def it_includes_teardown_in_task():

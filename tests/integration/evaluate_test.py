@@ -213,6 +213,54 @@ def describe_evaluate():
         assert eval_002.pass_pow_k == 1.0
 
     @pytest.mark.asyncio
+    async def it_uses_assertions_instead_of_judge(skillet_env: Path, mock_claude_query):
+        """When assertions are present, grades deterministically without calling the judge."""
+        evals_dir = skillet_env / ".skillet" / "evals" / "assert-test"
+        evals_dir.mkdir(parents=True)
+        create_eval_file(
+            evals_dir / "001.yaml",
+            prompt="What is 2+2?",
+            expected="Returns 4",
+            assertions=[
+                {"type": "contains", "value": "4"},
+                {"type": "not_contains", "value": "5"},
+            ],
+        )
+
+        # Only need 1 response (prompt). No judge call expected.
+        mock_claude_query.set_responses("The answer is 4.")
+
+        result = await evaluate("assert-test", samples=1, parallel=1, skip_cache=True)
+
+        assert result.total_runs == 1
+        assert result.pass_rate == 100.0
+        assert result.results[0].passed
+        # Judge should not have been called — only 1 SDK call (the prompt), not 2
+        assert mock_claude_query.call_count == 1
+
+    @pytest.mark.asyncio
+    async def it_handles_assertion_failures(skillet_env: Path, mock_claude_query):
+        """When assertions fail, returns pass=False with reasoning."""
+        evals_dir = skillet_env / ".skillet" / "evals" / "assert-fail"
+        evals_dir.mkdir(parents=True)
+        create_eval_file(
+            evals_dir / "001.yaml",
+            prompt="What is 2+2?",
+            expected="Returns 4",
+            assertions=[
+                {"type": "contains", "value": "42"},
+            ],
+        )
+
+        mock_claude_query.set_responses("The answer is 4.")
+
+        result = await evaluate("assert-fail", samples=1, parallel=1, skip_cache=True)
+
+        assert result.total_runs == 1
+        assert result.pass_rate == 0.0
+        assert not result.results[0].passed
+
+    @pytest.mark.asyncio
     async def it_handles_llm_errors_gracefully(skillet_env: Path, mock_claude_query):
         """Returns failure result when LLM call fails."""
         evals_dir = skillet_env / ".skillet" / "evals" / "error-test"

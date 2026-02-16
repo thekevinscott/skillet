@@ -101,6 +101,8 @@ def _structured_output_messages(data: dict) -> list:
 
 def create_eval_file(path: Path, **overrides) -> None:
     """Create a valid eval YAML file with optional field overrides."""
+    import yaml
+
     defaults = {
         "timestamp": "2025-01-01T00:00:00Z",
         "prompt": "Test prompt",
@@ -109,8 +111,7 @@ def create_eval_file(path: Path, **overrides) -> None:
     }
     defaults.update(overrides)
 
-    lines = [f"{k}: {v!r}" if isinstance(v, str) else f"{k}: {v}" for k, v in defaults.items()]
-    path.write_text("\n".join(lines) + "\n")
+    path.write_text(yaml.dump(defaults, default_flow_style=False, sort_keys=False))
 
 
 @pytest.fixture(autouse=True)
