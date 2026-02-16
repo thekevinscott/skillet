@@ -194,6 +194,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cachetta"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/44/3d141a9d32a2c55cefd1085409db7f5349fe58b1bbd7ed0e99518af00a31/cachetta-0.6.0.tar.gz", hash = "sha256:3711f6dcc799340609041f51b01e16bffb1a519b0df3da32386c4590990b7351", size = 13184 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5c/f6/52018bad1dc64fdb4d5bf70cf6b8a8aad5c923a7fff20ac26a881ff4b2b3/cachetta-0.6.0-py3-none-any.whl", hash = "sha256:8b3f9df66c9d076e2ab43ec4333a580b43e32f5318cc0e5f9cc08a6410c25e90", size = 13521 },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1797,9 +1806,10 @@ crypto = [
 
 [[package]]
 name = "pyskillet"
-version = "0.2.22.dev3"
+version = "0.2.22.dev5"
 source = { editable = "." }
 dependencies = [
+    { name = "cachetta" },
     { name = "claude-agent-sdk" },
     { name = "cyclopts" },
     { name = "dspy" },
@@ -1825,6 +1835,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7" },
+    { name = "cachetta", specifier = ">=0.1.0" },
     { name = "claude-agent-sdk" },
     { name = "curtaincall", marker = "extra == 'dev'", specifier = ">=0.2.0" },
     { name = "cyclopts", specifier = ">=3.0" },

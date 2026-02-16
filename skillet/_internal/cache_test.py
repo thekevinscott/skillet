@@ -175,8 +175,8 @@ def describe_get_cached_iterations():
     def it_loads_iteration_files():
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir)
-            (cache_dir / "iter-0.yaml").write_text("passed: true\nreasoning: good")
-            (cache_dir / "iter-1.yaml").write_text("passed: false\nreasoning: bad")
+            save_iteration(cache_dir, 0, {"passed": True, "reasoning": "good"})
+            save_iteration(cache_dir, 1, {"passed": False, "reasoning": "bad"})
 
             result = get_cached_iterations(cache_dir)
             assert len(result) == 2
@@ -186,14 +186,29 @@ def describe_get_cached_iterations():
     def it_returns_sorted_results():
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir)
-            (cache_dir / "iter-2.yaml").write_text("index: 2")
-            (cache_dir / "iter-0.yaml").write_text("index: 0")
-            (cache_dir / "iter-1.yaml").write_text("index: 1")
+            save_iteration(cache_dir, 2, {"index": 2})
+            save_iteration(cache_dir, 0, {"index": 0})
+            save_iteration(cache_dir, 1, {"index": 1})
 
             result = get_cached_iterations(cache_dir)
             assert result[0]["index"] == 0
             assert result[1]["index"] == 1
             assert result[2]["index"] == 2
+
+    def it_reads_cachetta_files():
+        from cachetta import Cachetta, write_cache
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            for i in range(3):
+                cache = Cachetta(path=cache_dir / f"iter-{i}.cache")
+                write_cache(cache, {"index": i, "passed": i % 2 == 0})
+
+            result = get_cached_iterations(cache_dir)
+            assert len(result) == 3
+            assert result[0] == {"index": 0, "passed": True}
+            assert result[1] == {"index": 1, "passed": False}
+            assert result[2] == {"index": 2, "passed": True}
 
 
 def describe_save_iteration():
@@ -205,25 +220,53 @@ def describe_save_iteration():
             save_iteration(cache_dir, 0, {"passed": True})
 
             assert cache_dir.exists()
-            assert (cache_dir / "iter-0.yaml").exists()
+            assert len(list(cache_dir.glob("iter-0.*"))) == 1
 
-    def it_saves_yaml_content():
+    def it_round_trips_data():
+        from cachetta import Cachetta, read_cache
+
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir)
-            save_iteration(cache_dir, 5, {"passed": True, "reasoning": "looks good"})
+            data = {"passed": True, "reasoning": "looks good"}
+            save_iteration(cache_dir, 5, data)
 
-            content = (cache_dir / "iter-5.yaml").read_text()
-            assert "passed: true" in content
-            assert "reasoning: looks good" in content
+            iter_files = sorted(cache_dir.glob("iter-5.*"))
+            assert len(iter_files) == 1
+
+            cache = Cachetta(path=iter_files[0])
+            with read_cache(cache) as cached_data:
+                assert cached_data == data
 
     def it_overwrites_existing_file():
+        from cachetta import Cachetta, read_cache
+
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_dir = Path(tmpdir)
             save_iteration(cache_dir, 0, {"version": 1})
             save_iteration(cache_dir, 0, {"version": 2})
 
-            content = (cache_dir / "iter-0.yaml").read_text()
-            assert "version: 2" in content
+            iter_files = sorted(cache_dir.glob("iter-0.*"))
+            assert len(iter_files) == 1
+
+            cache = Cachetta(path=iter_files[0])
+            with read_cache(cache) as cached_data:
+                assert cached_data == {"version": 2}
+
+    def it_stores_data_readable_by_cachetta():
+        from cachetta import Cachetta, read_cache
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_dir = Path(tmpdir)
+            data = {"passed": True, "reasoning": "looks good", "iteration": 1}
+            save_iteration(cache_dir, 1, data)
+
+            # The saved file should be readable by cachetta
+            iter_files = sorted(cache_dir.glob("iter-*"))
+            assert len(iter_files) == 1
+
+            cache = Cachetta(path=iter_files[0])
+            with read_cache(cache) as cached_data:
+                assert cached_data == data
 
 
 def describe_get_all_cached_results():
@@ -238,11 +281,9 @@ def describe_get_all_cached_results():
             cache_base = Path(tmpdir)
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
-            # Create cache structure: cache/myevals/001-abc123/baseline/iter-0.yaml
             eval_dir = cache_base / "myevals" / "001-abc123" / "baseline"
-            eval_dir.mkdir(parents=True)
-            (eval_dir / "iter-0.yaml").write_text("passed: true")
-            (eval_dir / "iter-1.yaml").write_text("passed: false")
+            save_iteration(eval_dir, 0, {"passed": True})
+            save_iteration(eval_dir, 1, {"passed": False})
 
             result = get_all_cached_results("myevals", skill_path=None)
             assert "001.yaml" in result
@@ -259,13 +300,9 @@ def describe_get_all_cached_results():
 
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
-            # Get the skill hash to create proper directory
             skill_hash = hash_directory(skill_dir)
-
-            # Create cache structure for skill
             eval_dir = cache_base / "myevals" / "002-def456" / "skills" / skill_hash
-            eval_dir.mkdir(parents=True)
-            (eval_dir / "iter-0.yaml").write_text("passed: true")
+            save_iteration(eval_dir, 0, {"passed": True})
 
             result = get_all_cached_results("myevals", skill_path=skill_dir)
             assert "002.yaml" in result
@@ -276,11 +313,9 @@ def describe_get_all_cached_results():
             cache_base = Path(tmpdir)
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
-            # Create multiple eval directories
             for eval_name in ["001-abc", "002-def", "003-ghi"]:
                 eval_dir = cache_base / "myevals" / eval_name / "baseline"
-                eval_dir.mkdir(parents=True)
-                (eval_dir / "iter-0.yaml").write_text("passed: true")
+                save_iteration(eval_dir, 0, {"passed": True})
 
             result = get_all_cached_results("myevals", skill_path=None)
             assert len(result) == 3
@@ -293,10 +328,8 @@ def describe_get_all_cached_results():
             cache_base = Path(tmpdir)
             monkeypatch.setattr("skillet._internal.cache.CACHE_DIR", cache_base)
 
-            # Create a valid eval directory
             eval_dir = cache_base / "myevals" / "001-abc" / "baseline"
-            eval_dir.mkdir(parents=True)
-            (eval_dir / "iter-0.yaml").write_text("passed: true")
+            save_iteration(eval_dir, 0, {"passed": True})
 
             # Create a file (not a directory) that should be ignored
             (cache_base / "myevals" / "somefile.txt").write_text("ignored")
@@ -316,8 +349,7 @@ def describe_get_all_cached_results():
 
             # Create eval dir with iterations
             full_eval = cache_base / "myevals" / "002-def" / "baseline"
-            full_eval.mkdir(parents=True)
-            (full_eval / "iter-0.yaml").write_text("passed: true")
+            save_iteration(full_eval, 0, {"passed": True})
 
             result = get_all_cached_results("myevals", skill_path=None)
             assert len(result) == 1
