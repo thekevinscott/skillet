@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
+from pydantic import BaseModel
+
 
 class EvalDomain(Enum):
     """The testing domain an eval targets."""
@@ -34,3 +36,22 @@ class GenerateResult:
     skill_path: Path
     candidates: list[CandidateEval]
     analysis: dict = field(default_factory=dict)  # Extracted goals, prohibitions, etc.
+
+
+class CandidateResponse(BaseModel):
+    """Single candidate eval from LLM response."""
+
+    prompt: str
+    expected: str
+    name: str
+    category: str
+    domain: str
+    source: str
+    confidence: float
+    rationale: str
+
+
+class GenerateResponse(BaseModel):
+    """LLM response containing generated candidates."""
+
+    candidates: list[CandidateResponse]

@@ -8,7 +8,8 @@ from rich.table import Table
 
 from ..get_rate_color import get_rate_color
 from .get_symbol_and_counts import get_symbol_and_counts
-from .group_tasks_by_eval import group_tasks_by_eval, make_task_key
+from .group_tasks_by_eval import group_tasks_by_eval
+from .make_task_key import make_task_key
 from .status_symbols import FAIL, PASS, PENDING
 
 console = Console()

@@ -16,7 +16,7 @@ from claude_agent_sdk import AssistantMessage, ResultMessage, ToolUseBlock
 from pydantic import BaseModel
 
 from skillet._internal.sdk.query_structured import query_structured
-from skillet.generate.generate import GenerateResponse
+from skillet.generate.types import GenerateResponse
 
 from .__fixtures__.query_structured import (
     VALID_CANDIDATES,

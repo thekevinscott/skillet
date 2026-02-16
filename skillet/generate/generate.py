@@ -1,9 +1,6 @@
 """LLM-based eval generation from skill analysis."""
-# skillet: allow-multiple-public-callables
 
 from pathlib import Path
-
-from pydantic import BaseModel
 
 from skillet._internal.sdk import query_structured
 from skillet.prompts import load_prompt
@@ -11,27 +8,7 @@ from skillet.prompts import load_prompt
 from .analyze import SkillAnalysis
 from .filter_by_domain import filter_by_domain
 from .parse_domain import parse_domain
-from .types import CandidateEval, EvalDomain
-
-
-class CandidateResponse(BaseModel):
-    """Single candidate eval from LLM response."""
-
-    prompt: str
-    expected: str
-    name: str
-    category: str
-    domain: str
-    source: str
-    confidence: float
-    rationale: str
-
-
-class GenerateResponse(BaseModel):
-    """LLM response containing generated candidates."""
-
-    candidates: list[CandidateResponse]
-
+from .types import CandidateEval, EvalDomain, GenerateResponse
 
 GENERATE_PROMPT = Path(__file__).parent / "generate.txt"
 

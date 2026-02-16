@@ -1,32 +1,15 @@
 """LLM-as-judge for evaluating responses against expected behavior."""
-# skillet: allow-multiple-public-callables
 
 from pathlib import Path
-
-from pydantic import BaseModel, ConfigDict, Field
 
 from skillet._internal.sdk import StructuredOutputError, query_structured
 from skillet.prompts import load_prompt
 
 from .format_prompt import format_prompt
 from .format_tool_calls import format_tool_calls
+from .types import Judgment
 
 JUDGE_PROMPT = Path(__file__).parent / "judge.txt"
-
-
-class Judgment(BaseModel):
-    """Structured output for judge responses."""
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    passed: bool = Field(
-        description="Whether the response meets the expected behavior",
-        alias="pass",
-    )
-    reasoning: str = Field(
-        default="",
-        description="One sentence explanation of the judgment",
-    )
 
 
 async def judge_response(

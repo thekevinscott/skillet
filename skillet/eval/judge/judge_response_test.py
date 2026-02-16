@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from skillet._internal.sdk import StructuredOutputError
-from skillet.eval.judge.judge_response import Judgment, judge_response
+from skillet.eval.judge.judge_response import judge_response
+from skillet.eval.judge.types import Judgment
 
 
 def describe_judge_response():

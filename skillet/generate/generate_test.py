@@ -7,12 +7,10 @@ import pytest
 
 from skillet.generate.analyze import SkillAnalysis
 from skillet.generate.generate import (
-    CandidateResponse,
-    GenerateResponse,
     _limit_by_category,
     generate_candidates,
 )
-from skillet.generate.types import CandidateEval, EvalDomain
+from skillet.generate.types import CandidateEval, CandidateResponse, EvalDomain, GenerateResponse
 
 
 @pytest.mark.parametrize(
