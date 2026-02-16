@@ -1,10 +1,10 @@
 """Iterate over blocks from a Claude query with optional type filtering."""
 
+import sys
 from typing import Any, TypeVar
 
 from claude_agent_sdk import ClaudeAgentOptions, query
 
-from skillet._internal.sdk import _stderr_callback
 from skillet._internal.types import matches_type
 
 T = TypeVar("T")
@@ -17,7 +17,7 @@ async def for_query(
     **options: Any,
 ):
     """Iterate over blocks from a Claude query with optional type filtering."""
-    opts = ClaudeAgentOptions(**options, stderr=_stderr_callback)
+    opts = ClaudeAgentOptions(**options, stderr=lambda line: print(line, file=sys.stderr))
     async for message in query(prompt=prompt, options=opts):
         if not message_type or matches_type(message, message_type):
             if not hasattr(message, "content"):
