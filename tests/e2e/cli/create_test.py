@@ -1,54 +1,36 @@
 """End-to-end tests for the `skillet create` command."""
 
-import os
-import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from curtaincall import Terminal, expect
 
 from tests.e2e.helpers import add_evals
+
+SKILLET = f"{sys.executable} -m skillet.cli.main"
 
 
 def describe_skillet_create():
     """Tests for the `skillet create` command."""
 
     @pytest.mark.asyncio
-    async def it_creates_skill_from_evals(skillet_env: Path):
+    async def it_creates_skill_from_evals(
+        terminal: Callable[..., Terminal],
+        skillet_env: Path,
+    ):
         """Test that skillet create creates SKILL.md from eval files."""
-        # Setup: Create minimal eval fixtures
         add_evals(skillet_env, "browser-fallback", count=2)
 
-        # Output directory
         output_dir = skillet_env / "output"
         output_dir.mkdir()
 
-        # Run CLI with SKILLET_DIR pointing to test directory
-        env = os.environ.copy()
-        env["SKILLET_DIR"] = str(skillet_env / ".skillet")
-
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "skillet.cli.main",
-                "create",
-                "browser-fallback",
-                "-d",
-                str(output_dir),
-            ],
-            capture_output=True,
-            text=True,
-            env=env,
-            timeout=120,  # Allow time for Claude API call
+        term = terminal(
+            f"{SKILLET} create browser-fallback -d {output_dir}",
+            env={"SKILLET_DIR": str(skillet_env / ".skillet")},
         )
-
-        # Assertions
-        assert result.returncode == 0, (
-            f"Command failed with code {result.returncode}\n"
-            f"stdout: {result.stdout}\n"
-            f"stderr: {result.stderr}"
-        )
+        expect(term.get_by_text("skillet compare")).to_be_visible(timeout=120)
 
         skill_path = output_dir / ".claude" / "skills" / "browser-fallback" / "SKILL.md"
         assert skill_path.exists(), f"SKILL.md not found at {skill_path}"
