@@ -1,16 +1,9 @@
 """End-to-end tests for the `skillet lint` command."""
 
-import subprocess
+from collections.abc import Callable
 from pathlib import Path
 
-
-def _run_lint(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["skillet", "lint", *args],
-        capture_output=True,
-        text=True,
-        timeout=30,
-    )
+from curtaincall import Terminal, expect
 
 
 def _write_skill(base: Path, name: str, content: str) -> Path:
@@ -51,42 +44,56 @@ Do the thing.
 def describe_skillet_lint():
     """Tests for the `skillet lint` command."""
 
-    def it_exits_0_for_valid_skill(tmp_path: Path):
+    def it_exits_0_for_valid_skill(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
         skill_path = _write_skill(tmp_path, "test-skill", VALID_SKILL)
-        result = _run_lint("--no-llm", str(skill_path))
-        assert result.returncode == 0, (
-            f"Expected exit 0 for valid skill\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
+        term = terminal(f"skillet lint --no-llm {skill_path}")
+        expect(term).to_have_exited()
+        assert term.exit_code == 0
 
-    def it_exits_2_for_missing_file(tmp_path: Path):
-        result = _run_lint(str(tmp_path / "nonexistent" / "SKILL.md"))
-        assert result.returncode == 2, (
-            f"Expected exit 2 for missing file\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
+    def it_exits_2_for_missing_file(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
+        term = terminal(f"skillet lint {tmp_path / 'nonexistent' / 'SKILL.md'}")
+        expect(term).to_have_exited()
+        assert term.exit_code == 2
 
-    def it_exits_1_when_findings_exist(tmp_path: Path):
+    def it_exits_1_when_findings_exist(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
         skill_path = _write_skill(tmp_path, "test-skill", MISSING_NAME_SKILL)
-        result = _run_lint("--no-llm", str(skill_path))
-        assert result.returncode == 1, (
-            f"Expected exit 1 for findings\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
+        term = terminal(f"skillet lint --no-llm {skill_path}")
+        expect(term).to_have_exited()
+        assert term.exit_code == 1
 
-    def it_lists_rules():
-        result = _run_lint("--list-rules")
-        assert result.returncode == 0, (
-            f"Expected exit 0 for --list-rules\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
-        assert "frontmatter-valid" in result.stdout
-        assert "filename-case" in result.stdout
+    def it_lists_rules(terminal: Callable[..., Terminal]):
+        term = terminal("skillet lint --list-rules")
+        expect(term).to_have_exited()
+        assert term.exit_code == 0
+        expect(term.get_by_text("frontmatter-valid")).to_be_visible()
+        expect(term.get_by_text("filename-case")).to_be_visible()
 
-    def it_shows_finding_details_in_output(tmp_path: Path):
+    def it_shows_finding_details_in_output(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
         skill_path = _write_skill(tmp_path, "test-skill", MISSING_NAME_SKILL)
-        result = _run_lint("--no-llm", str(skill_path))
-        assert "frontmatter-valid" in result.stdout or "name" in result.stdout
+        term = terminal(f"skillet lint --no-llm {skill_path}")
+        expect(term).to_have_exited()
+        assert (
+            term.get_by_text("frontmatter-valid").is_visible()
+            or term.get_by_text("name").is_visible()
+        )
 
-    def it_accepts_no_llm_flag(tmp_path: Path):
+    def it_accepts_no_llm_flag(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
         skill_path = _write_skill(tmp_path, "test-skill", VALID_SKILL)
-        result = _run_lint("--no-llm", str(skill_path))
-        assert result.returncode == 0, (
-            f"--no-llm should work\nstdout: {result.stdout}\nstderr: {result.stderr}"
-        )
+        term = terminal(f"skillet lint --no-llm {skill_path}")
+        expect(term).to_have_exited()
+        assert term.exit_code == 0

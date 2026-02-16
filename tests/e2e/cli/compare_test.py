@@ -1,7 +1,5 @@
 """End-to-end tests for the `skillet compare` command."""
 
-import subprocess
-import sys
 from collections.abc import Callable
 from pathlib import Path
 
@@ -9,7 +7,7 @@ import pytest
 from curtaincall import Terminal, expect
 
 PIRATE_FIXTURES = Path(__file__).parent.parent / "__fixtures__" / "tune-test"
-SKILLET = f"{sys.executable} -m skillet.cli.main"
+SKILLET = "skillet"
 
 
 def _setup_compare_env(tmp_path: Path) -> tuple[Path, Path]:
@@ -55,7 +53,10 @@ def describe_skillet_compare():
         term = terminal(f"{SKILLET} compare {evals_dir} {skill_file}")
         expect(term.get_by_text("Comparison:")).to_be_visible(timeout=30)
 
-    def it_errors_when_no_eval_files_exist(tmp_path: Path):
+    def it_errors_when_no_eval_files_exist(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
         """Exits with error when evals directory is empty."""
         evals_dir = tmp_path / "evals" / "nonexistent-skill"
         evals_dir.mkdir(parents=True)
@@ -64,18 +65,6 @@ def describe_skillet_compare():
         skill_file.parent.mkdir(parents=True)
         skill_file.write_text("# Fake skill")
 
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "skillet.cli.main",
-                "compare",
-                str(evals_dir),
-                str(skill_file),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-
-        assert result.returncode != 0
+        term = terminal(f"{SKILLET} compare {evals_dir} {skill_file}")
+        expect(term).to_have_exited()
+        assert term.exit_code != 0
