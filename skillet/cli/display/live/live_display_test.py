@@ -1,35 +1,11 @@
-"""Tests for cli/display/live module."""
+"""Tests for LiveDisplay class."""
 
 from unittest.mock import PropertyMock, patch
 
 import pytest
 from rich.console import Console, ConsoleDimensions
 
-from skillet.cli.display.live import (
-    CACHED,
-    DISPLAY_OVERHEAD,
-    FAIL,
-    PASS,
-    PENDING,
-    RUNNING,
-    LiveDisplay,
-)
-
-
-def describe_status_symbols():
-    """Tests for status symbol constants."""
-
-    def it_has_all_status_symbols():
-        assert PENDING is not None
-        assert CACHED is not None
-        assert RUNNING is not None
-        assert PASS is not None
-        assert FAIL is not None
-
-    def it_uses_rich_markup():
-        assert "[" in PENDING and "]" in PENDING
-        assert "[green]" in PASS
-        assert "[red]" in FAIL
+from .live_display import DISPLAY_OVERHEAD, LiveDisplay
 
 
 def describe_LiveDisplay():
@@ -138,38 +114,7 @@ def describe_LiveDisplay():
         await display.update(tasks[0], "done", {"pass": True})
         await display.stop()
 
-    @pytest.mark.parametrize(
-        "state,result,expected_symbol,expected_passed,expected_done",
-        [
-            ("pending", None, PENDING, False, False),
-            ("running", None, RUNNING, False, False),
-            ("cached", {"pass": True}, CACHED, True, True),
-            ("cached", {"pass": False}, CACHED, False, True),
-            ("done", {"pass": True}, PASS, True, True),
-            ("done", {"pass": False}, FAIL, False, True),
-            ("done", None, FAIL, None, True),  # None result -> passed is None (falsy)
-        ],
-        ids=[
-            "pending",
-            "running",
-            "cached_pass",
-            "cached_fail",
-            "done_pass",
-            "done_fail",
-            "done_none_result",
-        ],
-    )
-    def test_get_symbol_and_counts(state, result, expected_symbol, expected_passed, expected_done):
-        """Test _get_symbol_and_counts returns correct values for each state."""
-        tasks = [{"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"}]
-        display = LiveDisplay(tasks)
-        symbol, passed, done = display._get_symbol_and_counts({"state": state, "result": result})
-        assert symbol == expected_symbol
-        # For None result, passed is None (falsy), so check truthiness
-        assert bool(passed) == bool(expected_passed)
-        assert done == expected_done
-
-    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    @patch("skillet.cli.display.live.live_display.get_rate_color", return_value="green")
     def it_shows_percentage_when_all_samples_done(mock_get_rate_color):
         """Test that percentage appears in table when all samples complete."""
         tasks = [
@@ -187,7 +132,7 @@ def describe_LiveDisplay():
         assert table.row_count == 1
         mock_get_rate_color.assert_called_with(50.0)
 
-    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    @patch("skillet.cli.display.live.live_display.get_rate_color", return_value="green")
     def it_finalize_prints_results(mock_get_rate_color, capsys):
         tasks = [
             {"eval_idx": 0, "iteration": 0, "eval_source": "test.yaml"},
@@ -202,11 +147,9 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "test.yaml" in captured.out
         assert "50%" in captured.out
-        # Verify get_rate_color is called with correct pass rate
-        # (Rich strips color markup in non-TTY output)
         mock_get_rate_color.assert_called_with(50.0)
 
-    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    @patch("skillet.cli.display.live.live_display.get_rate_color", return_value="green")
     def it_finalize_shows_cached_results(mock_get_rate_color, capsys):
         tasks = [
             {"eval_idx": 0, "iteration": 0, "eval_source": "cached.yaml"},
@@ -219,10 +162,9 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "cached.yaml" in captured.out
         assert "100%" in captured.out
-        # Verify get_rate_color is called with correct pass rate
         mock_get_rate_color.assert_called_with(100.0)
 
-    @patch("skillet.cli.display.live.get_rate_color", return_value="red")
+    @patch("skillet.cli.display.live.live_display.get_rate_color", return_value="red")
     def it_finalize_handles_pending_tasks(mock_get_rate_color, capsys):
         tasks = [
             {"eval_idx": 0, "iteration": 0, "eval_source": "pending.yaml"},
@@ -234,7 +176,6 @@ def describe_LiveDisplay():
         captured = capsys.readouterr()
         assert "pending.yaml" in captured.out
         assert "0%" in captured.out
-        # Verify get_rate_color is called with correct pass rate
         mock_get_rate_color.assert_called_with(0.0)
 
 
@@ -294,7 +235,7 @@ def describe_compact_display():
             # Compact mode: single summary row instead of 8 eval rows
             assert table.row_count == 1
 
-    @patch("skillet.cli.display.live.get_rate_color", return_value="green")
+    @patch("skillet.cli.display.live.live_display.get_rate_color", return_value="green")
     def it_finalize_prints_compact_summary(_mock_rate_color, capsys):
         """finalize() should print a summary line instead of per-eval rows."""
         with _patch_terminal_height(10):
