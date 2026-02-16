@@ -8,6 +8,9 @@ import pytest
 from skillet._internal.sdk import QueryResult
 from skillet.eval.evaluate import evaluate, run_single_eval
 
+_RSE = "skillet.eval.evaluate.run_single_eval"
+_EVAL = "skillet.eval.evaluate.evaluate"
+
 
 def describe_run_single_eval():
     """Tests for run_single_eval function."""
@@ -15,19 +18,19 @@ def describe_run_single_eval():
     @pytest.fixture(autouse=True)
     def mock_cache_lock():
         """Mock cache_lock to avoid creating MagicMock directories."""
-        with patch("skillet.eval.evaluate.cache_lock", lambda _: nullcontext()):
+        with patch(f"{_RSE}.cache_lock", lambda _: nullcontext()):
             yield
 
     @pytest.fixture(autouse=True)
     def mock_cache_dir():
         """Mock get_cache_dir."""
-        with patch("skillet.eval.evaluate.get_cache_dir"):
+        with patch(f"{_RSE}.get_cache_dir"):
             yield
 
     @pytest.mark.asyncio
     async def it_returns_cached_result_when_available():
         with patch(
-            "skillet.eval.evaluate.get_cached_iterations",
+            f"{_RSE}.get_cached_iterations",
             return_value=[{"pass": True, "response": "cached response"}],
         ):
             task = {
@@ -52,7 +55,7 @@ def describe_run_single_eval():
             status_calls.append((state, result))
 
         with patch(
-            "skillet.eval.evaluate.get_cached_iterations",
+            f"{_RSE}.get_cached_iterations",
             return_value=[{"pass": True, "response": "cached"}],
         ):
             task = {
@@ -72,10 +75,10 @@ def describe_run_single_eval():
     @pytest.mark.asyncio
     async def it_skips_cache_when_flag_set():
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations") as mock_cache,
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
-            patch("skillet.eval.evaluate.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch("skillet.eval.evaluate.save_iteration"),
+            patch(f"{_RSE}.get_cached_iterations") as mock_cache,
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.save_iteration"),
         ):
             mock_cache.return_value = [{"pass": True, "response": "cached"}]
             mock_run.return_value = QueryResult(text="fresh response", tool_calls=[])
@@ -98,8 +101,11 @@ def describe_run_single_eval():
     @pytest.mark.asyncio
     async def it_handles_setup_script_failure():
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_script", return_value=(1, "", "setup failed")),
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(
+                f"{_RSE}.run_script",
+                return_value=(1, "", "setup failed"),
+            ),
         ):
             task = {
                 "eval_source": "test.md",
@@ -126,11 +132,11 @@ def describe_run_single_eval():
             return (0, "", "")
 
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_script", side_effect=track_run_script),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
-            patch("skillet.eval.evaluate.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch("skillet.eval.evaluate.save_iteration"),
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_script", side_effect=track_run_script),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
@@ -158,10 +164,10 @@ def describe_run_single_eval():
             status_calls.append((state, result))
 
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
-            patch("skillet.eval.evaluate.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch("skillet.eval.evaluate.save_iteration"),
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
@@ -191,8 +197,11 @@ def describe_run_single_eval():
             status_calls.append((state, result))
 
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_script", return_value=(1, "", "setup error")),
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(
+                f"{_RSE}.run_script",
+                return_value=(1, "", "setup error"),
+            ),
         ):
             task = {
                 "eval_source": "test.md",
@@ -222,9 +231,9 @@ def describe_run_single_eval():
             return (0, "", "")
 
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_script", side_effect=track_run_script),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_script", side_effect=track_run_script),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = RuntimeError("prompt failed")
 
@@ -254,8 +263,8 @@ def describe_run_single_eval():
             status_calls.append((state, result))
 
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = RuntimeError("prompt failed")
 
@@ -289,11 +298,11 @@ def describe_run_single_eval():
             return (0, "", "")
 
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_script", side_effect=capture_run_script),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
-            patch("skillet.eval.evaluate.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch("skillet.eval.evaluate.save_iteration"),
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_script", side_effect=capture_run_script),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
@@ -321,8 +330,8 @@ def describe_evaluate():
     @pytest.mark.asyncio
     async def it_loads_evals_by_name():
         with (
-            patch("skillet.eval.evaluate.load_evals") as mock_load,
-            patch("skillet.eval.evaluate.run_single_eval", new_callable=AsyncMock) as mock_run,
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
         ):
             mock_load.return_value = [
                 {"prompt": "p1", "expected": "e1", "_source": "test.md", "_content": "c1"}
@@ -336,8 +345,8 @@ def describe_evaluate():
     @pytest.mark.asyncio
     async def it_calculates_pass_rate():
         with (
-            patch("skillet.eval.evaluate.load_evals") as mock_load,
-            patch("skillet.eval.evaluate.run_single_eval", new_callable=AsyncMock) as mock_run,
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
         ):
             mock_load.return_value = [
                 {"prompt": "p1", "expected": "e1", "_source": "1.md", "_content": "c1"},
@@ -358,8 +367,8 @@ def describe_evaluate():
     @pytest.mark.asyncio
     async def it_respects_max_evals():
         with (
-            patch("skillet.eval.evaluate.load_evals") as mock_load,
-            patch("skillet.eval.evaluate.run_single_eval", new_callable=AsyncMock) as mock_run,
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
             patch("random.sample") as mock_sample,
         ):
             evals = [
@@ -379,8 +388,8 @@ def describe_evaluate():
     @pytest.mark.asyncio
     async def it_tracks_cached_vs_fresh_counts():
         with (
-            patch("skillet.eval.evaluate.load_evals") as mock_load,
-            patch("skillet.eval.evaluate.run_single_eval", new_callable=AsyncMock) as mock_run,
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
         ):
             mock_load.return_value = [
                 {"prompt": "p1", "expected": "e1", "_source": "1.md", "_content": "c1"},
@@ -399,8 +408,8 @@ def describe_evaluate():
     @pytest.mark.asyncio
     async def it_includes_setup_in_task():
         with (
-            patch("skillet.eval.evaluate.load_evals") as mock_load,
-            patch("skillet.eval.evaluate.run_single_eval", new_callable=AsyncMock) as mock_run,
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
         ):
             mock_load.return_value = [
                 {
@@ -423,8 +432,8 @@ def describe_evaluate():
     @pytest.mark.asyncio
     async def it_includes_teardown_in_task():
         with (
-            patch("skillet.eval.evaluate.load_evals") as mock_load,
-            patch("skillet.eval.evaluate.run_single_eval", new_callable=AsyncMock) as mock_run,
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
         ):
             mock_load.return_value = [
                 {
@@ -451,21 +460,21 @@ def describe_exception_handling():
     @pytest.fixture(autouse=True)
     def mock_cache_lock():
         """Mock cache_lock to avoid creating MagicMock directories."""
-        with patch("skillet.eval.evaluate.cache_lock", lambda _: nullcontext()):
+        with patch(f"{_RSE}.cache_lock", lambda _: nullcontext()):
             yield
 
     @pytest.fixture(autouse=True)
     def mock_cache_dir():
         """Mock get_cache_dir."""
-        with patch("skillet.eval.evaluate.get_cache_dir"):
+        with patch(f"{_RSE}.get_cache_dir"):
             yield
 
     @pytest.mark.asyncio
     async def it_propagates_keyboard_interrupt():
         """KeyboardInterrupt should not be caught - let user cancel."""
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = KeyboardInterrupt()
 
@@ -485,8 +494,8 @@ def describe_exception_handling():
     async def it_propagates_system_exit():
         """SystemExit should not be caught - let process exit."""
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = SystemExit(1)
 
@@ -513,9 +522,9 @@ def describe_exception_handling():
             return (0, "", "")
 
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_script", side_effect=track_run_script),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_script", side_effect=track_run_script),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = KeyboardInterrupt()
 
@@ -538,8 +547,8 @@ def describe_exception_handling():
     async def it_includes_exception_type_in_error_message():
         """Error message should include exception type for debugging."""
         with (
-            patch("skillet.eval.evaluate.get_cached_iterations", return_value=[]),
-            patch("skillet.eval.evaluate.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = ValueError("invalid value")
 

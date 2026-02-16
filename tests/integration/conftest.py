@@ -147,13 +147,21 @@ def skillet_env(tmp_path: Path, monkeypatch):
     (skillet_dir / "evals").mkdir()
 
     # Patch SKILLET_DIR in all modules that import it
+    import importlib
+
     import skillet._internal.cache
     import skillet.config
     import skillet.evals.load
 
     monkeypatch.setattr(skillet.config, "SKILLET_DIR", skillet_dir)
     monkeypatch.setattr(skillet.evals.load, "SKILLET_DIR", skillet_dir)
-    monkeypatch.setattr(skillet._internal.cache, "CACHE_DIR", skillet_dir / "cache")
+    # Patch CACHE_DIR in each module that imports it (package re-export + submodules)
+    cache_dir = skillet_dir / "cache"
+    monkeypatch.setattr(skillet._internal.cache, "CACHE_DIR", cache_dir)
+    _get_cache_dir_mod = importlib.import_module("skillet._internal.cache.get_cache_dir")
+    _gacr_mod = importlib.import_module("skillet._internal.cache.get_all_cached_results")
+    monkeypatch.setattr(_get_cache_dir_mod, "CACHE_DIR", cache_dir)
+    monkeypatch.setattr(_gacr_mod, "CACHE_DIR", cache_dir)
 
     return tmp_path
 
