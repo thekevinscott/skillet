@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `resolve_skill_path` now accepts any file when passed directly, not just `SKILL.md`. Directory resolution still looks for `SKILL.md` by convention
+- Dev dependency: added `curtaincall>=0.2.0` for PTY-based terminal testing of CLI output
 
 ### Added
 - CLI: `skillet eval` now reports per-eval pass@k and pass^k metrics when running with multiple samples, measuring capability and consistency respectively
