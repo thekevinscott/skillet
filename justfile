@@ -42,22 +42,22 @@ hooks:
     echo "Installed pre-push hook"
 
 # Check changelog was updated (for CI)
-# Skip if only docs/ files changed
+# Skillet does not strictly follow semver, so every change requires a CHANGELOG entry.
+# Escape hatch: add a `Skip-Changelog:` trailer to any commit in the PR.
 check-changelog base_ref='origin/main':
     #!/usr/bin/env bash
-    changed_files=$(git diff --name-only {{base_ref}}...HEAD)
+    set -euo pipefail
 
-    # Check if all changed files are in docs/
-    non_docs_changes=$(echo "$changed_files" | grep -v '^docs/' || true)
-    if [ -z "$non_docs_changes" ]; then
-        echo "Only docs/ files changed - skipping changelog check"
+    if git log --format='%(trailers:only=true)' {{base_ref}}..HEAD | grep -qi '^skip-changelog:'; then
+        echo "Skipping changelog check (Skip-Changelog trailer present on a commit)"
         exit 0
     fi
 
+    changed_files=$(git diff --name-only {{base_ref}}...HEAD)
     if echo "$changed_files" | grep -q '^CHANGELOG.md$'; then
         echo "CHANGELOG.md was updated"
     else
-        echo "Error: CHANGELOG.md was not updated"
+        echo "Error: CHANGELOG.md was not updated. Add an entry under [Unreleased], or include a 'Skip-Changelog: <reason>' trailer on a commit if this PR is genuinely changelog-irrelevant."
         exit 1
     fi
 

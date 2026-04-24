@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `MIGRATIONS.md` at the repo root: per-release upgrade instructions for downstream consumers with a required template (Summary / Required changes / Deprecations removed / Behavior changes without code changes / Verification). Surfaced on skillet.run under Migrations — the docs build copies the root file into `docs/migrations.md` via `pnpm run sync-migrations` so the root file is the single source of truth
+- `AGENTS.md` at the repo root: canonical contributor and AI-assistant guide. `.claude/CLAUDE.md` now `@`-includes it
+
+### Changed
+- Changelog enforcement tightened: every PR must update `CHANGELOG.md` (docs-only PRs no longer bypass the check). The `skip-changelog` PR label is replaced by a `Skip-Changelog: <reason>` git commit trailer — add it to any commit in the PR to opt out. Use sparingly, for genuinely changelog-irrelevant changes only
+
 ### Changed
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions
 
