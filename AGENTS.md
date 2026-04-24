@@ -18,7 +18,8 @@
 
   Skip-Changelog: CI-only change, no user impact
   ```
-- **Migration guide (`MIGRATIONS.md`)**: any PR with migration impact must also add an entry to `MIGRATIONS.md` using the template at the bottom of that file. "Migration impact" = anything a downstream consumer needs to act on or be aware of to upgrade cleanly: breaking API changes, removed deprecations, changed defaults, new required config, or same-API/different-runtime behavior (exit codes, output shape, cache invalidation). Pure additions and bug fixes with no required consumer action do not need a MIGRATIONS.md entry. Entries belong under `[Unreleased]`; the release workflow will stamp the version and date. The root `MIGRATIONS.md` is the single source of truth — it is copied into `docs/migrations.md` at docs build time by `pnpm run sync-migrations`, so it appears on skillet.run automatically.
+- **Migration guide (`MIGRATIONS.md`)**: any PR with migration impact must also add an entry to `MIGRATIONS.md` using the template at the bottom of that file. "Migration impact" = anything a downstream consumer needs to act on or be aware of to upgrade cleanly: breaking API changes, removed deprecations, changed defaults, new required config, or same-API/different-runtime behavior (exit codes, output shape, cache invalidation). Pure additions and bug fixes with no required consumer action do not need a MIGRATIONS.md entry. Entries belong under `[Unreleased]`; the release workflow will stamp the version and date. The root `MIGRATIONS.md` is the single source of truth — it is copied into `docs/migrations.md` at docs build time by the `dev`/`build` npm scripts, so it appears on skillet.run automatically.
+  - **CI enforcement**: `just check-migrations` inspects the `CHANGELOG.md` diff — if it adds any bullet starting with `- **Breaking` (case-insensitive), `MIGRATIONS.md` must also be edited in the PR. Always mark breaking changelog entries with the `- **Breaking:** ...` convention so this check covers them. Escape hatch: a `Skip-Migrations: <reason>` commit trailer, for the rare case a breaking bullet genuinely needs no consumer-facing migration guidance.
 
 ### Git Worktrees
 All development work should happen in git worktrees, not on the main branch directly.
@@ -234,6 +235,7 @@ Skillet uses git commit trailers for machine-readable metadata. Add them as a bl
 | Trailer | Purpose |
 |---------|---------|
 | `Skip-Changelog: <reason>` | Exempt this PR from the changelog check (genuinely invisible changes only) |
+| `Skip-Migrations: <reason>` | Exempt this PR from the migration check when a `Breaking` CHANGELOG line genuinely needs no consumer-facing migration guidance (rare) |
 
 ### Releases
 

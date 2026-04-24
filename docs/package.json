@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "sync-migrations": "cp ../MIGRATIONS.md migrations.md",
-    "dev": "pnpm run sync-migrations && vitepress dev",
-    "build": "pnpm run sync-migrations && vitepress build",
+    "dev": "cp ../MIGRATIONS.md migrations.md && vitepress dev",
+    "build": "cp ../MIGRATIONS.md migrations.md && vitepress build",
     "preview": "vitepress preview"
   },
   "devDependencies": {

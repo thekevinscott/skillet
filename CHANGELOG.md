@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Changelog enforcement tightened: every PR must update `CHANGELOG.md` (docs-only PRs no longer bypass the check). The `skip-changelog` PR label is replaced by a `Skip-Changelog: <reason>` git commit trailer — add it to any commit in the PR to opt out. Use sparingly, for genuinely changelog-irrelevant changes only
+- Migration-guide CI check: `just check-migrations` fails a PR whose `CHANGELOG.md` diff adds a bullet starting with `- **Breaking` without also editing `MIGRATIONS.md`. Escape hatch: a `Skip-Migrations: <reason>` commit trailer
+- Docs build: inlined the `MIGRATIONS.md`→`docs/migrations.md` copy directly in the `dev` and `build` npm scripts (previously used a `pnpm`-prefixed helper script that broke on the `npm install`-based CI runner)
 
 ### Changed
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions

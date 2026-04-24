@@ -7,8 +7,8 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
-    # Skip for dependabot PRs. The `Skip-Changelog:` commit trailer (checked
-    # inside `just check-changelog`) is the only other escape hatch.
+    # Skip for dependabot PRs. The `Skip-Changelog:` and `Skip-Migrations:` commit
+    # trailers (checked inside the just recipes) are the only other escape hatches.
     if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v6
@@ -23,3 +23,6 @@ jobs:
 
       - name: Check changelog
         run: uv run just check-changelog origin/${{ github.base_ref }}
+
+      - name: Check migrations
+        run: uv run just check-migrations origin/${{ github.base_ref }}

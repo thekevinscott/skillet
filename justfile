@@ -61,6 +61,35 @@ check-changelog base_ref='origin/main':
         exit 1
     fi
 
+# Check MIGRATIONS.md was updated when the CHANGELOG diff adds a breaking-change entry.
+# Heuristic: any added bullet in CHANGELOG.md starting with `- **Breaking` (case-
+# insensitive) requires a corresponding MIGRATIONS.md edit. Mention the word
+# "breaking" elsewhere in prose does not trigger.
+# Escape hatch: add a `Skip-Migrations:` trailer to any commit in the PR when a
+# breaking bullet genuinely needs no consumer-facing migration guidance.
+check-migrations base_ref='origin/main':
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    added_breaking=$(git diff {{base_ref}}...HEAD -- CHANGELOG.md | grep -ciE '^\+- \*\*breaking' || true)
+    if [ "$added_breaking" = "0" ]; then
+        echo "No '- **Breaking' bullets added to CHANGELOG.md — skipping migration check"
+        exit 0
+    fi
+
+    if git log --format='%(trailers:only=true)' {{base_ref}}..HEAD | grep -qi '^skip-migrations:'; then
+        echo "Skipping migration check (Skip-Migrations trailer present on a commit)"
+        exit 0
+    fi
+
+    changed_files=$(git diff --name-only {{base_ref}}...HEAD)
+    if echo "$changed_files" | grep -q '^MIGRATIONS.md$'; then
+        echo "CHANGELOG.md adds a '- **Breaking' bullet and MIGRATIONS.md was updated"
+    else
+        echo "Error: CHANGELOG.md adds a '- **Breaking' bullet but MIGRATIONS.md was not updated. Add an entry under [Unreleased] in MIGRATIONS.md using the template at the bottom of that file, or include a 'Skip-Migrations: <reason>' trailer on a commit if consumers genuinely need no migration guidance."
+        exit 1
+    fi
+
 # Run security scan
 # B603, B607 scoped to inline nosec in run_script.py
 security:
