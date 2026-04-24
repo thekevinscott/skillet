@@ -12,7 +12,8 @@
 - Don't add code that isn't used until a future PR (e.g., an error class with no callers)
 - If a task is too large for one PR, create child beads under the parent bead - one per PR
 - Every PR must include tests per the TDD Order (see Testing section): e2e first if touching public API, integration tests, then unit tests
-- **Changelog (REQUIRED)**: Every PR must either update `CHANGELOG.md` or have the `skip-changelog` label. CI will fail without one of these. Add the changelog entry in the same commit as the code change — do not forget this. User-facing changes go under the appropriate heading (Added/Changed/Fixed/Removed). For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label instead
+- **Changelog (REQUIRED)**: Every PR must either update `CHANGELOG.md` or have the `skip-changelog` label. CI will fail without one of these. Add the changelog entry in the same commit as the code change — do not forget this. User-facing changes go under the appropriate heading (Added/Changed/Fixed/Removed). For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label instead.
+- **Public API changes always update the changelog** — any change to the CLI, SDK surface, config schema, or documented behavior MUST update `CHANGELOG.md`. The `skip-changelog` label is only for purely internal changes (tests, CI, refactors with no observable effect). If in doubt, write the entry.
 
 ### Git Worktrees
 All development work should happen in git worktrees, not on the main branch directly.
