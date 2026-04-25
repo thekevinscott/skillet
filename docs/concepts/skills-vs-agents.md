@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/concepts/skills-vs-agents
+---
+
 # Skills vs Agents
 
 Skillet evaluates **skills**, not agents.

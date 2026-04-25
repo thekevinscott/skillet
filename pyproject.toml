@@ -83,6 +83,13 @@ local_scheme = "no-local-version"
 [tool.hatch.build.targets.wheel]
 packages = ["skillet"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"docs/index.md" = "skillet/docs/index.md"
+"docs/getting-started.md" = "skillet/docs/getting-started.md"
+"docs/concepts" = "skillet/docs/concepts"
+"docs/guides" = "skillet/docs/guides"
+"docs/reference" = "skillet/docs/reference"
+
 [tool.pytest.ini_options]
 testpaths = ["skillet", "scripts"]
 python_files = ["*_test.py"]

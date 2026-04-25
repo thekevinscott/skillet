@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/guides/contributing
+---
+
 # Contributing
 
 See [CONTRIBUTING.md](https://github.com/thekevinscott/skillet/blob/main/CONTRIBUTING.md) in the repository root for the full contributor guide covering:

@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/reference/python-api
+---
+
 # Python API
 
 Programmatic interface for Skillet.

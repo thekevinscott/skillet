@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/getting-started
+---
+
 # Getting Started
 
 This guide walks you through installing Skillet and creating your first evaluation-driven skill.
