@@ -6,6 +6,12 @@
 
 Evaluation-driven Claude Code skill development.
 
+Three levels of documentation:
+
+1. This README — the concise overview, mirroring the structure below
+2. [`docs/`](docs/) — full markdown documentation, shipped with the package
+3. [skillet.run](https://skillet.run) — the rendered docs site, 1:1 with `docs/`
+
 ## Install
 
 ```bash
@@ -24,165 +30,63 @@ But they don't provide tooling:
 
 skillet fills that gap.
 
-## Workflow
+## Quick Start
 
-### 1. Capture evals with `/skillet:add`
-
-When Claude does something wrong, capture it:
-
-```
-> Write a code review comment for this SQL query...
-
-Claude: This code has a SQL injection vulnerability...
-
-> /skillet:add
-
-Claude: What did you expect instead?
-
-> Should start with **issue** (blocking): using conventional comments format
-
-Claude: Eval saved to ~/.skillet/evals/conventional-comments/001.yaml
-```
-
-### 2. Run baseline eval
+Capture failures with `/skillet:add` in Claude Code, then run the loop:
 
 ```bash
-skillet eval conventional-comments
+skillet eval my-skill                              # baseline
+skillet create my-skill                            # generate skill from evals
+skillet eval my-skill ~/.claude/skills/my-skill    # eval with skill
+skillet tune my-skill ~/.claude/skills/my-skill    # iteratively improve
 ```
 
-```
-Eval Results (baseline, no skill)
-==================================
-Evals: 5
-Samples: 3 per eval
-Total runs: 15
+## Overview
 
-Pass rate: 0% (0/15)
-```
+Skillet captures failures, runs systematic evaluations, and iterates on skills with quantitative feedback. [→ `docs/index.md`](docs/index.md)
 
-### 3. Create the skill
+## Getting Started
 
-```bash
-skillet create conventional-comments
-```
+End-to-end walkthrough from your first capture to a tuned skill. [→ `docs/getting-started.md`](docs/getting-started.md)
 
-```
-Found 5 evals for 'conventional-comments', drafting SKILL.md...
+## Concepts
 
-Created ~/.claude/skills/conventional-comments/
-└── SKILL.md (draft from 5 evals)
-```
+### Skills vs Agents
 
-### 4. Eval with skill
+Skillet evaluates *skills* (instructions that shape behavior), not *agents* (the underlying capability). [→ `docs/concepts/skills-vs-agents.md`](docs/concepts/skills-vs-agents.md)
 
-```bash
-skillet eval conventional-comments ~/.claude/skills/conventional-comments
-```
+### Capability vs Regression
 
-```
-Eval Results (with skill)
-=========================
-Skill: ~/.claude/skills/conventional-comments
-Evals: 5
-Samples: 3 per eval
-Total runs: 15
+The same eval format serves two purposes: capability (`pass@k`, exploratory) during development, regression (`pass^k`, strict) in CI. [→ `docs/concepts/capability-vs-regression.md`](docs/concepts/capability-vs-regression.md)
 
-Pass rate: 80% (12/15)
-```
+### Balanced Problem Sets
 
-### 5. Tune the skill
+A good eval suite needs negative cases — prompts where the skill should *not* trigger — to catch overtriggering. [→ `docs/concepts/balanced-problem-sets.md`](docs/concepts/balanced-problem-sets.md)
 
-```bash
-skillet tune conventional-comments ~/.claude/skills/conventional-comments
-```
+## Guides
 
-```
-Round 1/5: Pass rate 80% (12/15)
-  Improving skill...
-Round 2/5: Pass rate 93% (14/15)
-  Improving skill...
-Round 3/5: Pass rate 100% (15/15)
-  Target reached!
+### Capture with /skillet:add
 
-Best skill saved to ~/.claude/skills/conventional-comments/SKILL.md
-```
+Use `/skillet:add` in Claude Code to record failures as YAML eval files. [→ `docs/guides/capture-with-slash-command.md`](docs/guides/capture-with-slash-command.md)
 
-## Commands
+### Linting
 
-```bash
-skillet eval <name> [skill]         # run evals (baseline or with skill)
-skillet create <name>               # create skill from evals
-skillet tune <name> <skill>         # iteratively improve skill
-skillet compare <name> <skill>      # compare baseline vs skill from cache
-skillet show <name>                 # inspect cached eval results
-skillet lint <path>                 # lint a SKILL.md for common issues
-skillet generate-evals <skill>      # generate candidate evals from a skill
-```
+`skillet lint <path>` checks a `SKILL.md` against 14 rules covering naming, frontmatter, body length, and recommended fields. [→ `docs/guides/linting.md`](docs/guides/linting.md)
 
-## Evals
+### Contributing
 
-Evals are stored in `~/.skillet/evals/<name>/`:
+Development setup, testing strategy, code style, and PR conventions. [→ `docs/guides/contributing.md`](docs/guides/contributing.md)
 
-```yaml
-# ~/.skillet/evals/conventional-comments/001.yaml
-timestamp: 2025-01-15T10:30:00Z
-name: conventional-comments
-prompt: "Write a code review comment for..."
-expected: "Should start with **issue** (blocking):"
-```
+## Reference
 
-## Python API
+### CLI
 
-```python
-import asyncio
-from pathlib import Path
-from skillet import evaluate
+`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. [→ `docs/reference/cli.md`](docs/reference/cli.md)
 
-async def main():
-    # Baseline (no skill)
-    baseline = await evaluate("conventional-comments")
-    print(f"Baseline: {baseline['pass_rate']}%")
+### Eval Format
 
-    # With skill
-    result = await evaluate(
-        "conventional-comments",
-        skill_path=Path("~/.claude/skills/conventional-comments").expanduser(),
-    )
-    print(f"With skill: {result['pass_rate']}%")
+YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domain`/`setup`/`teardown`. [→ `docs/reference/eval-format.md`](docs/reference/eval-format.md)
 
-asyncio.run(main())
-```
+### Python API
 
-Tune a skill programmatically:
-
-```python
-from skillet import tune
-from skillet.tune import TuneConfig
-
-result = await tune(
-    "conventional-comments",
-    Path("~/.claude/skills/conventional-comments").expanduser(),
-    config=TuneConfig(max_rounds=10, target_pass_rate=90.0),
-)
-print(f"Final pass rate: {result.result.final_pass_rate}%")
-```
-
-See the [Python API reference](https://skillet.run/reference/python-api) for all functions and options.
-
-## Documentation
-
-Full documentation available at the [docs site](https://skillet.run):
-
-- [Getting Started](https://skillet.run/getting-started)
-- [Concepts](https://skillet.run/concepts/skills-vs-agents) — Skills vs agents, capability vs regression, balanced problem sets
-- [CLI Reference](https://skillet.run/reference/cli)
-- [Eval Format](https://skillet.run/reference/eval-format)
-- [Python API](https://skillet.run/reference/python-api)
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for future ideas and planned features.
-
-## License
-
-MIT
+Programmatic interface: `evaluate()`, `tune()`, `create_skill()`, `generate_evals()`, `show()`, `lint_skill()`. [→ `docs/reference/python-api.md`](docs/reference/python-api.md)

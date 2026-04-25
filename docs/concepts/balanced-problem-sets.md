@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/concepts/balanced-problem-sets
+---
+
 # Balanced Problem Sets
 
 A good eval suite tests both what a skill *should* do and what it *should not* do.

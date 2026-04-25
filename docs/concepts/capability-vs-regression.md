@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/concepts/capability-vs-regression
+---
+
 # Capability vs Regression Evals
 
 Skillet uses the same eval format and API for two distinct purposes. The difference is in how you interpret results and when you run them.

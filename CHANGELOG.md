@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- README restructured to mirror the `docs/` folder hierarchy: every docs page is now a `##`/`###` section in the README with a relative link to the in-repo markdown. Three documentation levels — README (concise), `docs/` (in-depth, ships with the package), and skillet.run (rendered site) — are kept 1:1 with each other
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions
 
 ### Added
+- `docs/` markdown ships inside the wheel at `skillet/docs/` so installed users (and agents) can read full documentation offline without visiting the docs site
+- `docsUrl` frontmatter on every user-facing docs page links back to its rendered URL on skillet.run
 - Convention check: one-public-callable-per-file lint rule enforced in CI (`uv run just check-conventions`). Per-file opt-out via `# skillet: allow-multiple-public-callables`
 - Code-based assertions for eval grading: deterministic `contains`, `not_contains`, `regex`, `starts_with`, `ends_with`, `tool_called`, and `tool_not_called` checks that skip LLM judge when present in eval YAML
 - CONTRIBUTING.md with development setup, testing, code style, and PR guidelines

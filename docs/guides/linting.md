@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/guides/linting
+---
+
 # Linting Skills
 
 Skillet includes a built-in linter that checks your `SKILL.md` files for common issues before you publish or share them.

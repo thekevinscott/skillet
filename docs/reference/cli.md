@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/reference/cli
+---
+
 # CLI Reference
 
 Complete reference for Skillet command-line tools.

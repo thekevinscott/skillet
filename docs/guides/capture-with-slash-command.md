@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/guides/capture-with-slash-command
+---
+
 # Capture with /skillet:add
 
 The `/skillet:add` slash command is the primary way to capture evals during your Claude Code sessions.

@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/reference/eval-format
+---
+
 # Eval Format
 
 Complete YAML schema reference for Skillet eval files.

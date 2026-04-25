@@ -1,3 +1,7 @@
+---
+docsUrl: https://skillet.run/
+---
+
 # Overview
 
 A simple, open format for evaluation-driven Claude Code skill development.
