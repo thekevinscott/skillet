@@ -13,7 +13,8 @@ wheels/
 scribbles
 tmp
 deprecated
-notes/
+notes/*
+!notes/environments/
 .claude/settings.local.json
 .coverage
 .pnpm-store
