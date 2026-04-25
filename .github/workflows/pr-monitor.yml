@@ -2,6 +2,7 @@ name: PR Monitor
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:
   checks: read
