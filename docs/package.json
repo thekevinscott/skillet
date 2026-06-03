@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vitepress dev",
-    "build": "vitepress build",
+    "sync-migrations": "cp ../MIGRATIONS.md migrations.md",
+    "dev": "cp ../MIGRATIONS.md migrations.md && vitepress dev",
+    "build": "cp ../MIGRATIONS.md migrations.md && vitepress build",
     "preview": "vitepress preview"
   },
   "devDependencies": {

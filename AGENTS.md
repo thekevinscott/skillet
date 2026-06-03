@@ -1,0 +1,252 @@
+# Skillet Development
+
+## Workflow
+- Work in git worktrees under `.worktrees/` folder, tie PRs to GitHub issues
+- **NEVER commit directly to main** - always create a PR
+- **Before pushing**: the pre-push hook runs `uv run just ci` automatically (lint, format, typecheck, unit tests in parallel). Integration tests run only on GitHub CI to keep pushes fast
+- **After pushing**: run `gh pr checks <number> --watch` to monitor CI. Fix any failures immediately before moving on
+- **After a PR is merged**: pull main in the root repository to keep worktrees in sync
+
+### PR Scope
+- **Keep PRs minimal but complete** - each PR should deliver one useful, self-contained piece of functionality
+- Don't add code that isn't used until a future PR (e.g., an error class with no callers)
+- If a task is too large for one PR, create child beads under the parent bead - one per PR
+- Every PR must include tests per the TDD Order (see Testing section): e2e first if touching public API, integration tests, then unit tests
+- **Changelog (REQUIRED)**: Every PR must update `CHANGELOG.md` under the appropriate `Unreleased` heading (Added/Changed/Fixed/Removed). CI fails without an entry. Add the entry in the same commit as the code change — do not forget this. Skillet does not strictly follow semver, so every change that could reach a release gets documented. **Escape hatch**: if a PR is genuinely changelog-irrelevant (workflow-only tweaks, internal comment fixes), add a `Skip-Changelog: <reason>` trailer to any commit in the PR. Use sparingly — if in doubt, write the entry. Example:
+  ```
+  chore: tweak CI timeout
+
+  Skip-Changelog: CI-only change, no user impact
+  ```
+- **Migration guide (`MIGRATIONS.md`)**: any PR with migration impact must also add an entry to `MIGRATIONS.md` using the template at the bottom of that file. "Migration impact" = anything a downstream consumer needs to act on or be aware of to upgrade cleanly: breaking API changes, removed deprecations, changed defaults, new required config, or same-API/different-runtime behavior (exit codes, output shape, cache invalidation). Pure additions and bug fixes with no required consumer action do not need a MIGRATIONS.md entry. Entries belong under `[Unreleased]`; the release workflow will stamp the version and date. The root `MIGRATIONS.md` is the single source of truth — it is copied into `docs/migrations.md` at docs build time by the `dev`/`build` npm scripts, so it appears on skillet.run automatically.
+  - **CI enforcement**: `just check-migrations` inspects the `CHANGELOG.md` diff — if it adds any bullet starting with `- **Breaking` (case-insensitive), `MIGRATIONS.md` must also be edited in the PR. Always mark breaking changelog entries with the `- **Breaking:** ...` convention so this check covers them. Escape hatch: a `Skip-Migrations: <reason>` commit trailer, for the rare case a breaking bullet genuinely needs no consumer-facing migration guidance.
+
+### Git Worktrees
+All development work should happen in git worktrees, not on the main branch directly.
+
+**IMPORTANT: When creating/switching worktrees, always run the setup steps yourself:**
+
+```bash
+# Create a new worktree for a feature branch
+git worktree add .worktrees/my-feature -b feat/my-feature
+
+# Work in the worktree - ALWAYS run these setup steps:
+cd .worktrees/my-feature
+uv sync --all-extras                          # Install all dependencies including dev tools
+uv run python scripts/build_claude_config.py  # Build .claude/commands/
+
+# When done, remove the worktree
+cd ../..
+git worktree remove .worktrees/my-feature
+```
+
+**Never give the user commands to run - execute them yourself.** Each worktree has its own `.venv` that needs dependencies installed. The `.claude/commands/` directory is gitignored and must be rebuilt in each worktree.
+
+## Project Structure
+- `.claude-template/` - Source templates with `{{SKILLET_DIR}}` placeholders
+- `.claude/commands/` - Generated (gitignored), built from templates
+- `scripts/build_claude_config.py` - Template builder
+- `tests/e2e/` - End-to-end tests using Claude Agent SDK
+
+## Documentation
+
+There is a README.md and a docs/ folder (using vitepress) that builds to https://skillet.run.
+
+The README.md should stay concise, but should be useful and contain information about major features. It is the primary way PyPI consumers will discover the library.
+
+For more in-depth documentation, ensure the docs cover all public-facing features.
+
+## Testing
+
+### Red/Green Development
+
+Follow **red/green** (test-first) methodology:
+
+1. **Write the test first** — it must capture the desired behavior
+2. **Run it and confirm it fails (RED)** — do NOT proceed until the test turns red reliably. A test that passes before implementation proves nothing.
+3. **Make the minimal change to pass (GREEN)** — only then write the implementation
+4. Refactor if needed, keeping tests green
+
+### TDD Order: Outside-In
+
+Tests are written **before** implementation, starting from the outermost layer:
+
+1. **E2E test first** — proves the feature works from the user's perspective, using real LLMs (slow but most accurate)
+2. **Integration test** — proves internal modules compose correctly, with mocked LLMs (much faster, potential for dependency issues)
+3. **Unit tests** — written as you implement each piece (least important testing layer)
+
+A feature is not done until the e2e and integration tests pass and cover the new functionality.
+
+### When to Write What
+
+**Does the commit change the public-facing API (CLI, SDK, config)?**
+- Yes → **e2e test + integration test required**, plus unit tests as you go
+- No → Check if adequate e2e/integration coverage already exists:
+  - Adequate → unit tests only
+  - Gaps → add the missing e2e/integration tests, plus unit tests
+
+**Always write unit tests.** The question is whether you also need e2e and integration tests.
+
+### Test Locations
+- **Unit tests**: Colocate with source files (`foo.py` → `foo_test.py` in same directory)
+- **Integration tests**: `tests/integration/`
+- **E2E tests**: `tests/e2e/`, auto-build `.claude/commands/` via conftest.py
+
+### Test Infrastructure
+- `Conversation` helper for multi-turn e2e test flows
+- Use `@pytest.mark.parametrize` when testing multiple inputs/outputs for the same logic
+- Mock all imports in unit tests, to establish isolated coverage
+- Mock external dependencies in integration tests, but avoid mocking anything internal
+- Do not mock anything in e2e tests
+- **Always prefer `pytest.fixture` over inline `with patch(...)`** — use `autouse=True` when the mock applies to all tests in scope
+
+### Mocking with pytest-describe
+
+Use `@pytest.fixture(autouse=True)` for shared mocks within a describe block. Pass fixture as function parameter (not `self`):
+
+```python
+def describe_my_function():
+    @pytest.fixture(autouse=True)
+    def mock_dependency():
+        with patch("module.dependency", new_callable=AsyncMock) as mock:
+            mock.return_value = default_value
+            yield mock
+
+    @pytest.mark.asyncio
+    async def it_does_something(mock_dependency):
+        mock_dependency.return_value = specific_value
+        result = await my_function()
+        assert result == expected
+```
+
+If a fixture is used in multiple describe blocks, move it to the top level rather than duplicating it across describe blocks.
+
+### Test Fixtures for File Content
+
+Use readable multi-line strings for file content. Either module-level constants or inline `dedent()` — never escaped `\n` strings:
+
+```python
+# Good - module-level constant
+VALID_SKILL = """\
+---
+name: test
+---
+"""
+
+def it_does_something(tmp_path):
+    skill.write_text(VALID_SKILL)
+
+# Good - inline dedent
+def it_does_something(tmp_path):
+    skill.write_text(dedent("""\
+        ---
+        name: test
+        ---
+        """))
+
+# Bad - hard to read
+def it_does_something(tmp_path):
+    skill.write_text("---\nname: test\n---\n")
+```
+
+## Key Commands
+
+`just` is installed via uv as `rust-just`, so run it with `uv run just`:
+
+```bash
+uv run just build-claude    # Build .claude/commands/ from templates
+uv run just test-e2e        # Run e2e tests
+uv run just test-integration        # Run integration tests
+uv run just test-unit       # Run unit tests
+```
+
+## Container Development
+When running inside a Docker container with the project mounted, use a separate venv to avoid conflicts with the host:
+
+```bash
+export UV_PROJECT_ENVIRONMENT=/.venv
+uv sync --all-extras
+uv run pytest tests/ -v
+```
+
+This prevents the host's `.venv` from being invalidated when switching contexts.
+
+## Code Style
+
+### Module Organization
+
+- **One function per file** — each `.py` file contains a single public function, named to match the file (`get_rate_color.py` contains `get_rate_color()`)
+- **Multi-function files become packages** — when a file has multiple functions, promote it to a directory with `__init__.py` and one file per function
+- **`__init__.py` exports only externally consumed symbols** — internal helpers stay unexported
+- **Drop redundant suffixes inside packages** — `judge/format_prompt.py`, not `judge/format_prompt_for_judge.py`
+- **Dataclass, type, model, and exception files are exempt** — grouping related types in a single file is fine
+- **Co-located tests** — `foo.py` → `foo_test.py` in the same directory
+
+### Docstrings
+- **Skip `Args:`, `Returns:`, `Raises:` sections** - these are statically analyzable from type hints
+- Use docstrings for *why* and *what*, not *how* the signature works
+- One-liner docstrings for simple functions; multi-line only when behavior needs explanation
+
+### Type Hints
+- **Prefer fixing type issues over `# type: ignore`** - investigate the root cause first
+
+```python
+# Good
+def query_structured[T: BaseModel](prompt: str, model: type[T]) -> T:
+    """Query Claude and return a validated Pydantic model."""
+
+# Avoid
+def query_structured[T: BaseModel](prompt: str, model: type[T]) -> T:
+    """Query Claude and return a validated Pydantic model.
+
+    Args:
+        prompt: The prompt to send
+        model: A Pydantic model class
+
+    Returns:
+        An instance of the model
+    """
+```
+
+## Guidelines
+- Check `uv.lock` for dependency versions - don't ask the user for info you can look up
+- Don't make up installation commands - verify in docs or source code first
+- **Do not chain commands** (e.g., `cmd1 && cmd2`, `cmd1 ; cmd2`, `cmd1 | cmd2`). Chained commands break the permissions system — each command must be run separately so permissions can be evaluated individually
+
+## Commit Convention
+
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+| Type | Use for | Examples |
+|------|---------|----------|
+| `feat:` | New user-facing functionality | New CLI command, new API endpoint, new config option |
+| `fix:` | Bug fixes | Fixing broken behavior, correcting errors |
+| `test:` | Test additions/changes | New test files, test infrastructure, eval additions |
+| `chore:` | Internal tooling, CI, maintenance | CI workflow changes, dependency updates, build scripts |
+| `refactor:` | Code restructuring without behavior change | Renaming, reorganizing, extracting functions |
+| `docs:` | Documentation only | README updates, code comments, docstrings |
+
+**Key distinction:** `feat:` is for significant user-facing features, not internal improvements. Adding tests, evals, or CI infrastructure should use `test:` or `chore:`.
+
+### Commit Trailers
+
+Skillet uses git commit trailers for machine-readable metadata. Add them as a blank-line-separated block at the end of the commit message:
+
+| Trailer | Purpose |
+|---------|---------|
+| `Skip-Changelog: <reason>` | Exempt this PR from the changelog check (genuinely invisible changes only) |
+| `Skip-Migrations: <reason>` | Exempt this PR from the migration check when a `Breaking` CHANGELOG line genuinely needs no consumer-facing migration guidance (rare) |
+
+### Releases
+
+Patch releases are controlled by the `RELEASE_STRATEGY` repo variable (Settings > Secrets and variables > Actions > Variables):
+
+- **`nightly`** (default when unset) — patch releases run on a daily cron at 2am UTC
+- **`immediate`** — patch releases cut on every push to main
+
+Other release types:
+- **Minor releases** are triggered manually via GitHub Actions > "Minor Release"
+- **Major releases** are done manually by creating a tag
+- **`workflow_dispatch`** always works regardless of strategy (manual override)
+
+To skip a release in immediate mode, include `[no-release]` in the commit message.

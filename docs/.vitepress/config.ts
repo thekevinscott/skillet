@@ -25,6 +25,7 @@ export default defineConfig({
     sidebar: [
       { text: 'Overview', link: '/' },
       { text: 'Getting Started', link: '/getting-started' },
+      { text: 'Migrations', link: '/migrations' },
       {
         text: 'Concepts',
         items: [

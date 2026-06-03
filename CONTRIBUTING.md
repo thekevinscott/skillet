@@ -67,7 +67,8 @@ uv run just typecheck  # ty type checking
 
 - **Never commit directly to main** — always open a PR
 - **Keep PRs focused** — one self-contained piece of functionality per PR
-- **Changelog required** — update `CHANGELOG.md` under the appropriate heading (Added/Changed/Fixed/Removed), or add the `skip-changelog` label for purely internal changes
+- **Changelog required** — every PR must update `CHANGELOG.md` under the appropriate `Unreleased` heading (Added/Changed/Fixed/Removed). Skillet does not strictly follow semver, so every change gets documented. The only escape hatch is a `Skip-Changelog: <reason>` trailer on a commit in the PR, for genuinely changelog-irrelevant changes (workflow tweaks, internal comment fixes). Use sparingly.
+- **Migration guide** — if the PR has migration impact (breaking API changes, removed deprecations, changed defaults, new required config, or same-API/different-runtime behavior), add an entry to `MIGRATIONS.md` under `[Unreleased]` using the template at the bottom of that file. Pure additions and bug fixes do not need an entry.
 
 ### Commit Convention
 

@@ -2,30 +2,27 @@ name: Changelog
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened]
 
 jobs:
   check:
     runs-on: ubuntu-latest
-    # Skip for dependabot PRs and PRs with skip-changelog label
+    # Skip for dependabot PRs. The `Skip-Changelog:` and `Skip-Migrations:` commit
+    # trailers (checked inside the just recipes) are the only other escape hatches.
     if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Skip if labeled
-        if: contains(github.event.pull_request.labels.*.name, 'skip-changelog')
-        run: echo "Skipping changelog check (skip-changelog label present)"
-
       - name: Install uv
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
         uses: astral-sh/setup-uv@v7
 
       - name: Install dependencies
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
         run: uv sync --extra dev
 
       - name: Check changelog
-        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip-changelog') }}
         run: uv run just check-changelog origin/${{ github.base_ref }}
+
+      - name: Check migrations
+        run: uv run just check-migrations origin/${{ github.base_ref }}

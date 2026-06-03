@@ -27,6 +27,8 @@ backlog/
 # Docs
 docs/node_modules/
 docs/.vitepress/cache/
+# Generated from root MIGRATIONS.md by `pnpm run sync-migrations`
+docs/migrations.md
 
 # Environment
 .env
