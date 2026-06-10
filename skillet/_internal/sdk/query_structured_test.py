@@ -7,6 +7,7 @@ from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, ToolUse
 from pydantic import BaseModel, ValidationError
 
 from skillet._internal.sdk.query_structured import (
+    MIN_STRUCTURED_OUTPUT_TURNS,
     StructuredOutputError,
     _validate_with_unwrap,
     query_structured,
@@ -203,6 +204,65 @@ def describe_query_structured():
         assert mock_query.captured["options"] is not None
         assert mock_query.captured["options"].max_turns == 5
         assert mock_query.captured["options"].allowed_tools == ["Read"]
+
+    @pytest.mark.asyncio
+    async def it_clamps_max_turns_below_structured_output_minimum(mock_query):
+        """Newer CLIs defer StructuredOutput behind ToolSearch; the round-trip
+        (text -> stop-hook feedback -> ToolSearch -> StructuredOutput) needs
+        several turns. max_turns=1 must be raised or every call fails with
+        'No structured output returned from query'."""
+
+        class TestModel(BaseModel):
+            data: str
+
+        mock_query.messages.append(
+            AssistantMessage(
+                content=[
+                    ToolUseBlock(id="tool-1", name="StructuredOutput", input={"data": "test"})
+                ],
+                model="claude-sonnet-4-20250514",
+            )
+        )
+
+        await query_structured("test", TestModel, max_turns=1, allowed_tools=[])
+
+        assert mock_query.captured["options"].max_turns == MIN_STRUCTURED_OUTPUT_TURNS
+
+    @pytest.mark.asyncio
+    async def it_does_not_clamp_max_turns_at_or_above_minimum(mock_query):
+        class TestModel(BaseModel):
+            data: str
+
+        mock_query.messages.append(
+            AssistantMessage(
+                content=[
+                    ToolUseBlock(id="tool-1", name="StructuredOutput", input={"data": "test"})
+                ],
+                model="claude-sonnet-4-20250514",
+            )
+        )
+
+        await query_structured("test", TestModel, max_turns=10)
+
+        assert mock_query.captured["options"].max_turns == 10
+
+    @pytest.mark.asyncio
+    async def it_leaves_max_turns_unset_when_not_passed(mock_query):
+        class TestModel(BaseModel):
+            data: str
+
+        mock_query.messages.append(
+            AssistantMessage(
+                content=[
+                    ToolUseBlock(id="tool-1", name="StructuredOutput", input={"data": "test"})
+                ],
+                model="claude-sonnet-4-20250514",
+            )
+        )
+
+        await query_structured("test", TestModel)
+
+        assert mock_query.captured["options"].max_turns is None
 
 
 def describe_generator_consumption():

@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bandit subprocess suppressions (B603, B607) scoped to inline comments instead of global skip list
 
 ### Fixed
+- `query_structured()` clamps `max_turns` to a floor of 5 (`MIN_STRUCTURED_OUTPUT_TURNS`): newer Claude CLI versions defer the `StructuredOutput` tool behind `ToolSearch`, so the structured-output round-trip (text answer → stop-hook feedback → `ToolSearch` → `StructuredOutput`) needs several turns. All `max_turns=1` call sites (eval judge, failure summarizer, skill draft, tune improve) failed every call with "No structured output returned from query", which made the eval judge silently score every run as 0%
 - Bump cachetta minimum to 0.6.0 for pickle deserialization security fix
 
 ### Changed

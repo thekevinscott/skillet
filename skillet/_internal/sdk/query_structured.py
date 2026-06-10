@@ -15,6 +15,28 @@ class StructuredOutputError(Exception):
     pass
 
 
+# Newer Claude CLI versions defer the StructuredOutput tool behind ToolSearch:
+# the model first answers in text, the stop hook demands a StructuredOutput
+# call, the model loads the tool via ToolSearch, and only then calls it. That
+# round-trip takes several turns, so a max_turns below this floor cuts the
+# query short and every call fails with "No structured output returned from
+# query".
+MIN_STRUCTURED_OUTPUT_TURNS = 5
+
+
+def _apply_min_turns(options: dict[str, Any]) -> dict[str, Any]:
+    """Clamp max_turns so the StructuredOutput round-trip can complete.
+
+    Callers passing max_turns=1 to mean "single-shot, no tool use" still get
+    that via allowed_tools=[]; the extra turns exist only for the
+    structured-output protocol itself. Unset max_turns passes through.
+    """
+    max_turns = options.get("max_turns")
+    if max_turns is not None:
+        options = {**options, "max_turns": max(max_turns, MIN_STRUCTURED_OUTPUT_TURNS)}
+    return options
+
+
 def _validate_with_unwrap[T: BaseModel](model: type[T], data: Any) -> T:
     """Validate data against a Pydantic model, unwrapping single-key wrappers.
 
@@ -42,6 +64,8 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
     """
     if not (isinstance(model, type) and issubclass(model, BaseModel)):
         raise TypeError(f"model must be a Pydantic BaseModel subclass, got {type(model)}")
+
+    options = _apply_min_turns(options)
 
     opts = ClaudeAgentOptions(
         output_format={
