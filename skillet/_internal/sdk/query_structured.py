@@ -24,6 +24,19 @@ class StructuredOutputError(Exception):
 MIN_STRUCTURED_OUTPUT_TURNS = 5
 
 
+def _apply_min_turns(options: dict[str, Any]) -> dict[str, Any]:
+    """Clamp max_turns so the StructuredOutput round-trip can complete.
+
+    Callers passing max_turns=1 to mean "single-shot, no tool use" still get
+    that via allowed_tools=[]; the extra turns exist only for the
+    structured-output protocol itself. Unset max_turns passes through.
+    """
+    max_turns = options.get("max_turns")
+    if max_turns is not None:
+        options = {**options, "max_turns": max(max_turns, MIN_STRUCTURED_OUTPUT_TURNS)}
+    return options
+
+
 def _validate_with_unwrap[T: BaseModel](model: type[T], data: Any) -> T:
     """Validate data against a Pydantic model, unwrapping single-key wrappers.
 
@@ -52,13 +65,7 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
     if not (isinstance(model, type) and issubclass(model, BaseModel)):
         raise TypeError(f"model must be a Pydantic BaseModel subclass, got {type(model)}")
 
-    # Clamp max_turns so the StructuredOutput round-trip can complete (see
-    # MIN_STRUCTURED_OUTPUT_TURNS above). Callers passing max_turns=1 to mean
-    # "single-shot, no tool use" still get that via allowed_tools=[]; the
-    # extra turns exist only for the structured-output protocol itself.
-    max_turns = options.get("max_turns")
-    if max_turns is not None and max_turns < MIN_STRUCTURED_OUTPUT_TURNS:
-        options["max_turns"] = MIN_STRUCTURED_OUTPUT_TURNS
+    options = _apply_min_turns(options)
 
     opts = ClaudeAgentOptions(
         output_format={
