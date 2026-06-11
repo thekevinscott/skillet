@@ -34,7 +34,7 @@ def _load_lite_harness() -> Any:
         raise HarnessNotInstalledError(_INSTALL_HINT) from e
 
 
-async def run_lite_harness(  # noqa: C901 - complexity from SDK protocol handling
+async def run_lite_harness(
     prompts: list[str],
     *,
     harness: str,

@@ -77,7 +77,8 @@ def describe_run_lite_harness():
                 _Result(session_id="s1"),
             ]
         ]
-        with patch.object(lite_harness, "_load_lite_harness", return_value=_fake_module(messages, calls)):
+        fake = _fake_module(messages, calls)
+        with patch.object(lite_harness, "_load_lite_harness", return_value=fake):
             result = await lite_harness.run_lite_harness(["hello"], harness="codex")
 
         assert result.text == "Ahoy matey"
@@ -106,7 +107,8 @@ def describe_run_lite_harness():
             [_System(subtype="init", data={"session_id": "sess-9"}), _Result(session_id="sess-9")],
             [_Assistant(content=[_Text("second")]), _Result(session_id="sess-9")],
         ]
-        with patch.object(lite_harness, "_load_lite_harness", return_value=_fake_module(messages, calls)):
+        fake = _fake_module(messages, calls)
+        with patch.object(lite_harness, "_load_lite_harness", return_value=fake):
             result = await lite_harness.run_lite_harness(["one", "two"], harness="codex")
 
         assert calls[0]["options"].kwargs["resume"] is None
@@ -115,10 +117,12 @@ def describe_run_lite_harness():
 
     @pytest.mark.asyncio
     async def it_raises_when_lite_harness_is_not_installed():
-        with patch.object(
-            lite_harness.importlib,
-            "import_module",
-            side_effect=ModuleNotFoundError("lite_harness"),
+        with (
+            patch.object(
+                lite_harness.importlib,
+                "import_module",
+                side_effect=ModuleNotFoundError("lite_harness"),
+            ),
+            pytest.raises(HarnessNotInstalledError, match="not installed"),
         ):
-            with pytest.raises(HarnessNotInstalledError, match="not installed"):
-                await lite_harness.run_lite_harness(["hello"], harness="codex")
+            await lite_harness.run_lite_harness(["hello"], harness="codex")

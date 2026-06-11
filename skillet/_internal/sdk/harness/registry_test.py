@@ -35,7 +35,4 @@ def describe_get_adapter():
             adapter = get_adapter("codex")
             await adapter(["prompt"], cwd="/work")
 
-            mock_lite.assert_awaited_once()
-            assert mock_lite.await_args.args[0] == ["prompt"]
-            assert mock_lite.await_args.kwargs["harness"] == "codex"
-            assert mock_lite.await_args.kwargs["cwd"] == "/work"
+            mock_lite.assert_awaited_once_with(["prompt"], harness="codex", cwd="/work")

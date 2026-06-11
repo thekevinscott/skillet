@@ -20,9 +20,7 @@ def describe_query_multiturn():
             result = await query_multiturn(["prompt"], harness="codex", cwd="/work")
 
             mock_get.assert_called_once_with("codex")
-            adapter.assert_awaited_once()
-            assert adapter.await_args.args[0] == ["prompt"]
-            assert adapter.await_args.kwargs["cwd"] == "/work"
+            adapter.assert_awaited_once_with(["prompt"], cwd="/work")
             assert result.text == "hi"
 
     @pytest.mark.asyncio
