@@ -23,3 +23,15 @@ class SkillError(SkilletError):
 
 class LintError(SkilletError):
     """Error during linting."""
+
+
+class HarnessError(SkilletError):
+    """Error selecting or running an agent harness (the agent under test)."""
+
+
+class UnknownHarnessError(HarnessError):
+    """Raised when a harness with no registered adapter is requested."""
+
+
+class HarnessNotInstalledError(HarnessError):
+    """Raised when a harness's optional backend (e.g. lite-harness) is unavailable."""

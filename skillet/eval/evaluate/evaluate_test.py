@@ -378,6 +378,34 @@ def describe_run_single_eval():
             # cwd should be /project (parent of .claude)
             assert script_cwd_captured[0] == "/project"
 
+    @pytest.mark.asyncio
+    async def it_threads_harness_to_cache_and_prompt():
+        """The task's harness flows to both the cache key and run_prompt."""
+        with (
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.get_cache_dir") as mock_cache_dir,
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.save_iteration"),
+        ):
+            mock_run.return_value = QueryResult(text="r", tool_calls=[])
+            mock_judge.return_value = {"pass": True, "reasoning": "OK"}
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+                "harness": "codex",
+            }
+
+            await run_single_eval(task, "test-evals", None, None, skip_cache=True)
+
+            assert mock_cache_dir.call_args.kwargs["harness"] == "codex"
+            assert mock_run.call_args.kwargs["harness"] == "codex"
+
 
 def describe_evaluate():
     """Tests for evaluate function."""
@@ -614,6 +642,58 @@ def describe_evaluate():
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("teardown") == "echo teardown"
+
+    @pytest.mark.asyncio
+    async def it_defaults_task_harness_to_claude():
+        with (
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_load.return_value = [
+                {"prompt": "p1", "expected": "e1", "_source": "1.md", "_content": "c1"}
+            ]
+            mock_run.return_value = {
+                "pass": True,
+                "cached": False,
+                "eval_source": "1.md",
+                "eval_idx": 0,
+                "iteration": 1,
+                "response": "r",
+            }
+
+            await evaluate("test-evals", samples=1)
+
+            task = mock_run.call_args[0][0]
+            assert task["harness"] == "claude"
+
+    @pytest.mark.asyncio
+    async def it_includes_explicit_harness_in_task():
+        with (
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_load.return_value = [
+                {
+                    "prompt": "p1",
+                    "expected": "e1",
+                    "_source": "1.md",
+                    "_content": "c1",
+                    "harness": "codex",
+                }
+            ]
+            mock_run.return_value = {
+                "pass": True,
+                "cached": False,
+                "eval_source": "1.md",
+                "eval_idx": 0,
+                "iteration": 1,
+                "response": "r",
+            }
+
+            await evaluate("test-evals", samples=1)
+
+            task = mock_run.call_args[0][0]
+            assert task["harness"] == "codex"
 
 
 def describe_exception_handling():

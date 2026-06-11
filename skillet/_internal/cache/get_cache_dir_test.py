@@ -21,3 +21,19 @@ def describe_get_cache_dir():
             result = get_cache_dir("myevals", "eval-abc123", skill_path=skill_dir)
             assert "skills" in str(result)
             assert "myevals" in str(result)
+
+    def it_keeps_the_claude_path_unchanged():
+        default = get_cache_dir("myevals", "eval-abc123")
+        explicit = get_cache_dir("myevals", "eval-abc123", harness="claude")
+        assert default == explicit
+        assert "harness-" not in str(default)
+
+    def it_namespaces_non_default_harnesses():
+        result = get_cache_dir("myevals", "eval-abc123", harness="codex")
+        assert "harness-codex" in str(result)
+        assert "baseline" in str(result)
+
+    def it_isolates_harnesses_from_each_other():
+        claude = get_cache_dir("myevals", "eval-abc123", harness="claude")
+        codex = get_cache_dir("myevals", "eval-abc123", harness="codex")
+        assert claude != codex

@@ -45,6 +45,8 @@ async def evaluate(  # noqa: PLR0913, C901
                 "prompt": eval_data["prompt"],
                 "expected": eval_data["expected"],
             }
+            # Select which agent harness runs the prompt (defaults to claude)
+            task["harness"] = eval_data.get("harness", "claude")
             # Include setup/teardown if present in the eval
             if eval_data.get("setup"):
                 task["setup"] = eval_data["setup"]

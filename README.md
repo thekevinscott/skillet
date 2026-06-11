@@ -85,7 +85,7 @@ Development setup, testing strategy, code style, and PR conventions. [→ `docs/
 
 ### Eval Format
 
-YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domain`/`setup`/`teardown`. [→ `docs/reference/eval-format.md`](docs/reference/eval-format.md)
+YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domain`/`harness`/`setup`/`teardown`. Set `harness: codex` to run the agent under test on Codex (via lite-harness) instead of the default Claude Agent SDK; the judge stays on Claude for comparability. [→ `docs/reference/eval-format.md`](docs/reference/eval-format.md)
 
 ### Python API
 

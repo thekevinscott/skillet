@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Per-eval `harness` selection for the agent under test: set `harness: codex` in an eval to run it through [lite-harness](https://github.com/LiteLLM-Labs/lite-harness) instead of the Claude Agent SDK (default `harness: claude`). The judge always stays on the Claude Agent SDK for score comparability, and cache keys are namespaced by harness so Claude and Codex runs of the same eval don't collide. Adding a connector is a one-line registry entry. lite-harness is an optional, lazily-imported dependency (preview-stage, not yet on PyPI) — see [Eval Format](docs/reference/eval-format.md#harness) for setup
+
 ### Changed
 - README restructured to mirror the `docs/` folder hierarchy: every docs page is now a `##`/`###` section in the README with a relative link to the in-repo markdown. Three documentation levels — README (concise), `docs/` (in-depth, ships with the package), and skillet.run (rendered site) — are kept 1:1 with each other
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions
