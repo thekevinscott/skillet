@@ -38,7 +38,6 @@ Every eval file must include these fields:
 |-------|------|-------------|
 | `actual` | string | Claude's response (for reference, not used in eval) |
 | `domain` | string | What aspect this eval tests: `triggering`, `functional`, or `performance` |
-| `harness` | string | Which agent harness runs the prompt: `claude` (default) or `codex` |
 | `setup` | string | Bash script run before eval **(alpha)** |
 | `teardown` | string | Bash script run after eval **(alpha)** |
 
@@ -82,41 +81,9 @@ expected: |
 
 Each prompt in the list is sent as a separate turn, with Claude's response from the previous turn as context.
 
-## Harness
-
-The `harness` field selects which agent harness runs the prompt — the *agent under test*. Skills follow the same `SKILL.md` standard across harnesses, so the same eval can be run on more than one.
-
-```yaml
-timestamp: 2025-01-15T10:30:00Z
-name: summarize-repo
-harness: codex          # run the agent under test on Codex (default: claude)
-prompt: "Summarize this repository"
-expected: "A concise, accurate summary of the project"
-```
-
-| Value | Backend | Notes |
-|-------|---------|-------|
-| `claude` (default) | Claude Agent SDK | Uses your existing `claude` CLI session/auth. Omit `harness` to get this. |
-| `codex` | [lite-harness](https://github.com/LiteLLM-Labs/lite-harness) | Runs through lite-harness's Claude Agent SDK–compatible `query()`. |
-
-A few things to know:
-
-- **The judge always stays on the Claude Agent SDK**, regardless of the harness under test, so scores stay comparable across harnesses.
-- **Caches are namespaced by harness.** Claude and Codex runs of the same eval don't collide; the default `claude` layout is unchanged, so existing caches stay valid.
-- **Adding a connector is a one-line registry entry** (`skillet/_internal/sdk/harness/registry.py`).
-
-### Setting up the Codex harness
-
-lite-harness is preview-stage and not yet published to PyPI, so it's an optional dependency that Skillet imports lazily — you only need it if you actually run a non-Claude harness. To set it up:
-
-```bash
-git clone https://github.com/LiteLLM-Labs/lite-harness.git
-pip install -e lite-harness/src/sdk/python      # the Python client
-npm install --prefix lite-harness/src/sdk/server # the server it spawns (needs Node.js)
-export OPENAI_API_KEY=sk-...                      # provider key for the codex harness
-```
-
-If `harness: codex` is used without lite-harness installed, Skillet raises a clear error explaining these steps.
+::: tip Harness is not stored in the eval
+Which agent harness runs the eval (`claude`, `codex`, …) is a run-time choice, set with the `skillet eval --harness` flag (or `SKILLET_HARNESS`), **not** a field in the eval file. This keeps eval files portable — the same set runs across harnesses. See [CLI → eval](./cli#eval).
+:::
 
 ## Setup and Teardown (Alpha)
 

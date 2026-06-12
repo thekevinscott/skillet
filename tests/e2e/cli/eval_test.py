@@ -200,17 +200,16 @@ def describe_skillet_eval():
         terminal: Callable[..., Terminal],
         tmp_path: Path,
     ):
-        """Exits with error when an eval declares an unknown harness."""
-        evals_dir = tmp_path / "evals" / "bad-harness"
+        """Exits with error when --harness names an unknown harness."""
+        evals_dir = tmp_path / "evals" / "greet"
         evals_dir.mkdir(parents=True)
         (evals_dir / "001-greeting.yaml").write_text(
             "timestamp: 2025-01-02T00:00:00Z\n"
             'prompt: "Say hello"\n'
             'expected: "A greeting"\n'
             "name: greet\n"
-            "harness: bogus\n"
         )
 
-        term = terminal(f"{SKILLET} eval {evals_dir} --trust")
+        term = terminal(f"{SKILLET} eval {evals_dir} --harness bogus --trust")
         expect(term).to_have_exited()
         assert term.exit_code != 0

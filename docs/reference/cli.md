@@ -37,6 +37,22 @@ The `name` argument accepts:
 | `--skip-cache` | | bool | false | Skip reading from cache (still writes) |
 | `--trust` | | bool | false | Skip confirmation for setup/teardown scripts |
 | `--no-summary` | | bool | false | Skip the failure summary LLM call |
+| `--harness` | | str | `claude` | Agent harness to run the eval on: `claude` or `codex` |
+
+### Harness
+
+`--harness` chooses the *agent under test* at run time, keeping eval files portable (the harness is never stored in the eval). It defaults to `claude` (the Claude Agent SDK) and falls back to the `SKILLET_HARNESS` environment variable when the flag is omitted — so the agent invoking `skillet` can set it automatically. The judge always stays on the Claude Agent SDK for score comparability, and caches are namespaced per harness.
+
+`codex` runs through [lite-harness](https://github.com/LiteLLM-Labs/lite-harness), a preview-stage, lazily-imported optional dependency. Set it up once:
+
+```bash
+git clone https://github.com/LiteLLM-Labs/lite-harness.git
+pip install -e lite-harness/src/sdk/python       # the Python client
+npm install --prefix lite-harness/src/sdk/server # the server it spawns (needs Node.js)
+export OPENAI_API_KEY=sk-...                      # provider key for the codex harness
+```
+
+If `--harness codex` is used without lite-harness installed, Skillet raises a clear error explaining these steps.
 
 ### Examples
 
@@ -70,6 +86,9 @@ skillet eval my-skill --no-summary
 
 # Restrict available tools
 skillet eval my-skill --tools "Read,Write,Bash"
+
+# Run the same evals on the Codex harness
+skillet eval my-skill --harness codex
 ```
 
 ## tune

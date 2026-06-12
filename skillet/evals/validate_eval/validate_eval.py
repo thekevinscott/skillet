@@ -1,6 +1,5 @@
 """Validate eval file format."""
 
-from skillet._internal.sdk.harness import HARNESS_NAMES
 from skillet.errors import EvalValidationError
 
 from .validate_assertions import validate_assertions
@@ -18,12 +17,6 @@ def validate_eval(eval_data: dict, source: str) -> None:
     if missing:
         missing_str = ", ".join(sorted(missing))
         raise EvalValidationError(f"Eval {source} missing required fields: {missing_str}")
-
-    if "harness" in eval_data and eval_data["harness"] not in HARNESS_NAMES:
-        known = ", ".join(sorted(HARNESS_NAMES))
-        raise EvalValidationError(
-            f"Eval {source}: unknown harness {eval_data['harness']!r}. Available: {known}."
-        )
 
     if "assertions" in eval_data:
         raw = eval_data["assertions"]

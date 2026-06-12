@@ -24,14 +24,15 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
     allowed_tools: list[str] | None,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
+    harness: str = "claude",
 ) -> dict:
     """Run a single evaluation task, using cache if available.
 
     Every eval runs in an isolated HOME directory. If the task contains
     'setup' or 'teardown' scripts, they are executed before/after the prompts.
+    ``harness`` selects which agent harness runs the agent under test.
     """
     # Check cache first (unless skip_cache is True)
-    harness = task.get("harness", "claude")
     eval_key = eval_cache_key(task["eval_source"], task["eval_content"])
     cache_dir = get_cache_dir(name, eval_key, skill_path, harness=harness)
 

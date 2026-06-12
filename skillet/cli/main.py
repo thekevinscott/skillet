@@ -24,8 +24,9 @@ async def eval(  # noqa: PLR0913
     skip_cache: Annotated[bool, Parameter(name=["--skip-cache"])] = False,
     trust: Annotated[bool, Parameter(name=["--trust"])] = False,
     no_summary: Annotated[bool, Parameter(name=["--no-summary"])] = False,
+    harness: Annotated[str | None, Parameter(name=["--harness"])] = None,
 ):
-    """Evaluate Claude against captured evals.
+    """Evaluate an agent against captured evals.
 
     NAME can be:
     - A name (looks in ~/.skillet/evals/<name>/)
@@ -36,6 +37,11 @@ async def eval(  # noqa: PLR0913
 
     Without SKILL: measures baseline performance (no skill active)
     With SKILL: measures performance with the skill loaded
+
+    The agent under test is the Claude Agent SDK by default. Use --harness to run
+    the same (portable) evals on another harness, e.g. --harness codex. The
+    harness is never stored in the eval file; it can also be set via the
+    SKILLET_HARNESS environment variable (--harness wins).
 
     SECURITY: Evals may contain setup/teardown scripts that execute shell commands.
     You will be prompted before running evals with scripts. Use --trust to skip
@@ -50,11 +56,15 @@ async def eval(  # noqa: PLR0913
         skillet eval my-skill -p 5                                 # 5 parallel workers
         skillet eval my-skill --skip-cache                         # ignore cached results
         skillet eval my-skill --trust                              # skip script confirmation
-        skillet eval my-skill --no-summary                           # skip failure summary
+        skillet eval my-skill --no-summary                         # skip failure summary
+        skillet eval my-skill --harness codex                      # run on the Codex harness
     """
+    import os
+
     from skillet.cli.commands.eval import eval_command
 
     allowed_tools = [t.strip() for t in tools.split(",")] if tools else None
+    resolved_harness = harness or os.environ.get("SKILLET_HARNESS") or "claude"
     await eval_command(
         name,
         skill_path=skill,
@@ -65,6 +75,7 @@ async def eval(  # noqa: PLR0913
         skip_cache=skip_cache,
         trust=trust,
         no_summary=no_summary,
+        harness=resolved_harness,
     )
 
 

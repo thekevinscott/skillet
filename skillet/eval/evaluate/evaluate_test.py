@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from skillet._internal.sdk import QueryResult
+from skillet.errors import UnknownHarnessError
 from skillet.eval.evaluate import evaluate, run_single_eval
 
 _RSE = "skillet.eval.evaluate.run_single_eval"
@@ -380,7 +381,7 @@ def describe_run_single_eval():
 
     @pytest.mark.asyncio
     async def it_threads_harness_to_cache_and_prompt():
-        """The task's harness flows to both the cache key and run_prompt."""
+        """The harness argument flows to both the cache key and run_prompt."""
         with (
             patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.get_cache_dir") as mock_cache_dir,
@@ -398,10 +399,9 @@ def describe_run_single_eval():
                 "iteration": 1,
                 "prompt": "test",
                 "expected": "result",
-                "harness": "codex",
             }
 
-            await run_single_eval(task, "test-evals", None, None, skip_cache=True)
+            await run_single_eval(task, "test-evals", None, None, skip_cache=True, harness="codex")
 
             assert mock_cache_dir.call_args.kwargs["harness"] == "codex"
             assert mock_run.call_args.kwargs["harness"] == "codex"
@@ -644,7 +644,7 @@ def describe_evaluate():
             assert task.get("teardown") == "echo teardown"
 
     @pytest.mark.asyncio
-    async def it_defaults_task_harness_to_claude():
+    async def it_defaults_harness_to_claude():
         with (
             patch(f"{_EVAL}.load_evals") as mock_load,
             patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
@@ -663,23 +663,17 @@ def describe_evaluate():
 
             await evaluate("test-evals", samples=1)
 
-            task = mock_run.call_args[0][0]
-            assert task["harness"] == "claude"
+            # harness is the 7th positional arg to run_single_eval
+            assert mock_run.call_args[0][6] == "claude"
 
     @pytest.mark.asyncio
-    async def it_includes_explicit_harness_in_task():
+    async def it_passes_the_selected_harness_to_run_single_eval():
         with (
             patch(f"{_EVAL}.load_evals") as mock_load,
             patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
         ):
             mock_load.return_value = [
-                {
-                    "prompt": "p1",
-                    "expected": "e1",
-                    "_source": "1.md",
-                    "_content": "c1",
-                    "harness": "codex",
-                }
+                {"prompt": "p1", "expected": "e1", "_source": "1.md", "_content": "c1"}
             ]
             mock_run.return_value = {
                 "pass": True,
@@ -690,10 +684,14 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, harness="codex")
 
-            task = mock_run.call_args[0][0]
-            assert task["harness"] == "codex"
+            assert mock_run.call_args[0][6] == "codex"
+
+    @pytest.mark.asyncio
+    async def it_rejects_an_unknown_harness():
+        with pytest.raises(UnknownHarnessError):
+            await evaluate("test-evals", harness="bogus")
 
 
 def describe_exception_handling():

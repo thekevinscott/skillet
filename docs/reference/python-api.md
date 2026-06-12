@@ -40,6 +40,7 @@ async def evaluate(
     on_status: Callable | None = None,
     skip_cache: bool = False,
     evals_list: list[dict] | None = None,
+    harness: str = "claude",
 ) -> dict
 ```
 
@@ -56,6 +57,7 @@ async def evaluate(
 | `on_status` | Callable | None | Progress callback |
 | `skip_cache` | bool | False | Ignore cached results |
 | `evals_list` | list[dict] | None | Pre-loaded evals (skips `load_evals()` call) |
+| `harness` | str | `"claude"` | Agent harness for the agent under test (`claude` or `codex`). A run-time choice, not part of the eval file. Raises `UnknownHarnessError` if unregistered |
 
 **Returns:**
 

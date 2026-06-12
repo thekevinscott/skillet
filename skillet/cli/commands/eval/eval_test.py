@@ -174,3 +174,22 @@ def describe_eval_command():
         """Skips summarize_responses when no_summary=True."""
         await eval_command("my-evals", no_summary=True)
         mock_summarize.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def it_passes_harness_to_evaluate(mock_evaluate):
+        """Forwards the selected harness to evaluate()."""
+        await eval_command("my-evals", harness="codex")
+        assert mock_evaluate.call_args.kwargs["harness"] == "codex"
+
+    @pytest.mark.asyncio
+    async def it_defaults_harness_to_claude(mock_evaluate):
+        """Defaults the harness to claude."""
+        await eval_command("my-evals")
+        assert mock_evaluate.call_args.kwargs["harness"] == "claude"
+
+    @pytest.mark.asyncio
+    async def it_rejects_an_unknown_harness(mock_evaluate):
+        """Exits before running when the harness is not registered."""
+        with pytest.raises(SystemExit):
+            await eval_command("my-evals", harness="bogus")
+        mock_evaluate.assert_not_called()

@@ -81,11 +81,11 @@ Development setup, testing strategy, code style, and PR conventions. [→ `docs/
 
 ### CLI
 
-`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. [→ `docs/reference/cli.md`](docs/reference/cli.md)
+`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. Run the same evals on another agent harness with `skillet eval … --harness codex` (default `claude`; also honors `SKILLET_HARNESS`); the judge stays on Claude for comparability. [→ `docs/reference/cli.md`](docs/reference/cli.md)
 
 ### Eval Format
 
-YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domain`/`harness`/`setup`/`teardown`. Set `harness: codex` to run the agent under test on Codex (via lite-harness) instead of the default Claude Agent SDK; the judge stays on Claude for comparability. [→ `docs/reference/eval-format.md`](docs/reference/eval-format.md)
+YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domain`/`setup`/`teardown`. Eval files are portable across harnesses — which harness runs them is a run-time choice, never stored in the file. [→ `docs/reference/eval-format.md`](docs/reference/eval-format.md)
 
 ### Python API
 

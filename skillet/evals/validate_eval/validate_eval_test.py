@@ -54,24 +54,3 @@ def describe_validate_eval():
         }
         with pytest.raises(EvalValidationError, match="must be a list"):
             validate_eval(eval_data, "test.yaml")
-
-    def it_passes_for_a_known_harness():
-        eval_data = {
-            "timestamp": "2024-01-01",
-            "prompt": "test",
-            "expected": "expected",
-            "name": "test",
-            "harness": "codex",
-        }
-        validate_eval(eval_data, "test.yaml")
-
-    def it_raises_for_an_unknown_harness():
-        eval_data = {
-            "timestamp": "2024-01-01",
-            "prompt": "test",
-            "expected": "expected",
-            "name": "test",
-            "harness": "gpt-9",
-        }
-        with pytest.raises(EvalValidationError, match="unknown harness"):
-            validate_eval(eval_data, "test.yaml")
