@@ -19,7 +19,7 @@ For more in-depth documentation, ensure the docs cover all public-facing feature
 ## PR Scope
 - **Keep PRs minimal but complete** - each PR should deliver one useful, self-contained piece of functionality
 - Don't add code that isn't used until a future PR (e.g., an error class with no callers)
-- If a task is too large for one PR, create child beads under the parent bead - one per PR
+- If a task is too large for one PR, split it into GitHub sub-issues (or a task list on the parent issue) - one per PR
 - Every PR must include tests per the TDD Order (see [`testing.md`](testing.md)): e2e first if touching public API, integration tests, then unit tests
 - **Changelog (REQUIRED)**: Every PR must either update `CHANGELOG.md` or have the `skip-changelog` label. CI will fail without one of these. Add the changelog entry in the same commit as the code change — do not forget this. User-facing changes go under the appropriate heading (Added/Changed/Fixed/Removed). For purely internal changes (no API/CLI/docs impact), add the `skip-changelog` label instead
 
