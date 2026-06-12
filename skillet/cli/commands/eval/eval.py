@@ -16,13 +16,19 @@ from .summarize import summarize_responses
 logger = logging.getLogger(__name__)
 
 
-def _validate_harness(harness: str) -> None:
-    """Exit early with a clear message if the harness is not registered."""
-    from skillet._internal.sdk.harness import HARNESS_NAMES
+def _validate_launcher(launcher: str | None) -> None:
+    """Exit early with a clear message if the launcher command isn't runnable."""
+    import shlex
+    import shutil
 
-    if harness not in HARNESS_NAMES:
-        known = ", ".join(sorted(HARNESS_NAMES))
-        console.print(f"[red]Error:[/red] unknown harness '{harness}'. Available: {known}")
+    if launcher is None:
+        return
+    parts = shlex.split(launcher)
+    if not parts or shutil.which(parts[0]) is None:
+        console.print(
+            f"[red]Error:[/red] launcher command not found: '{launcher}'. "
+            'Pass a runnable command, e.g. --launcher "codex exec".'
+        )
         raise SystemExit(2)
 
 
@@ -50,13 +56,13 @@ async def eval_command(  # noqa: PLR0913
     skip_cache: bool = False,
     trust: bool = False,
     no_summary: bool = False,
-    harness: str = "claude",
+    launcher: str | None = None,
 ):
     """Run eval command with display."""
     from skillet.evals import load_evals
 
-    # Validate the harness up front so a bad --harness fails before any work.
-    _validate_harness(harness)
+    # Validate the launcher up front so a bad --launcher fails before any work.
+    _validate_launcher(launcher)
 
     # Print header
     console.print()
@@ -110,7 +116,7 @@ async def eval_command(  # noqa: PLR0913
             on_status=on_status,
             skip_cache=skip_cache,
             evals_list=evals,
-            harness=harness,
+            launcher=launcher,
         )
     finally:
         await display.stop()

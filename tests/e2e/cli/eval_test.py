@@ -196,11 +196,11 @@ def describe_skillet_eval():
         expect(term).to_have_exited()
         assert term.exit_code != 0
 
-    def it_fails_for_unknown_harness(
+    def it_fails_for_unrunnable_launcher(
         terminal: Callable[..., Terminal],
         tmp_path: Path,
     ):
-        """Exits with error when --harness names an unknown harness."""
+        """Exits with error when --launcher names a command that isn't on PATH."""
         evals_dir = tmp_path / "evals" / "greet"
         evals_dir.mkdir(parents=True)
         (evals_dir / "001-greeting.yaml").write_text(
@@ -210,6 +210,6 @@ def describe_skillet_eval():
             "name: greet\n"
         )
 
-        term = terminal(f"{SKILLET} eval {evals_dir} --harness bogus --trust")
+        term = terminal(f"{SKILLET} eval {evals_dir} --launcher skillet-no-such-agent --trust")
         expect(term).to_have_exited()
         assert term.exit_code != 0

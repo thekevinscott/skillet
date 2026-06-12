@@ -13,9 +13,9 @@ async def run_prompt(
     allowed_tools: list[str] | None = None,
     cwd: str | None = None,
     home_dir: str | None = None,
-    harness: str = "claude",
+    launcher: str | None = None,
 ) -> QueryResult:
-    """Run a prompt (or multi-turn conversation) through an agent harness and return the response.
+    """Run a prompt (or multi-turn conversation) through the agent under test.
 
     Args:
         prompt: Single prompt string, or list of prompts for multi-turn conversation.
@@ -24,7 +24,8 @@ async def run_prompt(
         allowed_tools: List of allowed tools
         cwd: Working directory for the agent
         home_dir: Custom HOME directory for isolated execution
-        harness: Which agent harness runs the prompt (e.g. ``claude`` or ``codex``)
+        launcher: Optional launcher command for the agent under test
+                  (default: the native Claude Agent SDK)
 
     Returns:
         QueryResult with text response and all tool calls made
@@ -63,7 +64,7 @@ async def run_prompt(
         env["HOME"] = home_dir
         query_kwargs["env"] = env
 
-    result = await query_multiturn(prompts, harness=harness, **query_kwargs)
+    result = await query_multiturn(prompts, launcher=launcher, **query_kwargs)
 
     if not result.text:
         result.text = "(no text response - Claude may have only used tools)"

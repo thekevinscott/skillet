@@ -1,4 +1,4 @@
-"""Run the agent under test on the native Claude Agent SDK."""
+"""Run the agent under test on the native Claude Agent SDK (the default)."""
 
 import sys
 from typing import Any
@@ -6,7 +6,7 @@ from typing import Any
 import claude_agent_sdk
 from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, ToolUseBlock
 
-from ..query_result import QueryResult
+from .query_result import QueryResult
 
 
 async def run_claude(  # noqa: C901 - complexity from SDK protocol handling

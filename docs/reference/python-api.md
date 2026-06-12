@@ -40,7 +40,7 @@ async def evaluate(
     on_status: Callable | None = None,
     skip_cache: bool = False,
     evals_list: list[dict] | None = None,
-    harness: str = "claude",
+    launcher: str | None = None,
 ) -> dict
 ```
 
@@ -57,7 +57,7 @@ async def evaluate(
 | `on_status` | Callable | None | Progress callback |
 | `skip_cache` | bool | False | Ignore cached results |
 | `evals_list` | list[dict] | None | Pre-loaded evals (skips `load_evals()` call) |
-| `harness` | str | `"claude"` | Agent harness for the agent under test (`claude` or `codex`). A run-time choice, not part of the eval file. Raises `UnknownHarnessError` if unregistered |
+| `launcher` | str | None | Command for the agent under test; the prompt is appended and stdout is read (stream-json → text + tool calls, else plain text). None = native Claude Agent SDK. A run-time choice, not part of the eval file |
 
 **Returns:**
 

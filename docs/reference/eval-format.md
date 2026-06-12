@@ -81,10 +81,6 @@ expected: |
 
 Each prompt in the list is sent as a separate turn, with Claude's response from the previous turn as context.
 
-::: tip Harness is not stored in the eval
-Which agent harness runs the eval (`claude`, `codex`, …) is a run-time choice, set with the `skillet eval --harness` flag (or `SKILLET_HARNESS`), **not** a field in the eval file. This keeps eval files portable — the same set runs across harnesses. See [CLI → eval](./cli#eval).
-:::
-
 ## Setup and Teardown (Alpha)
 
 ::: warning Alpha Feature

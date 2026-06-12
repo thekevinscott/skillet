@@ -22,18 +22,20 @@ def describe_get_cache_dir():
             assert "skills" in str(result)
             assert "myevals" in str(result)
 
-    def it_keeps_the_claude_path_unchanged():
+    def it_keeps_the_default_path_unchanged():
         default = get_cache_dir("myevals", "eval-abc123")
-        explicit = get_cache_dir("myevals", "eval-abc123", harness="claude")
+        explicit = get_cache_dir("myevals", "eval-abc123", launcher=None)
         assert default == explicit
-        assert "harness-" not in str(default)
+        assert "launcher-" not in str(default)
 
-    def it_namespaces_non_default_harnesses():
-        result = get_cache_dir("myevals", "eval-abc123", harness="codex")
-        assert "harness-codex" in str(result)
+    def it_namespaces_a_launcher():
+        result = get_cache_dir("myevals", "eval-abc123", launcher="codex exec")
+        assert "launcher-" in str(result)
         assert "baseline" in str(result)
 
-    def it_isolates_harnesses_from_each_other():
-        claude = get_cache_dir("myevals", "eval-abc123", harness="claude")
-        codex = get_cache_dir("myevals", "eval-abc123", harness="codex")
-        assert claude != codex
+    def it_isolates_launchers_from_each_other_and_the_default():
+        default = get_cache_dir("myevals", "eval-abc123")
+        codex = get_cache_dir("myevals", "eval-abc123", launcher="codex exec")
+        gemini = get_cache_dir("myevals", "eval-abc123", launcher="gemini")
+        assert default != codex
+        assert codex != gemini

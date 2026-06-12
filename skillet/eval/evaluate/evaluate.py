@@ -4,7 +4,6 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from skillet._internal.sdk.harness import get_adapter
 from skillet.evals import load_evals
 
 from .result import EvaluateResult, IterationResult, PerEvalMetric
@@ -21,19 +20,16 @@ async def evaluate(  # noqa: PLR0913, C901
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
     evals_list: list[dict] | None = None,
-    harness: str = "claude",
+    launcher: str | None = None,
 ) -> EvaluateResult:
     """Evaluate evals in parallel, with caching.
 
-    ``harness`` selects which agent harness runs the agent under test (e.g.
-    ``claude`` or ``codex``). It is a run-time choice, not part of the eval
-    file, so the same evals stay portable across harnesses. Raises
-    ``UnknownHarnessError`` for an unregistered harness.
+    ``launcher`` is an optional command for the agent under test; with no
+    launcher the agent under test is the native Claude Agent SDK. It is a
+    run-time choice, not part of the eval file, so the same evals stay portable
+    across agents.
     """
     import random
-
-    # Fail fast on an unknown harness before doing any work.
-    get_adapter(harness)
 
     if evals_list is None:
         evals_list = load_evals(name)
@@ -71,7 +67,7 @@ async def evaluate(  # noqa: PLR0913, C901
     async def run_with_semaphore(task):
         async with semaphore:
             return await run_single_eval(
-                task, name, skill_path, allowed_tools, on_status, skip_cache, harness
+                task, name, skill_path, allowed_tools, on_status, skip_cache, launcher
             )
 
     # Run all tasks

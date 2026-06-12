@@ -1,13 +1,13 @@
-"""Tests for the native Claude harness adapter."""
+"""Tests for the native Claude agent runner."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 from claude_agent_sdk import AssistantMessage, TextBlock, ToolUseBlock
 
-from skillet._internal.sdk.harness.claude import run_claude
+from skillet._internal.sdk.run_claude import run_claude
 
-_QUERY = "skillet._internal.sdk.harness.claude.claude_agent_sdk.query"
+_QUERY = "skillet._internal.sdk.run_claude.claude_agent_sdk.query"
 
 
 def describe_run_claude():

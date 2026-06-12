@@ -37,22 +37,23 @@ The `name` argument accepts:
 | `--skip-cache` | | bool | false | Skip reading from cache (still writes) |
 | `--trust` | | bool | false | Skip confirmation for setup/teardown scripts |
 | `--no-summary` | | bool | false | Skip the failure summary LLM call |
-| `--harness` | | str | `claude` | Agent harness to run the eval on: `claude` or `codex` |
+| `--launcher` | | str | (Claude SDK) | Command to run the agent under test (the prompt is appended) |
 
-### Harness
+### Launcher
 
-`--harness` chooses the *agent under test* at run time, keeping eval files portable (the harness is never stored in the eval). It defaults to `claude` (the Claude Agent SDK) and falls back to the `SKILLET_HARNESS` environment variable when the flag is omitted — so the agent invoking `skillet` can set it automatically. The judge always stays on the Claude Agent SDK for score comparability, and caches are namespaced per harness.
+By default the agent under test is the native Claude Agent SDK. `--launcher "<cmd>"` runs the *same, portable* evals on any other agent instead: skillet spawns the command with the prompt appended as the final argument and reads the response from its stdout. The launcher is never stored in the eval file; it also falls back to the `SKILLET_LAUNCHER` environment variable when the flag is omitted (the flag wins), so the agent invoking `skillet` can set it.
 
-`codex` runs through [lite-harness](https://github.com/LiteLLM-Labs/lite-harness), a preview-stage, lazily-imported optional dependency. Set it up once:
+skillet parses **one** output format — the Claude Agent SDK's newline-delimited stream-json. When the launched command emits it, skillet extracts both text **and** tool calls, so `tool_called` / `tool_not_called` assertions keep working; otherwise stdout is treated as the plain-text response (text + judge + text assertions only). There's no per-agent flag list to maintain — agent options live in the command itself.
 
 ```bash
-git clone https://github.com/LiteLLM-Labs/lite-harness.git
-pip install -e lite-harness/src/sdk/python       # the Python client
-npm install --prefix lite-harness/src/sdk/server # the server it spawns (needs Node.js)
-export OPENAI_API_KEY=sk-...                      # provider key for the codex harness
+# Codex (plain text response)
+skillet eval my-skill --launcher "codex exec"
+
+# Claude with tool-call introspection (stream-json)
+skillet eval my-skill --launcher "claude -p --output-format stream-json"
 ```
 
-If `--harness codex` is used without lite-harness installed, Skillet raises a clear error explaining these steps.
+The judge always stays on the Claude Agent SDK for score comparability, and caches are namespaced per launcher so runs on different agents don't collide. Multi-turn evals don't resume sessions under a launcher (each turn is a fresh invocation); the native Claude default keeps full multi-turn.
 
 ### Examples
 
@@ -87,8 +88,8 @@ skillet eval my-skill --no-summary
 # Restrict available tools
 skillet eval my-skill --tools "Read,Write,Bash"
 
-# Run the same evals on the Codex harness
-skillet eval my-skill --harness codex
+# Run the same evals on another agent
+skillet eval my-skill --launcher "codex exec"
 ```
 
 ## tune

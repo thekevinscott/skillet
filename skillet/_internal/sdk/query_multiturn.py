@@ -1,21 +1,24 @@
-"""Dispatch a multi-turn agent run to the selected harness adapter."""
+"""Dispatch a multi-turn agent run to the native Claude SDK or a launcher command."""
 
 from typing import Any
 
-from .harness import DEFAULT_HARNESS, get_adapter
 from .query_result import QueryResult
+from .run_claude import run_claude
+from .run_launcher import run_launcher
 
 
 async def query_multiturn(
     prompts: list[str],
     *,
-    harness: str = DEFAULT_HARNESS,
+    launcher: str | None = None,
     **options: Any,
 ) -> QueryResult:
-    """Run a multi-turn conversation on the selected harness and return the final response.
+    """Run a multi-turn conversation and return the final assistant response.
 
-    ``harness`` selects which agent harness executes the prompts (e.g. ``claude``
-    or ``codex``); the judge always stays on the Claude Agent SDK regardless.
+    With no ``launcher`` the agent under test is the native Claude Agent SDK.
+    When ``launcher`` is set, the prompt is run through that command instead
+    (see :func:`run_launcher`); the judge always stays on the Claude SDK.
     """
-    adapter = get_adapter(harness)
-    return await adapter(prompts, **options)
+    if launcher:
+        return await run_launcher(prompts, launcher=launcher, **options)
+    return await run_claude(prompts, **options)

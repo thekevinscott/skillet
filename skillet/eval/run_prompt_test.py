@@ -122,19 +122,19 @@ def describe_run_prompt():
             assert call_args[1]["allowed_tools"] is None
 
     @pytest.mark.asyncio
-    async def it_defaults_to_the_claude_harness():
+    async def it_defaults_to_no_launcher():
         with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
 
             await run_prompt("test")
 
-            assert mock_query.call_args[1]["harness"] == "claude"
+            assert mock_query.call_args[1]["launcher"] is None
 
     @pytest.mark.asyncio
-    async def it_forwards_the_selected_harness():
+    async def it_forwards_the_launcher():
         with patch("skillet.eval.run_prompt.query_multiturn", new_callable=AsyncMock) as mock_query:
             mock_query.return_value = QueryResult(text="response", tool_calls=[])
 
-            await run_prompt("test", harness="codex")
+            await run_prompt("test", launcher="codex exec")
 
-            assert mock_query.call_args[1]["harness"] == "codex"
+            assert mock_query.call_args[1]["launcher"] == "codex exec"
