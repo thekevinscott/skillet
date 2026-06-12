@@ -41,10 +41,26 @@ A feature is not done until the e2e and integration tests pass and cover the new
 - Mock external dependencies in integration tests, but avoid mocking anything internal
 - Do not mock anything in e2e tests
 - **Always prefer `pytest.fixture` over inline `with patch(...)`** — use `autouse=True` when the mock applies to all tests in scope
+- **Never use pytest's `monkeypatch` fixture** — patch with `unittest.mock.patch` / `patch.object` / `patch.dict` wrapped in a `pytest.fixture`, usually with `autouse=True`. For environment variables, use `patch.dict(os.environ, {...})`
+- **Mock placement**: integration-level mocks shared across tests belong in `tests/integration/conftest.py`; unit-test mocks belong in the specific test file, inside the describe block that uses them
+- **Prefer small hand-rolled fake classes for collaborator objects** (typed via `cast(RealType, FakeThing())`), with `MagicMock` reserved for individual methods whose calls are asserted — don't pass a bare `MagicMock()` as a whole object (convention from thekevinscott/gbnf, e.g. its `MockGraph`)
+- **Avoid patching module globals to inject configuration** (e.g., setting `skillet.config.CACHE_DIR` to a tmp path) — any consumer that did `from skillet.config import CACHE_DIR` copied the value at import time and silently ignores the patch
 
 ## Mocking with pytest-describe
 
-Use `@pytest.fixture(autouse=True)` for shared mocks within a describe block. Pass fixture as function parameter (not `self`):
+The canonical mock is an autouse fixture wrapping `unittest.mock.patch`, targeting the name in the *consuming* module, with defaults passed directly to `patch(...)` ([convention from thekevinscott/gbnf](https://github.com/thekevinscott/GBNF/blob/3a2560bcb694dec26717abfa0b22090adc4b665f/packages/gbnf/python/gbnf/grammar_graph/get_serialized_rule_key_test.py#L11)):
+
+```python
+@pytest.fixture(autouse=True)
+def mock_is_rule_end():
+    with patch(
+        "gbnf.grammar_graph.get_serialized_rule_key.is_rule_end",
+        return_value=False,
+    ) as mock:
+        yield mock
+```
+
+Use the same shape inside a describe block when the mock is scoped to it. Pass fixture as function parameter (not `self`):
 
 ```python
 def describe_my_function():
