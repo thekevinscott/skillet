@@ -1,6 +1,6 @@
 # Remote Environment Workflow
 
-This file applies whenever Claude Code is running in a remote/managed environment (detected via `CLAUDE_CODE_REMOTE=true`). See `agents.md` at the repository root for how the environment is detected.
+This file applies whenever Claude Code is running in a remote/managed environment (detected via `CLAUDE_CODE_REMOTE=true`). See `AGENTS.md` at the repository root for how the environment is detected.
 
 ## Every unit of work needs a GitHub issue
 
