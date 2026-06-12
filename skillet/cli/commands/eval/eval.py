@@ -16,6 +16,22 @@ from .summarize import summarize_responses
 logger = logging.getLogger(__name__)
 
 
+def _validate_launcher(launcher: str | None) -> None:
+    """Exit early with a clear message if the launcher command isn't runnable."""
+    import shlex
+    import shutil
+
+    if launcher is None:
+        return
+    parts = shlex.split(launcher)
+    if not parts or shutil.which(parts[0]) is None:
+        console.print(
+            f"[red]Error:[/red] launcher command not found: '{launcher}'. "
+            'Pass a runnable command, e.g. --launcher "codex exec".'
+        )
+        raise SystemExit(2)
+
+
 def _print_per_eval_metrics(eval_result: EvaluateResult, samples: int) -> None:
     """Print per-eval pass@k and pass^k metrics."""
     if samples <= 1:
@@ -40,9 +56,13 @@ async def eval_command(  # noqa: PLR0913
     skip_cache: bool = False,
     trust: bool = False,
     no_summary: bool = False,
+    launcher: str | None = None,
 ):
     """Run eval command with display."""
     from skillet.evals import load_evals
+
+    # Validate the launcher up front so a bad --launcher fails before any work.
+    _validate_launcher(launcher)
 
     # Print header
     console.print()
@@ -96,6 +116,7 @@ async def eval_command(  # noqa: PLR0913
             on_status=on_status,
             skip_cache=skip_cache,
             evals_list=evals,
+            launcher=launcher,
         )
     finally:
         await display.stop()

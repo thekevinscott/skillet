@@ -174,3 +174,23 @@ def describe_eval_command():
         """Skips summarize_responses when no_summary=True."""
         await eval_command("my-evals", no_summary=True)
         mock_summarize.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def it_passes_launcher_to_evaluate(mock_evaluate):
+        """Forwards the launcher command to evaluate()."""
+        with patch("shutil.which", return_value="/usr/bin/codex"):
+            await eval_command("my-evals", launcher="codex exec")
+        assert mock_evaluate.call_args.kwargs["launcher"] == "codex exec"
+
+    @pytest.mark.asyncio
+    async def it_defaults_launcher_to_none(mock_evaluate):
+        """Defaults to no launcher (native Claude SDK)."""
+        await eval_command("my-evals")
+        assert mock_evaluate.call_args.kwargs["launcher"] is None
+
+    @pytest.mark.asyncio
+    async def it_rejects_a_launcher_that_is_not_runnable(mock_evaluate):
+        """Exits before running when the launcher command isn't on PATH."""
+        with patch("shutil.which", return_value=None), pytest.raises(SystemExit):
+            await eval_command("my-evals", launcher="nonexistent-agent")
+        mock_evaluate.assert_not_called()

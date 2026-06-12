@@ -1,54 +1,24 @@
-"""Multi-turn conversation queries using Claude SDK."""
+"""Dispatch a multi-turn agent run to the native Claude SDK or a launcher command."""
 
-import sys
 from typing import Any
 
-import claude_agent_sdk
-from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, ToolUseBlock
-
 from .query_result import QueryResult
+from .run_claude import run_claude
+from .run_launcher import run_launcher
 
 
-async def query_multiturn(  # noqa: C901 - complexity from SDK protocol handling
+async def query_multiturn(
     prompts: list[str],
+    *,
+    launcher: str | None = None,
     **options: Any,
 ) -> QueryResult:
-    """Run a multi-turn conversation and return the final assistant response."""
-    opts = ClaudeAgentOptions(**options, stderr=lambda line: print(line, file=sys.stderr))
-    session_id: str | None = None
-    response_text = ""
-    all_tool_calls: list[dict] = []
+    """Run a multi-turn conversation and return the final assistant response.
 
-    for p in prompts:
-        response_text = ""
-
-        # Resume session for subsequent turns
-        if session_id:
-            opts.resume = session_id
-
-        async for message in claude_agent_sdk.query(prompt=p, options=opts):
-            # Capture session ID from init message
-            if hasattr(message, "subtype") and message.subtype == "init":
-                if hasattr(message, "session_id"):
-                    session_id = str(message.session_id)
-                elif hasattr(message, "data"):
-                    data = getattr(message, "data", None)
-                    if isinstance(data, dict) and "session_id" in data:
-                        session_id = str(data["session_id"])
-
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        response_text += block.text
-                    elif isinstance(block, ToolUseBlock):
-                        all_tool_calls.append(
-                            {
-                                "name": block.name,
-                                "input": block.input,
-                            }
-                        )
-
-    return QueryResult(
-        text=response_text.strip() if response_text else "",
-        tool_calls=all_tool_calls,
-    )
+    With no ``launcher`` the agent under test is the native Claude Agent SDK.
+    When ``launcher`` is set, the prompt is run through that command instead
+    (see :func:`run_launcher`); the judge always stays on the Claude SDK.
+    """
+    if launcher:
+        return await run_launcher(prompts, launcher=launcher, **options)
+    return await run_claude(prompts, **options)

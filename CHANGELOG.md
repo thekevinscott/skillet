@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Run any agent as the agent under test via `skillet eval --launcher "<cmd>"` (or `evaluate(launcher=...)`): skillet appends the prompt to the command and reads stdout, parsing Claude Agent SDK stream-json for text **and** tool calls when present (so `tool_called`/`tool_not_called` assertions keep working) or treating stdout as plain text otherwise. The launcher is a run-time choice — never stored in the eval file — so eval sets stay portable across agents. No per-agent flag list to maintain (options live in the command). The default agent under test is unchanged (native Claude Agent SDK), the judge always stays on the Claude Agent SDK for comparability, and caches are namespaced per launcher. See [CLI reference](docs/reference/cli.md#launcher)
+
 ### Changed
 - README restructured to mirror the `docs/` folder hierarchy: every docs page is now a `##`/`###` section in the README with a relative link to the in-repo markdown. Three documentation levels — README (concise), `docs/` (in-depth, ships with the package), and skillet.run (rendered site) — are kept 1:1 with each other
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions

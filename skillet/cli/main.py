@@ -24,8 +24,9 @@ async def eval(  # noqa: PLR0913
     skip_cache: Annotated[bool, Parameter(name=["--skip-cache"])] = False,
     trust: Annotated[bool, Parameter(name=["--trust"])] = False,
     no_summary: Annotated[bool, Parameter(name=["--no-summary"])] = False,
+    launcher: Annotated[str | None, Parameter(name=["--launcher"])] = None,
 ):
-    """Evaluate Claude against captured evals.
+    """Evaluate an agent against captured evals.
 
     NAME can be:
     - A name (looks in ~/.skillet/evals/<name>/)
@@ -36,6 +37,10 @@ async def eval(  # noqa: PLR0913
 
     Without SKILL: measures baseline performance (no skill active)
     With SKILL: measures performance with the skill loaded
+
+    The agent under test is the Claude Agent SDK by default. Use --launcher to run
+    the same (portable) evals on any other agent: skillet appends the prompt to the
+    command and reads its stdout. The launcher is never stored in the eval file.
 
     SECURITY: Evals may contain setup/teardown scripts that execute shell commands.
     You will be prompted before running evals with scripts. Use --trust to skip
@@ -50,7 +55,8 @@ async def eval(  # noqa: PLR0913
         skillet eval my-skill -p 5                                 # 5 parallel workers
         skillet eval my-skill --skip-cache                         # ignore cached results
         skillet eval my-skill --trust                              # skip script confirmation
-        skillet eval my-skill --no-summary                           # skip failure summary
+        skillet eval my-skill --no-summary                         # skip failure summary
+        skillet eval my-skill --launcher "codex exec"              # run the eval on Codex
     """
     from skillet.cli.commands.eval import eval_command
 
@@ -65,6 +71,7 @@ async def eval(  # noqa: PLR0913
         skip_cache=skip_cache,
         trust=trust,
         no_summary=no_summary,
+        launcher=launcher,
     )
 
 

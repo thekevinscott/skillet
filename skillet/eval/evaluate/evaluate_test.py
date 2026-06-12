@@ -378,6 +378,35 @@ def describe_run_single_eval():
             # cwd should be /project (parent of .claude)
             assert script_cwd_captured[0] == "/project"
 
+    @pytest.mark.asyncio
+    async def it_threads_launcher_to_cache_and_prompt():
+        """The launcher argument flows to both the cache key and run_prompt."""
+        with (
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.get_cache_dir") as mock_cache_dir,
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.save_iteration"),
+        ):
+            mock_run.return_value = QueryResult(text="r", tool_calls=[])
+            mock_judge.return_value = {"pass": True, "reasoning": "OK"}
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+            }
+
+            await run_single_eval(
+                task, "test-evals", None, None, skip_cache=True, launcher="codex exec"
+            )
+
+            assert mock_cache_dir.call_args.kwargs["launcher"] == "codex exec"
+            assert mock_run.call_args.kwargs["launcher"] == "codex exec"
+
 
 def describe_evaluate():
     """Tests for evaluate function."""
@@ -614,6 +643,51 @@ def describe_evaluate():
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("teardown") == "echo teardown"
+
+    @pytest.mark.asyncio
+    async def it_defaults_launcher_to_none():
+        with (
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_load.return_value = [
+                {"prompt": "p1", "expected": "e1", "_source": "1.md", "_content": "c1"}
+            ]
+            mock_run.return_value = {
+                "pass": True,
+                "cached": False,
+                "eval_source": "1.md",
+                "eval_idx": 0,
+                "iteration": 1,
+                "response": "r",
+            }
+
+            await evaluate("test-evals", samples=1)
+
+            # launcher is the 7th positional arg to run_single_eval
+            assert mock_run.call_args[0][6] is None
+
+    @pytest.mark.asyncio
+    async def it_passes_the_launcher_to_run_single_eval():
+        with (
+            patch(f"{_EVAL}.load_evals") as mock_load,
+            patch(f"{_EVAL}.run_single_eval", new_callable=AsyncMock) as mock_run,
+        ):
+            mock_load.return_value = [
+                {"prompt": "p1", "expected": "e1", "_source": "1.md", "_content": "c1"}
+            ]
+            mock_run.return_value = {
+                "pass": True,
+                "cached": False,
+                "eval_source": "1.md",
+                "eval_idx": 0,
+                "iteration": 1,
+                "response": "r",
+            }
+
+            await evaluate("test-evals", samples=1, launcher="codex exec")
+
+            assert mock_run.call_args[0][6] == "codex exec"
 
 
 def describe_exception_handling():

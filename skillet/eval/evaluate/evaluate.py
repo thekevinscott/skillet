@@ -20,8 +20,15 @@ async def evaluate(  # noqa: PLR0913, C901
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
     evals_list: list[dict] | None = None,
+    launcher: str | None = None,
 ) -> EvaluateResult:
-    """Evaluate evals in parallel, with caching."""
+    """Evaluate evals in parallel, with caching.
+
+    ``launcher`` is an optional command for the agent under test; with no
+    launcher the agent under test is the native Claude Agent SDK. It is a
+    run-time choice, not part of the eval file, so the same evals stay portable
+    across agents.
+    """
     import random
 
     if evals_list is None:
@@ -60,7 +67,7 @@ async def evaluate(  # noqa: PLR0913, C901
     async def run_with_semaphore(task):
         async with semaphore:
             return await run_single_eval(
-                task, name, skill_path, allowed_tools, on_status, skip_cache
+                task, name, skill_path, allowed_tools, on_status, skip_cache, launcher
             )
 
     # Run all tasks

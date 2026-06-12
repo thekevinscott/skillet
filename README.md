@@ -81,11 +81,11 @@ Development setup, testing strategy, code style, and PR conventions. [→ `docs/
 
 ### CLI
 
-`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. [→ `docs/reference/cli.md`](docs/reference/cli.md)
+`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. Run the same evals on any agent with `skillet eval … --launcher "codex exec"` (default: the native Claude Agent SDK) — skillet appends the prompt and reads stdout; the judge stays on Claude for comparability. [→ `docs/reference/cli.md`](docs/reference/cli.md)
 
 ### Eval Format
 
-YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domain`/`setup`/`teardown`. [→ `docs/reference/eval-format.md`](docs/reference/eval-format.md)
+YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domain`/`setup`/`teardown`. Eval files are portable across agents — which agent runs them is a run-time `--launcher` choice, never stored in the file. [→ `docs/reference/eval-format.md`](docs/reference/eval-format.md)
 
 ### Python API
 

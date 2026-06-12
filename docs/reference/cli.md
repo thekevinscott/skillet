@@ -37,6 +37,23 @@ The `name` argument accepts:
 | `--skip-cache` | | bool | false | Skip reading from cache (still writes) |
 | `--trust` | | bool | false | Skip confirmation for setup/teardown scripts |
 | `--no-summary` | | bool | false | Skip the failure summary LLM call |
+| `--launcher` | | str | (Claude SDK) | Command to run the agent under test (the prompt is appended) |
+
+### Launcher
+
+By default the agent under test is the native Claude Agent SDK. `--launcher "<cmd>"` runs the *same, portable* evals on any other agent instead: skillet spawns the command with the prompt appended as the final argument and reads the response from its stdout. There's no per-agent flag list to maintain — agent options live in the command itself, and the launcher is never stored in the eval file.
+
+```bash
+skillet eval my-skill --launcher "codex exec"
+```
+
+The judge always stays on the Claude Agent SDK for score comparability, and caches are namespaced per launcher so runs on different agents don't collide. Multi-turn evals don't resume sessions under a launcher (each turn is a fresh invocation); the native Claude default keeps full multi-turn.
+
+::: details Output parsing & tool calls
+skillet reads the launcher's stdout in one format — the Claude Agent SDK's newline-delimited stream-json. When the command emits it, skillet extracts both text **and** tool calls, so `tool_called` / `tool_not_called` assertions keep working; otherwise stdout is treated as the plain-text response (text + judge + text assertions only).
+
+Today that means a command has to opt into structured output explicitly (e.g. Claude's `--output-format stream-json`) to expose tool calls. Smoothing that — so known agents are invoked in their structured mode automatically and you don't hand-write format flags — is tracked in [#295](https://github.com/thekevinscott/skillet/issues/295).
+:::
 
 ### Examples
 
@@ -70,6 +87,9 @@ skillet eval my-skill --no-summary
 
 # Restrict available tools
 skillet eval my-skill --tools "Read,Write,Bash"
+
+# Run the same evals on another agent
+skillet eval my-skill --launcher "codex exec"
 ```
 
 ## tune
