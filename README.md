@@ -81,7 +81,7 @@ Development setup, testing strategy, code style, and PR conventions. [→ `docs/
 
 ### CLI
 
-`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. Run the same evals on any agent with `skillet eval … --launcher "codex exec"` (default: the native Claude Agent SDK; also honors `SKILLET_LAUNCHER`) — skillet appends the prompt and reads stdout, parsing stream-json for tool calls when present; the judge stays on Claude for comparability. [→ `docs/reference/cli.md`](docs/reference/cli.md)
+`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. Run the same evals on any agent with `skillet eval … --launcher "codex exec"` (default: the native Claude Agent SDK) — skillet appends the prompt and reads stdout; the judge stays on Claude for comparability. [→ `docs/reference/cli.md`](docs/reference/cli.md)
 
 ### Eval Format
 

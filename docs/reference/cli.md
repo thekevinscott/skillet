@@ -41,19 +41,19 @@ The `name` argument accepts:
 
 ### Launcher
 
-By default the agent under test is the native Claude Agent SDK. `--launcher "<cmd>"` runs the *same, portable* evals on any other agent instead: skillet spawns the command with the prompt appended as the final argument and reads the response from its stdout. The launcher is never stored in the eval file; it also falls back to the `SKILLET_LAUNCHER` environment variable when the flag is omitted (the flag wins), so the agent invoking `skillet` can set it.
-
-skillet parses **one** output format — the Claude Agent SDK's newline-delimited stream-json. When the launched command emits it, skillet extracts both text **and** tool calls, so `tool_called` / `tool_not_called` assertions keep working; otherwise stdout is treated as the plain-text response (text + judge + text assertions only). There's no per-agent flag list to maintain — agent options live in the command itself.
+By default the agent under test is the native Claude Agent SDK. `--launcher "<cmd>"` runs the *same, portable* evals on any other agent instead: skillet spawns the command with the prompt appended as the final argument and reads the response from its stdout. There's no per-agent flag list to maintain — agent options live in the command itself, and the launcher is never stored in the eval file.
 
 ```bash
-# Codex (plain text response)
 skillet eval my-skill --launcher "codex exec"
-
-# Claude with tool-call introspection (stream-json)
-skillet eval my-skill --launcher "claude -p --output-format stream-json"
 ```
 
 The judge always stays on the Claude Agent SDK for score comparability, and caches are namespaced per launcher so runs on different agents don't collide. Multi-turn evals don't resume sessions under a launcher (each turn is a fresh invocation); the native Claude default keeps full multi-turn.
+
+::: details Output parsing & tool calls
+skillet reads the launcher's stdout in one format — the Claude Agent SDK's newline-delimited stream-json. When the command emits it, skillet extracts both text **and** tool calls, so `tool_called` / `tool_not_called` assertions keep working; otherwise stdout is treated as the plain-text response (text + judge + text assertions only).
+
+Today that means a command has to opt into structured output explicitly (e.g. Claude's `--output-format stream-json`) to expose tool calls. Smoothing that — so known agents are invoked in their structured mode automatically and you don't hand-write format flags — is tracked in [#295](https://github.com/thekevinscott/skillet/issues/295).
+:::
 
 ### Examples
 

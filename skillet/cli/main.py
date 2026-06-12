@@ -40,10 +40,7 @@ async def eval(  # noqa: PLR0913
 
     The agent under test is the Claude Agent SDK by default. Use --launcher to run
     the same (portable) evals on any other agent: skillet appends the prompt to the
-    command and reads stdout (parsing Claude Agent SDK stream-json for tool calls
-    when present, otherwise treating stdout as text). The launcher is never stored
-    in the eval file; it can also be set via the SKILLET_LAUNCHER environment
-    variable (--launcher wins).
+    command and reads its stdout. The launcher is never stored in the eval file.
 
     SECURITY: Evals may contain setup/teardown scripts that execute shell commands.
     You will be prompted before running evals with scripts. Use --trust to skip
@@ -61,12 +58,9 @@ async def eval(  # noqa: PLR0913
         skillet eval my-skill --no-summary                         # skip failure summary
         skillet eval my-skill --launcher "codex exec"              # run the eval on Codex
     """
-    import os
-
     from skillet.cli.commands.eval import eval_command
 
     allowed_tools = [t.strip() for t in tools.split(",")] if tools else None
-    resolved_launcher = launcher or os.environ.get("SKILLET_LAUNCHER") or None
     await eval_command(
         name,
         skill_path=skill,
@@ -77,7 +71,7 @@ async def eval(  # noqa: PLR0913
         skip_cache=skip_cache,
         trust=trust,
         no_summary=no_summary,
-        launcher=resolved_launcher,
+        launcher=launcher,
     )
 
 
