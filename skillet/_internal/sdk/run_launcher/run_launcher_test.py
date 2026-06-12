@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from skillet._internal.sdk.run_launcher import run_launcher
+from .run_launcher import run_launcher
 
 _EXEC = "skillet._internal.sdk.run_launcher.run_launcher.asyncio.create_subprocess_exec"
 

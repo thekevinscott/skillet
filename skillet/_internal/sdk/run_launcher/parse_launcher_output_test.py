@@ -2,7 +2,7 @@
 
 import json
 
-from skillet._internal.sdk.run_launcher.parse_launcher_output import parse_launcher_output
+from .parse_launcher_output import parse_launcher_output
 
 
 def _stream_json(*events: dict) -> str:
