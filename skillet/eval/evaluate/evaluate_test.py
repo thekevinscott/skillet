@@ -1,4 +1,4 @@
-"""Tests for eval/evaluate module."""
+"""Tests for the evaluate function."""
 
 from unittest.mock import AsyncMock, patch
 
@@ -179,7 +179,6 @@ def describe_evaluate():
 
             await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
-            # Check that task includes setup
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("setup") == "echo setup"
@@ -241,7 +240,6 @@ def describe_evaluate():
 
             await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
-            # Check that task includes teardown
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("teardown") == "echo teardown"

@@ -1,21 +1,18 @@
 """Caching for eval results."""
 
+from .build_iteration_cache import INFRA_FAILURE_KEY, build_iteration_cache
 from .eval_cache_key import eval_cache_key
-from .get_cache_dir import get_cache_dir
-from .get_cached_iterations import get_cached_iterations
 from .hash_content import hash_content
 from .hash_directory import hash_directory
 from .hash_file import hash_file
 from .normalize_cache_name import normalize_cache_name
-from .save_iteration import save_iteration
 
 __all__ = [
+    "INFRA_FAILURE_KEY",
+    "build_iteration_cache",
     "eval_cache_key",
-    "get_cache_dir",
-    "get_cached_iterations",
     "hash_content",
     "hash_directory",
     "hash_file",
     "normalize_cache_name",
-    "save_iteration",
 ]

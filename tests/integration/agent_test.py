@@ -1,11 +1,13 @@
 """Integration tests for the required --agent flag and CLI-routed agent under test."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from cyclopts.exceptions import MissingArgumentError
 
 from skillet import evaluate
+from skillet._internal.cache import build_iteration_cache
 from skillet.agent import Agent
 from skillet.cli.main import app
 
@@ -29,7 +31,13 @@ def describe_agent_flag():
     async def it_folds_agent_into_the_cache_key(
         skillet_env: Path, mock_claude_cli, mock_claude_query
     ):
-        """Cached results live under an agent-specific path so agents never collide."""
+        """evaluate threads the selected agent into the cache builder, so cached
+        results live under an agent-specific path and agents never collide.
+
+        The agent's exact placement in the path is unit-tested in
+        build_iteration_cache_test; integration tests neutralize cachetta's disk
+        I/O, so we assert the agent reaches the builder here.
+        """
         evals_dir = skillet_env / ".skillet" / "evals" / "cache-key-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
@@ -37,13 +45,14 @@ def describe_agent_flag():
         mock_claude_cli.set_responses("A response")
         mock_claude_query.set_responses({"pass": True, "reasoning": "OK"})
 
-        await evaluate("cache-key-test", samples=1, parallel=1, agent=Agent.CLAUDE)
+        with patch(
+            "skillet.eval.evaluate.evaluate.build_iteration_cache",
+            wraps=build_iteration_cache,
+        ) as spy:
+            await evaluate("cache-key-test", samples=1, parallel=1, agent=Agent.CLAUDE)
 
-        cache_dir = skillet_env / ".skillet" / "cache"
-        claude_dirs = [p for p in cache_dir.rglob("claude") if p.is_dir()]
-        codex_dirs = [p for p in cache_dir.rglob("codex") if p.is_dir()]
-        assert claude_dirs, "expected a 'claude' segment in the cache path"
-        assert not codex_dirs, "claude run must not write under a 'codex' path"
+        spy.assert_called_once()
+        assert Agent.CLAUDE in spy.call_args.args
 
     @pytest.mark.asyncio
     async def it_parses_stream_json_into_text_and_tool_calls(skillet_env: Path, mock_claude_cli):

@@ -2,7 +2,7 @@
 
 These tests enforce that performance optimizations remain in place:
 - load_evals() called at most once per evaluate/tune invocation
-- hash_directory() caches results across eval iterations
+- the skill is hashed once per run, not once per sample
 - --no-summary skips the summarize_responses LLM call
 """
 
@@ -79,14 +79,14 @@ def describe_load_evals_call_count():
             spy.assert_called_once()
 
 
-def describe_hash_directory_caching():
-    """Enforce that hash_directory() caches across eval iterations."""
+def describe_iteration_cache_construction():
+    """Enforce that the skill is hashed once per run, not once per sample."""
 
     @pytest.mark.asyncio
-    async def it_caches_hash_directory_across_samples(
+    async def it_hashes_skill_once_per_run_not_per_sample(
         skillet_env: Path, mock_claude_cli, mock_claude_query
     ):
-        """hash_directory should be called once per unique path, not per sample."""
+        """build_iteration_cache hashes the skill once per evaluate, not per sample."""
         evals_dir = skillet_env / ".skillet" / "evals" / "hash-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
@@ -104,21 +104,21 @@ def describe_hash_directory_caching():
             {"pass": True, "reasoning": "OK"},
         )
 
-        hash_directory.cache_clear()
+        with patch(
+            "skillet._internal.cache.build_iteration_cache.hash_directory",
+            wraps=hash_directory,
+        ) as spy:
+            await evaluate(
+                "hash-test",
+                skill_path=skill_file,
+                samples=3,
+                parallel=1,
+                skip_cache=True,
+                agent=Agent.CLAUDE,
+            )
 
-        await evaluate(
-            "hash-test",
-            skill_path=skill_file,
-            samples=3,
-            parallel=1,
-            skip_cache=True,
-            agent=Agent.CLAUDE,
-        )
-
-        info = hash_directory.cache_info()
-        # The skill path should be hashed once, then served from cache
-        assert info.misses >= 1
-        assert info.hits >= 2, f"Expected at least 2 cache hits for 3 samples, got {info.hits}"
+        # The cache is built once for the whole run, so the skill is hashed once.
+        assert spy.call_count == 1
 
 
 def describe_no_summary_flag():

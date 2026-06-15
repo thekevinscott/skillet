@@ -3,13 +3,9 @@
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
-from skillet._internal.cache import (
-    eval_cache_key,
-    get_cache_dir,
-    get_cached_iterations,
-    save_iteration,
-)
-from skillet._internal.lock import cache_lock
+from cachetta import Cachetta
+
+from skillet._internal.cache import INFRA_FAILURE_KEY
 from skillet.agent import Agent
 
 from ..isolated_home import isolated_home
@@ -18,61 +14,34 @@ from ..run_prompt import run_prompt
 from ..run_script import run_script
 
 
-async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with cache/script/eval logic
-    task: dict,
-    name: str,
-    skill_path: Path | None,
-    allowed_tools: list[str] | None,
-    on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
-    skip_cache: bool = False,
-    *,
-    agent: Agent,
-) -> dict:
-    """Run a single evaluation task, using cache if available.
-
-    Every eval runs in an isolated HOME directory. If the task contains
-    'setup' or 'teardown' scripts, they are executed before/after the prompts.
-    """
-    # Check cache first (unless skip_cache is True)
-    eval_key = eval_cache_key(task["eval_source"], task["eval_content"])
-    cache_dir = get_cache_dir(name, eval_key, skill_path, agent=agent)
-
-    if not skip_cache:
-        # Use lock to prevent race condition with parallel workers
-        with cache_lock(cache_dir):
-            cached = get_cached_iterations(cache_dir)
-
-            # If we have this iteration cached, use it
-            if len(cached) >= task["iteration"]:
-                result = cached[task["iteration"] - 1]
-                result["eval_idx"] = task["eval_idx"]
-                result["eval_source"] = task["eval_source"]
-                result["cached"] = True
-                if on_status:
-                    await on_status(task, "cached", result)
-                return result
-
-    # Otherwise, run it
-    if on_status:
-        await on_status(task, "running", None)
-
-    # Determine cwd for scripts (parent of the agent's dot-dir, or current dir)
-    script_cwd: str | None = None
+def _script_cwd(skill_path: Path | None, agent: Agent) -> str | None:
+    """Derive the cwd for setup/teardown scripts from the skill path."""
     dot_dir = agent.dot_dir
     if skill_path and dot_dir in skill_path.parts:
         dot_idx = skill_path.parts.index(dot_dir)
-        script_cwd = str(Path(*skill_path.parts[:dot_idx]))
+        return str(Path(*skill_path.parts[:dot_idx]))
+    return None
 
-    # Run in isolated HOME environment
+
+async def _run_iteration(
+    task: dict, skill_path: Path | None, allowed_tools: list[str] | None, agent: Agent
+) -> dict:
+    """Run one eval iteration in an isolated HOME and return its result payload.
+
+    This is the expensive leaf wrapped by the cachetta decorator. A successful
+    run returns ``{iteration, response, tool_calls, judgment, pass}`` (which is
+    cached). Setup-script failures and exceptions return a payload tagged with
+    ``INFRA_FAILURE_KEY`` so the cache's condition hook keeps them out of the
+    cache. ``KeyboardInterrupt``/``SystemExit`` propagate after teardown runs.
+    """
+    script_cwd = _script_cwd(skill_path, agent)
+
     with isolated_home(agent) as home_dir:
         try:
-            # Run setup script if present
             if task.get("setup"):
                 returncode, stdout, stderr = run_script(task["setup"], home_dir, script_cwd)
                 if returncode != 0:
-                    result = {
-                        "eval_idx": task["eval_idx"],
-                        "eval_source": task["eval_source"],
+                    return {
                         "iteration": task["iteration"],
                         "response": f"Setup failed (exit {returncode}): {stderr or stdout}",
                         "judgment": {
@@ -80,18 +49,14 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
                             "reasoning": f"Setup script failed: {stderr or stdout}",
                         },
                         "pass": False,
-                        "cached": False,
+                        INFRA_FAILURE_KEY: True,
                     }
-                    if on_status:
-                        await on_status(task, "done", result)
-                    return result
 
-            # Run the eval with isolated HOME
             query_result = await run_prompt(
                 task["prompt"], skill_path, allowed_tools, home_dir=home_dir, agent=agent
             )
 
-            # Run teardown script if present (best effort, don't fail the eval)
+            # Run teardown after the prompt (best effort, don't fail the eval)
             if task.get("teardown"):
                 run_script(task["teardown"], home_dir, script_cwd)
 
@@ -110,41 +75,16 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
                     agent=agent,
                 )
 
-            result = {
-                "eval_idx": task["eval_idx"],
-                "eval_source": task["eval_source"],
+            return {
                 "iteration": task["iteration"],
                 "response": query_result.text,
                 "tool_calls": query_result.tool_calls,
                 "judgment": judgment,
                 "pass": judgment["pass"],
-                "cached": False,
             }
-
-            # Save to cache with lock to prevent race conditions
-            # Double-check: another worker may have saved while we were running
-            with cache_lock(cache_dir):
-                cached = get_cached_iterations(cache_dir)
-                if len(cached) < task["iteration"]:
-                    # Not yet cached, save our result
-                    save_iteration(
-                        cache_dir,
-                        task["iteration"],
-                        {
-                            "iteration": task["iteration"],
-                            "response": query_result.text,
-                            "tool_calls": query_result.tool_calls,
-                            "judgment": judgment,
-                            "pass": judgment["pass"],
-                        },
-                    )
-
-            if on_status:
-                await on_status(task, "done", result)
-            return result
         except (KeyboardInterrupt, SystemExit):
             # Let critical exceptions propagate - don't suppress user interrupts
-            # or explicit exit requests
+            # or explicit exit requests. Still run teardown first (best effort).
             if task.get("teardown"):
                 run_script(task["teardown"], home_dir, script_cwd)
             raise
@@ -153,9 +93,7 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
             if task.get("teardown"):
                 run_script(task["teardown"], home_dir, script_cwd)
 
-            result = {
-                "eval_idx": task["eval_idx"],
-                "eval_source": task["eval_source"],
+            return {
                 "iteration": task["iteration"],
                 "response": str(e),
                 "judgment": {
@@ -163,8 +101,61 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
                     "reasoning": f"Error ({type(e).__name__}): {e}",
                 },
                 "pass": False,
-                "cached": False,
+                INFRA_FAILURE_KEY: True,
             }
-            if on_status:
-                await on_status(task, "done", result)
-            return result
+
+
+def _finalize_result(payload: dict, task: dict, *, cached: bool) -> dict:
+    """Build the public iteration result from a (cached or fresh) run payload."""
+    return {
+        "eval_idx": task["eval_idx"],
+        "eval_source": task["eval_source"],
+        "iteration": payload["iteration"],
+        "response": payload["response"],
+        "tool_calls": payload.get("tool_calls"),
+        "judgment": payload["judgment"],
+        "pass": payload["pass"],
+        "cached": cached,
+    }
+
+
+async def run_single_eval(
+    task: dict,
+    skill_path: Path | None,
+    allowed_tools: list[str] | None,
+    iteration_cache: Cachetta,
+    on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
+    skip_cache: bool = False,
+    *,
+    agent: Agent,
+) -> dict:
+    """Run a single evaluation task, using ``iteration_cache`` for memoization.
+
+    Caching (read/write, atomic writes, in-flight de-duplication) is delegated
+    to cachetta's decorator. ``skip_cache`` disables reads (the run always
+    executes) while still persisting fresh results, matching prior behavior.
+
+    Whether the result came from cache is derived from whether the wrapped leaf
+    actually executed: on a hit the decorator returns the stored payload without
+    calling it, so no separate existence check is needed.
+    """
+    cache = iteration_cache.copy(read=not skip_cache)
+
+    ran = False
+
+    async def _execute(
+        task: dict, skill_path: Path | None, allowed_tools: list[str] | None
+    ) -> dict:
+        nonlocal ran
+        ran = True
+        return await _run_iteration(task, skill_path, allowed_tools, agent)
+
+    if on_status:
+        await on_status(task, "running", None)
+
+    payload = await cache.wrap(_execute)(task, skill_path, allowed_tools)
+    cached = not ran
+    result = _finalize_result(payload, task, cached=cached)
+    if on_status:
+        await on_status(task, "cached" if cached else "done", result)
+    return result
