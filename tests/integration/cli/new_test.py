@@ -49,7 +49,7 @@ def describe_create_skill():
         mock_claude_query.set_response(VALID_SKILL_RESPONSE)
 
         # Execute with skill name (not path)
-        result = await create_skill("test-skill", output_dir)
+        result = await create_skill("test-skill", output_dir, skillet_dir=skillet_env / ".skillet")
 
         # Assert
         assert result.eval_count == 2
@@ -77,7 +77,7 @@ def describe_create_skill():
         unique_marker = "UNIQUE_MOCK_CANARY_RESPONSE_12345"
         mock_claude_query.set_response(f"---\nname: canary\n---\n{unique_marker}")
 
-        result = await create_skill("canary-test", output_dir)
+        result = await create_skill("canary-test", output_dir, skillet_dir=skillet_env / ".skillet")
 
         # If this marker appears, we know the mock is being used
         content = (result.skill_dir / "SKILL.md").read_text()
@@ -93,7 +93,7 @@ def describe_create_skill():
         output_dir = skillet_env / "skills"
         mock_claude_query.set_response(VALID_SKILL_RESPONSE)
 
-        result = await create_skill("single-eval", output_dir)
+        result = await create_skill("single-eval", output_dir, skillet_dir=skillet_env / ".skillet")
 
         assert result.eval_count == 1
         assert (result.skill_dir / "SKILL.md").exists()
@@ -112,7 +112,9 @@ def describe_create_skill():
         output_dir = skillet_env / "skills"
         mock_claude_query.set_response(VALID_SKILL_RESPONSE)
 
-        result = await create_skill("nested-evals", output_dir)
+        result = await create_skill(
+            "nested-evals", output_dir, skillet_dir=skillet_env / ".skillet"
+        )
 
         assert result.eval_count == 2
 
@@ -127,7 +129,12 @@ def describe_create_skill():
         mock_claude_query.set_response(VALID_SKILL_RESPONSE)
 
         # Execute with extra prompt
-        await create_skill("extra-prompt", output_dir, extra_prompt="Be concise")
+        await create_skill(
+            "extra-prompt",
+            output_dir,
+            extra_prompt="Be concise",
+            skillet_dir=skillet_env / ".skillet",
+        )
 
         # Verify the mock was called (prompt content is tested in unit tests)
         assert mock_claude_query.called
@@ -141,7 +148,7 @@ def describe_create_skill():
         output_dir = skillet_env / "skills"
 
         with pytest.raises(EmptyFolderError, match="No eval files found"):
-            await create_skill("empty-evals", output_dir)
+            await create_skill("empty-evals", output_dir, skillet_dir=skillet_env / ".skillet")
 
     @pytest.mark.asyncio
     async def it_raises_error_for_nonexistent_evals_directory(skillet_env: Path):
@@ -149,7 +156,7 @@ def describe_create_skill():
         output_dir = skillet_env / "skills"
 
         with pytest.raises(EmptyFolderError, match="No evals found"):
-            await create_skill("nonexistent", output_dir)
+            await create_skill("nonexistent", output_dir, skillet_dir=skillet_env / ".skillet")
 
     @pytest.mark.asyncio
     async def it_raises_error_for_invalid_eval_yaml(skillet_env: Path):
@@ -165,7 +172,7 @@ def describe_create_skill():
         output_dir = skillet_env / "skills"
 
         with pytest.raises(EvalValidationError, match=r"missing required fields.*expected"):
-            await create_skill("invalid-yaml", output_dir)
+            await create_skill("invalid-yaml", output_dir, skillet_dir=skillet_env / ".skillet")
 
     @pytest.mark.asyncio
     async def it_raises_error_when_skill_exists_without_overwrite(
@@ -180,11 +187,11 @@ def describe_create_skill():
         mock_claude_query.set_response(VALID_SKILL_RESPONSE)
 
         # Create skill first time
-        await create_skill("existing-skill", output_dir)
+        await create_skill("existing-skill", output_dir, skillet_dir=skillet_env / ".skillet")
 
         # Try to create again without overwrite
         with pytest.raises(SkillError, match="Skill already exists"):
-            await create_skill("existing-skill", output_dir)
+            await create_skill("existing-skill", output_dir, skillet_dir=skillet_env / ".skillet")
 
     @pytest.mark.asyncio
     async def it_overwrites_existing_skill_when_flag_set(skillet_env: Path, mock_claude_query):
@@ -197,12 +204,16 @@ def describe_create_skill():
         mock_claude_query.set_response(VALID_SKILL_RESPONSE)
 
         # Create skill first time
-        result1 = await create_skill("overwrite-skill", output_dir)
+        result1 = await create_skill(
+            "overwrite-skill", output_dir, skillet_dir=skillet_env / ".skillet"
+        )
         first_content = (result1.skill_dir / "SKILL.md").read_text()
 
         # Create again with overwrite and different response
         mock_claude_query.set_response("---\nname: updated\n---\nUpdated content")
-        result2 = await create_skill("overwrite-skill", output_dir, overwrite=True)
+        result2 = await create_skill(
+            "overwrite-skill", output_dir, overwrite=True, skillet_dir=skillet_env / ".skillet"
+        )
 
         second_content = (result2.skill_dir / "SKILL.md").read_text()
         assert second_content != first_content
@@ -219,7 +230,7 @@ def describe_create_skill():
         mock_claude_query.set_error(RuntimeError("API connection failed"))
 
         with pytest.raises(RuntimeError, match="API connection failed"):
-            await create_skill("api-error", output_dir)
+            await create_skill("api-error", output_dir, skillet_dir=skillet_env / ".skillet")
 
         # Verify no partial skill was created
         skill_dir = output_dir / "api-error"

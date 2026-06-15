@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Convention check: colocated unit-test enforcement via the [`testing-conventions`](https://github.com/thekevinscott/testing-conventions) tool, enforced in CI (`uv run just check-test-conventions`). Every non-`__init__` source file under `skillet/` must have a sibling `*_test.py`
 - Code-based assertions for eval grading: deterministic `contains`, `not_contains`, `regex`, `starts_with`, `ends_with`, `tool_called`, and `tool_not_called` checks that skip LLM judge when present in eval YAML
 - CONTRIBUTING.md with development setup, testing, code style, and PR guidelines
+- `evaluate()`, `create_skill()`, `tune()`, and `load_evals()` accept an optional `skillet_dir` parameter that injects the root holding `evals/` (and, for `evaluate`, `cache/`) at call time, defaulting to the configured `SKILLET_DIR` when omitted. This completes the runtime cache/config-root injection started in the cachetta refactor, so callers and tests can point eval loading and caching at an explicit root instead of patching `config.SKILLET_DIR`/`config.CACHE_DIR` module globals
 
 ### Changed
 - Eval script confirmation prompt now shows full script content (up to 10 lines) instead of only the first line

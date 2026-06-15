@@ -44,7 +44,9 @@ def describe_tune():
             mock_propose.return_value = "# Improved Skill\n\nBetter instructions."
 
             config = TuneConfig(max_rounds=3, target_pass_rate=100.0, samples=1, parallel=1)
-            result = await tune("tune-test", skill_file, config=config)
+            result = await tune(
+                "tune-test", skill_file, config=config, skillet_dir=skillet_env / ".skillet"
+            )
 
         assert result.result.success
         assert result.result.final_pass_rate == 100.0
@@ -74,7 +76,9 @@ def describe_tune():
             mock_propose.return_value = "# Improved but still bad"
 
             config = TuneConfig(max_rounds=2, target_pass_rate=100.0, samples=1, parallel=1)
-            result = await tune("max-rounds", skill_file, config=config)
+            result = await tune(
+                "max-rounds", skill_file, config=config, skillet_dir=skillet_env / ".skillet"
+            )
 
         assert not result.result.success
         assert len(result.rounds) == 2
@@ -109,7 +113,9 @@ def describe_tune():
             mock_propose.return_value = "# Improved Skill"
 
             config = TuneConfig(max_rounds=2, target_pass_rate=100.0, samples=1, parallel=1)
-            result = await tune("best-skill", skill_file, config=config)
+            result = await tune(
+                "best-skill", skill_file, config=config, skillet_dir=skillet_env / ".skillet"
+            )
 
         assert result.result.final_pass_rate == 100.0
         assert len(result.rounds) == 2
@@ -148,7 +154,13 @@ def describe_tune():
             mock_propose.return_value = "# Improved"
 
             config = TuneConfig(max_rounds=1, target_pass_rate=100.0, samples=1, parallel=1)
-            await tune("callbacks", skill_file, config=config, callbacks=callbacks)
+            await tune(
+                "callbacks",
+                skill_file,
+                config=config,
+                callbacks=callbacks,
+                skillet_dir=skillet_env / ".skillet",
+            )
 
         assert any(e[0] == "start" for e in callback_events)
         assert any(e[0] == "complete" for e in callback_events)
@@ -172,7 +184,9 @@ def describe_tune():
             mock_propose.return_value = "# Improved Content"
 
             config = TuneConfig(max_rounds=1, target_pass_rate=100.0, samples=1, parallel=1)
-            await tune("save-skill", skill_file, config=config)
+            await tune(
+                "save-skill", skill_file, config=config, skillet_dir=skillet_env / ".skillet"
+            )
 
         # Verify file was updated
         final_content = skill_file.read_text()

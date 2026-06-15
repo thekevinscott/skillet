@@ -33,7 +33,7 @@ def describe_evaluate():
 
             await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
-            mock_load.assert_called_once_with("test-evals")
+            mock_load.assert_called_once_with("test-evals", skillet_dir=None)
 
     @pytest.mark.asyncio
     async def it_calculates_pass_rate():

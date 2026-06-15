@@ -43,7 +43,12 @@ def describe_evaluate():
         )
 
         result = await evaluate(
-            "test-evals", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "test-evals",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert isinstance(result, EvaluateResult)
@@ -75,6 +80,7 @@ def describe_evaluate():
             parallel=1,
             skip_cache=True,
             agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -96,7 +102,12 @@ def describe_evaluate():
         )
 
         result = await evaluate(
-            "failing-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "failing-test",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 2
@@ -114,7 +125,12 @@ def describe_evaluate():
         mock_claude_cli.set_responses("Agent response", fenced)
 
         result = await evaluate(
-            "fenced-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "fenced-test",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -134,7 +150,12 @@ def describe_evaluate():
         )
 
         result = await evaluate(
-            "retry-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "retry-test",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -158,7 +179,12 @@ def describe_evaluate():
         )
 
         result = await evaluate(
-            "bad-judge", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "bad-judge",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -182,7 +208,13 @@ def describe_evaluate():
         )
 
         result = await evaluate(
-            "many-evals", max_evals=2, samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "many-evals",
+            max_evals=2,
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.sampled_evals == 2
@@ -206,7 +238,12 @@ def describe_evaluate():
         )
 
         result = await evaluate(
-            "samples-test", samples=3, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "samples-test",
+            samples=3,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.sampled_evals == 1
@@ -233,6 +270,7 @@ def describe_evaluate():
             on_status=on_status,
             skip_cache=True,
             agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         # Should have running and done states
@@ -241,10 +279,12 @@ def describe_evaluate():
         assert "done" in states
 
     @pytest.mark.asyncio
-    async def it_raises_error_for_nonexistent_evals(skillet_env: Path):  # noqa: ARG001
+    async def it_raises_error_for_nonexistent_evals(skillet_env: Path):
         """Raises EmptyFolderError for missing eval directory."""
         with pytest.raises(EmptyFolderError):
-            await evaluate("nonexistent-evals", agent=Agent.CLAUDE)
+            await evaluate(
+                "nonexistent-evals", agent=Agent.CLAUDE, skillet_dir=skillet_env / ".skillet"
+            )
 
     @pytest.mark.asyncio
     async def it_returns_per_eval_pass_at_k_and_pass_pow_k(skillet_env: Path, mock_claude_cli):
@@ -272,7 +312,12 @@ def describe_evaluate():
         )
 
         result = await evaluate(
-            "metrics-test", samples=3, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "metrics-test",
+            samples=3,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         metrics = result.per_eval_metrics
@@ -307,7 +352,12 @@ def describe_evaluate():
         mock_claude_cli.set_responses("The answer is 4.")
 
         result = await evaluate(
-            "assert-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "assert-test",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -333,7 +383,12 @@ def describe_evaluate():
         mock_claude_cli.set_responses("The answer is 4.")
 
         result = await evaluate(
-            "assert-fail", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "assert-fail",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -351,7 +406,12 @@ def describe_evaluate():
         mock_claude_cli.set_responses(RuntimeError("API error"))
 
         result = await evaluate(
-            "error-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "error-test",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         # Should still return results, but marked as failed

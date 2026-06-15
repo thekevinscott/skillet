@@ -42,7 +42,12 @@ def describe_evaluate_with_codex():
         )
 
         result = await evaluate(
-            "codex-evals", samples=1, parallel=1, skip_cache=True, agent=Agent.CODEX
+            "codex-evals",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CODEX,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert isinstance(result, EvaluateResult)
@@ -69,6 +74,7 @@ def describe_evaluate_with_codex():
             parallel=1,
             skip_cache=True,
             agent=Agent.CODEX,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -84,7 +90,12 @@ def describe_evaluate_with_codex():
         mock_codex_cli.set_responses("Wrong answer", _verdict(False, "Did not meet expectations"))
 
         result = await evaluate(
-            "codex-fail", samples=1, parallel=1, skip_cache=True, agent=Agent.CODEX
+            "codex-fail",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CODEX,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -102,7 +113,12 @@ def describe_evaluate_with_codex():
         mock_codex_cli.set_responses("Codex response", fenced)
 
         result = await evaluate(
-            "codex-fenced", samples=1, parallel=1, skip_cache=True, agent=Agent.CODEX
+            "codex-fenced",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CODEX,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -124,7 +140,12 @@ def describe_evaluate_with_codex():
         )
 
         result = await evaluate(
-            "codex-tools", samples=1, parallel=1, skip_cache=True, agent=Agent.CODEX
+            "codex-tools",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CODEX,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1
@@ -148,7 +169,12 @@ def describe_evaluate_with_codex():
         mock_codex_cli.side_effect = [_FakeClaudeProc(failed_stream)]
 
         result = await evaluate(
-            "codex-turn-failed", samples=1, parallel=1, skip_cache=True, agent=Agent.CODEX
+            "codex-turn-failed",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CODEX,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1

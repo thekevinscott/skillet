@@ -150,23 +150,18 @@ def stub_cachetta():
 
 
 @pytest.fixture
-def skillet_env(tmp_path: Path):
-    """Set up isolated SKILLET_DIR for testing."""
+def skillet_env(tmp_path: Path) -> Path:
+    """Create an isolated skillet home under ``tmp_path`` and return the scratch root.
+
+    Tests inject the skillet home explicitly via the entry points'
+    ``skillet_dir=`` parameter (``skillet_dir=skillet_env / ".skillet"``), so no
+    module global is patched: evals resolve under the injected root, and the
+    cache is neutralized by ``stub_cachetta``.
+    """
     skillet_dir = tmp_path / ".skillet"
     skillet_dir.mkdir()
     (skillet_dir / "evals").mkdir()
-
-    # skillet.evals.load binds SKILLET_DIR at import time, so it must be patched
-    # where it is used, in addition to the config module. Cache paths are
-    # injected via stub_iteration_cache, so CACHE_DIR needs no patching.
-    import skillet.config
-    import skillet.evals.load
-
-    with (
-        patch.object(skillet.config, "SKILLET_DIR", skillet_dir),
-        patch.object(skillet.evals.load, "SKILLET_DIR", skillet_dir),
-    ):
-        yield tmp_path
+    return tmp_path
 
 
 @pytest.fixture

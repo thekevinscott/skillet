@@ -102,7 +102,7 @@ def describe_eval_command():
     async def it_loads_evals_by_name(mock_load_evals):
         """Loads evals using the provided name."""
         await eval_command("my-evals", agent=Agent.CLAUDE)
-        mock_load_evals.assert_called_once_with("my-evals")
+        mock_load_evals.assert_called_once_with("my-evals", skillet_dir=None)
 
     @pytest.mark.asyncio
     async def it_runs_evaluate_with_correct_params(mock_evaluate):

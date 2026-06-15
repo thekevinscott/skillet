@@ -14,13 +14,17 @@ async def create_skill(
     output_dir: Path,
     extra_prompt: str | None = None,
     overwrite: bool = False,
+    skillet_dir: Path | None = None,
 ) -> CreateSkillResult:
     """Create a new skill from captured evals.
+
+    ``skillet_dir`` is the root holding ``evals/`` when ``name`` is a bare name;
+    it falls back to the configured ``SKILLET_DIR`` when ``None``.
 
     Raises:
         SkillError: If no evals found or skill exists and overwrite=False
     """
-    evals = load_evals(name)
+    evals = load_evals(name, skillet_dir=skillet_dir)
 
     if not evals:
         raise SkillError(f"No eval files found for '{name}'")
