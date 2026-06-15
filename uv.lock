@@ -1818,6 +1818,7 @@ dev = [
     { name = "pytest-watcher" },
     { name = "ruff" },
     { name = "rust-just" },
+    { name = "testing-conventions" },
     { name = "ty" },
 ]
 
@@ -1839,6 +1840,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
     { name = "rust-just", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "testing-conventions", marker = "extra == 'dev'", specifier = ">=0.0.6" },
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.1a7" },
 ]
 provides-extras = ["dev"]
@@ -2376,6 +2378,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/0a/d4/2b0cd0fe285e14b36db076e78c93766ff1d529d70408bd1d2a5a84f1d929/tenacity-9.1.2.tar.gz", hash = "sha256:1169d376c297e7de388d18b4481760d478b0e99a777cad3a9c86e556f4b697cb", size = 48036, upload-time = "2025-04-02T08:25:09.966Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e5/30/643397144bfbfec6f6ef821f36f33e57d35946c44a2352d3c9f0ae847619/tenacity-9.1.2-py3-none-any.whl", hash = "sha256:f77bf36710d8b73a50b2dd155c97b870017ad21afe6ab300326b0371b3b05138", size = 28248, upload-time = "2025-04-02T08:25:07.678Z" },
+]
+
+[[package]]
+name = "testing-conventions"
+version = "0.0.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/6a/529b7227ef4f00b0ff72874b49d521815c20101f0b66753782308a97c80b/testing_conventions-0.0.6.tar.gz", hash = "sha256:8935f4417b5c15ba239ae902bde45b6e89457d2d48b1e45d8e00aa971a88b370", size = 14036, upload-time = "2026-06-15T18:09:04.725Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/69/d1f4f9ec706de8dfe530dd57fe2b2af9a239d5165b0e31ec580aa4143a03/testing_conventions-0.0.6-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:3cbd632dc5c296f6778e53b9c49ae77cda85fd5750fb23222cc5e737d5495a35", size = 444613, upload-time = "2026-06-15T18:08:57.538Z" },
+    { url = "https://files.pythonhosted.org/packages/25/9d/e34e5a0129e0448ba451a563d8a6974bb05c2b02d4e115740b6bc6fb24ab/testing_conventions-0.0.6-py3-none-macosx_11_0_arm64.whl", hash = "sha256:d32b859eb02e0f84c138010bfa00b8a67f9b0358928366b5e327576ea1578558", size = 434071, upload-time = "2026-06-15T18:08:59.216Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/36/aa06b233a2c44bc9c4cef9862404b419b630995cf1e9dfb8688294184984/testing_conventions-0.0.6-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:33cc10eb6455a6ea0eeb3f153aa436257346c6a9576290fa65dd87be11c21588", size = 466283, upload-time = "2026-06-15T18:09:00.736Z" },
+    { url = "https://files.pythonhosted.org/packages/1b/eb/b3f7a226d40e4b3c19eae151c54286b7ddbf1cfa4905ce5d4cbcf8695e92/testing_conventions-0.0.6-py3-none-manylinux_2_34_x86_64.whl", hash = "sha256:742774ac80c2d2182681c293a3996b8084bbc1e32bc87478df49a469435381bd", size = 478831, upload-time = "2026-06-15T18:09:02.021Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/6f/eb57c0020a749f6969010034fb3e6e1e41d8304028cdaf7219d3d052aef9/testing_conventions-0.0.6-py3-none-win_amd64.whl", hash = "sha256:f66ce5c67c1d3875a54a6b6a668bf7dcece42642d4772990e357d9256df9ece5", size = 320130, upload-time = "2026-06-15T18:09:03.448Z" },
 ]
 
 [[package]]
