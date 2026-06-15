@@ -3,9 +3,15 @@
 import re
 from collections.abc import Callable
 from pathlib import Path
+from shutil import which
 
 import pytest
 from curtaincall import Terminal, expect
+
+codex_required = pytest.mark.skipif(
+    which("codex") is None,
+    reason="codex CLI not installed; --agent codex e2e needs a real codex binary",
+)
 
 PIRATE_FIXTURES = Path(__file__).parent.parent / "__fixtures__" / "tune-test"
 SKILLET = "skillet"
@@ -227,6 +233,28 @@ def describe_skillet_eval():
         term = terminal(
             f"{SKILLET} eval {evals_dir}"
             f" --agent claude --samples 1 --max-evals 1 --parallel 1 --skip-cache --trust"
+        )
+        expect(term.get_by_text("Agent:")).to_be_visible(timeout=300)
+        expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
+
+    @codex_required
+    @pytest.mark.asyncio
+    async def it_runs_evaluation_with_agent_codex(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
+        """Runs eval routing the agent under test through the real codex CLI.
+
+        Smoke/wiring test: confirms ``--agent codex`` drives the codex CLI end to
+        end and renders the result UI. Correctness of the codex run + judge is
+        covered by the (mocked) integration and unit tests. Skipped when the
+        ``codex`` binary is absent (e.g. in CI).
+        """
+        evals_dir = _setup_eval_env(tmp_path)
+
+        term = terminal(
+            f"{SKILLET} eval {evals_dir}"
+            f" --agent codex --samples 1 --max-evals 1 --parallel 1 --skip-cache --trust"
         )
         expect(term.get_by_text("Agent:")).to_be_visible(timeout=300)
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)

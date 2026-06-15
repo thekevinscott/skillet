@@ -346,3 +346,59 @@ def mock_claude_cli():
         # Default: a single generic text response
         exec_mock.return_value = _FakeClaudeProc(_cli_stream_bytes("Default mocked response"))
         yield exec_mock
+
+
+def _codex_stream_bytes(text: str, tool_calls: list[dict] | None = None) -> bytes:
+    """Build ``codex exec --json`` JSONL stdout for one turn (text + optional tools)."""
+    lines = [json.dumps({"type": "thread.started", "thread_id": "mock-thread"})]
+    for call in tool_calls or []:
+        item = {"id": "c", "type": call.get("name"), "status": "completed"}
+        item.update(call.get("input", {}))
+        lines.append(json.dumps({"type": "item.completed", "item": item}))
+    if text:
+        lines.append(
+            json.dumps({"type": "item.completed", "item": {"type": "agent_message", "text": text}})
+        )
+    lines.append(json.dumps({"type": "turn.completed", "usage": {}}))
+    return "\n".join(lines).encode()
+
+
+@pytest.fixture
+def mock_codex_cli():
+    """Mock the codex CLI agent runner (subprocess) for both run and judge.
+
+    Patches ``create_subprocess_exec`` and ``which`` in run_codex_cli so the
+    codex path never spawns a real process. Same ``set_responses(*items)``
+    contract as :func:`mock_claude_cli`:
+
+    - ``str`` — a text response (``agent_message``) for one CLI turn
+    - ``(text, tool_calls)`` — text plus ``{"name", "input"}`` tool calls
+    - ``Exception`` — raised when that CLI turn runs
+    """
+    exec_mock = AsyncMock()
+
+    def _proc_for(item):
+        if isinstance(item, Exception):
+            return item
+        if isinstance(item, tuple):
+            text, tool_calls = item
+            return _FakeClaudeProc(_codex_stream_bytes(text, tool_calls))
+        return _FakeClaudeProc(_codex_stream_bytes(item))
+
+    def set_responses(*items):
+        exec_mock.side_effect = [_proc_for(i) for i in items]
+
+    with (
+        patch(
+            "skillet._internal.agent.run_codex_cli.create_subprocess_exec",
+            exec_mock,
+        ),
+        patch(
+            "skillet._internal.agent.run_codex_cli.which",
+            return_value="/usr/bin/codex",
+        ),
+    ):
+        exec_mock.set_responses = set_responses
+        # Default: a single generic text response
+        exec_mock.return_value = _FakeClaudeProc(_codex_stream_bytes("Default mocked response"))
+        yield exec_mock

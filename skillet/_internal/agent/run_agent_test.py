@@ -28,6 +28,16 @@ def describe_run_agent():
         )
 
     @pytest.mark.asyncio
-    async def it_raises_not_implemented_for_codex():
-        with pytest.raises(NotImplementedError, match=r"codex.*not yet supported"):
-            await run_agent(Agent.CODEX, ["prompt"])
+    async def it_dispatches_codex_to_run_codex_cli():
+        expected = QueryResult(text="hi", tool_calls=[])
+        runner = AsyncMock(return_value=expected)
+
+        with patch("skillet._internal.agent.run_agent.run_codex_cli", runner):
+            result = await run_agent(
+                Agent.CODEX, ["prompt"], allowed_tools=["Skill"], cwd="/s", env={"HOME": "/h"}
+            )
+
+        assert result is expected
+        runner.assert_awaited_once_with(
+            ["prompt"], allowed_tools=["Skill"], cwd="/s", env={"HOME": "/h"}
+        )

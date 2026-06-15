@@ -17,3 +17,9 @@ def describe_agent():
     def it_round_trips_from_value():
         assert Agent("claude") is Agent.CLAUDE
         assert Agent("codex") is Agent.CODEX
+
+    def it_exposes_the_per_agent_config_dot_dir():
+        # The dot-dir is where each CLI auto-discovers skills and reads config:
+        # claude -> .claude/skills, codex -> .codex/skills.
+        assert Agent.CLAUDE.dot_dir == ".claude"
+        assert Agent.CODEX.dot_dir == ".codex"

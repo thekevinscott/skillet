@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from skillet.agent import Agent
 from skillet.eval.isolated_home import isolated_home
 
 
@@ -21,13 +22,13 @@ def describe_isolated_home():
             yield home
 
     def it_creates_temp_directory():
-        with isolated_home() as home_dir:
+        with isolated_home(Agent.CLAUDE) as home_dir:
             assert Path(home_dir).exists()
             assert Path(home_dir).is_dir()
             assert "skillet-eval-" in home_dir
 
     def it_cleans_up_after_context():
-        with isolated_home() as home_dir:
+        with isolated_home(Agent.CLAUDE) as home_dir:
             temp_path = Path(home_dir)
         # After context exits, directory should be gone
         assert not temp_path.exists()
@@ -39,7 +40,7 @@ def describe_isolated_home():
         (claude_dir / "config.json").write_text('{"key": "value"}')
         (claude_dir / "credentials").write_text("token123")
 
-        with isolated_home() as home_dir:
+        with isolated_home(Agent.CLAUDE) as home_dir:
             isolated_claude = Path(home_dir) / ".claude"
             assert isolated_claude.exists()
             assert isolated_claude.is_dir()
@@ -58,7 +59,7 @@ def describe_isolated_home():
         (claude_dir / "agents").mkdir()
         (claude_dir / "agents" / "agent.py").write_text("pass")
 
-        with isolated_home() as home_dir:
+        with isolated_home(Agent.CLAUDE) as home_dir:
             isolated_claude = Path(home_dir) / ".claude"
             assert (isolated_claude / "config.json").exists()
             assert not (isolated_claude / "commands").exists()
@@ -66,6 +67,26 @@ def describe_isolated_home():
 
     def it_does_not_create_claude_dir_when_missing():
         """No .claude directory is created when ~/.claude doesn't exist."""
-        with isolated_home() as home_dir:
+        with isolated_home(Agent.CLAUDE) as home_dir:
             isolated_claude = Path(home_dir) / ".claude"
             assert not isolated_claude.exists()
+
+    def it_copies_the_codex_dot_dir_for_the_codex_agent(fake_home):
+        """For --agent codex, root-level files come from ~/.codex (not ~/.claude)."""
+        codex_dir = fake_home / ".codex"
+        codex_dir.mkdir()
+        (codex_dir / "auth.json").write_text("token")
+        (codex_dir / "sessions").mkdir()
+        (codex_dir / "sessions" / "s.jsonl").write_text("{}")
+
+        claude_dir = fake_home / ".claude"
+        claude_dir.mkdir()
+        (claude_dir / "credentials").write_text("claude-token")
+
+        with isolated_home(Agent.CODEX) as home_dir:
+            isolated_codex = Path(home_dir) / ".codex"
+            assert (isolated_codex / "auth.json").read_text() == "token"
+            # Subdirectories are excluded, just like the claude path.
+            assert not (isolated_codex / "sessions").exists()
+            # The other agent's dot-dir is not copied.
+            assert not (Path(home_dir) / ".claude").exists()

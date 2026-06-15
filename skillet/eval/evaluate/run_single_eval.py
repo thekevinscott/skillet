@@ -14,11 +14,12 @@ from ..run_prompt import run_prompt
 from ..run_script import run_script
 
 
-def _script_cwd(skill_path: Path | None) -> str | None:
+def _script_cwd(skill_path: Path | None, agent: Agent) -> str | None:
     """Derive the cwd for setup/teardown scripts from the skill path."""
-    if skill_path and ".claude" in skill_path.parts:
-        claude_idx = skill_path.parts.index(".claude")
-        return str(Path(*skill_path.parts[:claude_idx]))
+    dot_dir = agent.dot_dir
+    if skill_path and dot_dir in skill_path.parts:
+        dot_idx = skill_path.parts.index(dot_dir)
+        return str(Path(*skill_path.parts[:dot_idx]))
     return None
 
 
@@ -33,9 +34,9 @@ async def _run_iteration(
     ``INFRA_FAILURE_KEY`` so the cache's condition hook keeps them out of the
     cache. ``KeyboardInterrupt``/``SystemExit`` propagate after teardown runs.
     """
-    script_cwd = _script_cwd(skill_path)
+    script_cwd = _script_cwd(skill_path, agent)
 
-    with isolated_home() as home_dir:
+    with isolated_home(agent) as home_dir:
         try:
             if task.get("setup"):
                 returncode, stdout, stderr = run_script(task["setup"], home_dir, script_cwd)

@@ -49,6 +49,30 @@ def describe_run_prompt():
             assert call_args[1]["cwd"] == "/project"
 
     @pytest.mark.asyncio
+    async def it_sets_cwd_from_codex_skill_path_for_codex_agent():
+        with patch("skillet.eval.run_prompt.run_agent", new_callable=AsyncMock) as mock_run:
+            mock_run.return_value = QueryResult(text="response", tool_calls=[])
+
+            # codex auto-discovers skills under .codex, so cwd is the parent of .codex.
+            skill_path = Path("/project/.codex/skills/test")
+            await run_prompt("test", skill_path=skill_path, agent=Agent.CODEX)
+
+            call_args = mock_run.call_args
+            assert call_args[1]["cwd"] == "/project"
+
+    @pytest.mark.asyncio
+    async def it_does_not_derive_cwd_from_the_other_agents_dot_dir():
+        with patch("skillet.eval.run_prompt.run_agent", new_callable=AsyncMock) as mock_run:
+            mock_run.return_value = QueryResult(text="response", tool_calls=[])
+
+            # A .claude path while running --agent codex must not yield a cwd.
+            skill_path = Path("/project/.claude/skills/test")
+            await run_prompt("test", skill_path=skill_path, agent=Agent.CODEX)
+
+            call_args = mock_run.call_args
+            assert call_args[1]["cwd"] is None
+
+    @pytest.mark.asyncio
     async def it_adds_skill_tool_when_skill_path_provided():
         with patch("skillet.eval.run_prompt.run_agent", new_callable=AsyncMock) as mock_run:
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
