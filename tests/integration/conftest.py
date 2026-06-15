@@ -2,7 +2,6 @@
 
 import json
 from collections.abc import AsyncGenerator
-from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -115,28 +114,37 @@ def create_eval_file(path: Path, **overrides) -> None:
     path.write_text(yaml.dump(defaults, default_flow_style=False, sort_keys=False))
 
 
+class _FakeCachetta:
+    """Total stand-in for cachetta.Cachetta in integration tests.
+
+    The real build_iteration_cache constructs one of these instead of a real
+    Cachetta, so skillet's cache wiring runs while cachetta does no disk I/O:
+    the decorator (``wrap``) just runs the wrapped function, and nothing is
+    read or written. Constructor kwargs (path, condition, duration) are
+    accepted and ignored.
+    """
+
+    def __init__(self, **_kwargs):
+        pass
+
+    def copy(self, **_kwargs) -> "_FakeCachetta":
+        return self
+
+    def wrap(self, fn):
+        return fn
+
+
 @pytest.fixture(autouse=True)
-def mock_cachetta():
-    """Mock cachetta to avoid depending on its pickle serialization."""
-    cache_store: dict[str, object] = {}
+def stub_cachetta():
+    """Replace cachetta.Cachetta with a no-op double for integration tests.
 
-    def mock_write(cache, data, *args, **kwargs):
-        path = cache._get_path(*args, **kwargs)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.touch()  # Stub file so glob finds it
-        cache_store[str(path)] = data
-
-    @contextmanager
-    def mock_read(cache=None, *args, **kwargs):
-        if cache is None:
-            yield None
-        else:
-            path = cache._get_path(*args, **kwargs)
-            yield cache_store.get(str(path))
-
-    with (
-        patch("cachetta.write_cache", side_effect=mock_write),
-        patch("cachetta.read_cache", mock_read),
+    The real build_iteration_cache still runs (path layout, condition, skill
+    hashing); only cachetta's caching is neutralized, so there is no disk I/O.
+    cachetta's own caching is covered by its test suite + e2e.
+    """
+    with patch(
+        "skillet._internal.cache.build_iteration_cache.Cachetta",
+        _FakeCachetta,
     ):
         yield
 
@@ -148,16 +156,14 @@ def skillet_env(tmp_path: Path):
     skillet_dir.mkdir()
     (skillet_dir / "evals").mkdir()
 
-    # Stopgap until cache-path construction is injected at the entry points:
-    # patch the config globals where they are consumed. Most modules read
-    # skillet.config.* at runtime, but skillet.evals.load binds SKILLET_DIR at
-    # import time, so it must be patched separately (patch where used).
+    # skillet.evals.load binds SKILLET_DIR at import time, so it must be patched
+    # where it is used, in addition to the config module. Cache paths are
+    # injected via stub_iteration_cache, so CACHE_DIR needs no patching.
     import skillet.config
     import skillet.evals.load
 
     with (
         patch.object(skillet.config, "SKILLET_DIR", skillet_dir),
-        patch.object(skillet.config, "CACHE_DIR", skillet_dir / "cache"),
         patch.object(skillet.evals.load, "SKILLET_DIR", skillet_dir),
     ):
         yield tmp_path
