@@ -30,7 +30,7 @@ def describe_skillet_create():
             f"{SKILLET} create browser-fallback -d {output_dir}",
             env={"SKILLET_DIR": str(skillet_env / ".skillet")},
         )
-        expect(term.get_by_text("skillet compare")).to_be_visible(timeout=120)
+        expect(term.get_by_text("skillet tune")).to_be_visible(timeout=120)
 
         skill_path = output_dir / ".claude" / "skills" / "browser-fallback" / "SKILL.md"
         assert skill_path.exists(), f"SKILL.md not found at {skill_path}"

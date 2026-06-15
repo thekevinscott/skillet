@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from skillet.cli.main import app, compare, create, eval, main, tune
+from skillet.cli.main import app, create, eval, main, tune
 
 
 def describe_app():
@@ -25,7 +25,7 @@ def describe_app():
         assert len(app._registered_commands) > 0
 
     def it_has_multiple_commands():
-        # Should have at least create, eval, tune, compare commands
+        # Should have at least create, eval, tune, lint commands
         assert len(app._registered_commands) >= 4
 
 
@@ -56,16 +56,6 @@ def describe_eval_command():
 
             call_kwargs = mock_cmd.call_args[1]
             assert call_kwargs["allowed_tools"] == ["Read", "Write", "Bash"]
-
-
-def describe_compare_command():
-    """Tests for compare CLI command."""
-
-    def it_calls_compare_command():
-        with patch("skillet.cli.commands.compare.compare_command") as mock_cmd:
-            compare("my-evals", Path("/skill"))
-
-            mock_cmd.assert_called_once_with("my-evals", Path("/skill"))
 
 
 def describe_tune_command():

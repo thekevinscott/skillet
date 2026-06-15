@@ -69,24 +69,6 @@ async def eval(  # noqa: PLR0913
 
 
 @app.command
-def compare(
-    name: str,
-    skill: Path,
-):
-    """Compare baseline vs skill results from cache.
-
-    Shows a side-by-side comparison of cached baseline and skill results.
-    Run `skillet eval <name>` and `skillet eval <name> <skill>` first to populate the cache.
-
-    Examples:
-        skillet compare browser-fallback ~/.claude/skills/browser-fallback
-    """
-    from skillet.cli.commands.compare import compare_command
-
-    compare_command(name, skill)
-
-
-@app.command
 async def tune(
     name: str,
     skill: Path,
@@ -180,32 +162,6 @@ async def lint(
         raise SystemExit(2)
 
     await lint_command(path, include_llm=not no_llm)
-
-
-@app.command
-def show(
-    name: str,
-    *,
-    eval: Annotated[str | None, Parameter(name=["--eval", "-e"])] = None,
-    skill: Annotated[Path | None, Parameter(name=["--skill", "-s"])] = None,
-):
-    """Show cached eval results.
-
-    Displays a summary of cached results for each eval, including
-    pass rates and iteration counts. No evals are re-run.
-
-    Use --eval to show detailed iteration results for a specific eval.
-    Use --skill to show results with a skill loaded instead of baseline.
-
-    Examples:
-        skillet show browser-fallback
-        skillet show browser-fallback --eval 001.yaml
-        skillet show browser-fallback --skill path/to/skill
-        skillet show browser-fallback --skill path/to/skill --eval 001.yaml
-    """
-    from skillet.cli.commands.show import show_command
-
-    show_command(name, eval_source=eval, skill_path=skill)
 
 
 @app.command(name="generate-evals")

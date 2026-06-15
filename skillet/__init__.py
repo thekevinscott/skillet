@@ -16,9 +16,6 @@ from skillet.errors import (
 # Lazy imports (PEP 562) for heavy function imports to avoid pulling in
 # DSPy/numpy/optuna on `import skillet`.
 _LAZY_IMPORTS: dict[str, str] = {
-    "compare": "skillet.compare",
-    "CompareEvalResult": "skillet.compare",
-    "CompareResult": "skillet.compare",
     "create_skill": "skillet.skill",
     "CreateSkillResult": "skillet.skill",
     "evaluate": "skillet.eval",
@@ -27,15 +24,10 @@ _LAZY_IMPORTS: dict[str, str] = {
     "PerEvalMetric": "skillet.eval",
     "generate_evals": "skillet.generate",
     "load_evals": "skillet.evals",
-    "show": "skillet.show",
-    "ShowEvalResult": "skillet.show",
-    "ShowResult": "skillet.show",
     "tune": "skillet.tune",
 }
 
 __all__ = [
-    "CompareEvalResult",
-    "CompareResult",
     "CreateSkillResult",
     "EmptyFolderError",
     "EvalError",
@@ -43,16 +35,12 @@ __all__ = [
     "EvaluateResult",
     "IterationResult",
     "PerEvalMetric",
-    "ShowEvalResult",
-    "ShowResult",
     "SkillError",
     "SkilletError",
-    "compare",
     "create_skill",
     "evaluate",
     "generate_evals",
     "load_evals",
-    "show",
     "tune",
 ]
 

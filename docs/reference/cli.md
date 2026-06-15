@@ -295,66 +295,6 @@ skillet lint --no-llm path/to/SKILL.md
 skillet lint --list-rules
 ```
 
-## compare
-
-Compare baseline vs skill results from cache.
-
-```bash
-skillet compare <name> <skill>
-```
-
-### Arguments
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `name` | Yes | Eval set name or path |
-| `skill` | Yes | Path to skill directory |
-
-Run `skillet eval <name>` and `skillet eval <name> <skill>` first to populate the cache.
-
-### Examples
-
-```bash
-skillet compare browser-fallback ~/.claude/skills/browser-fallback
-```
-
-## show
-
-Inspect cached eval results without re-running any evals.
-
-```bash
-skillet show <name> [options]
-```
-
-### Arguments
-
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `name` | Yes | Eval set name or path |
-
-### Options
-
-| Flag | Short | Type | Default | Description |
-|------|-------|------|---------|-------------|
-| `--eval` | `-e` | str | none | Show detailed results for a specific eval file |
-| `--skill` | `-s` | path | none | Show results with a skill loaded instead of baseline |
-
-### Examples
-
-```bash
-# Show cached baseline results
-skillet show browser-fallback
-
-# Show results with a skill
-skillet show browser-fallback --skill ~/.claude/skills/browser-fallback
-
-# Show detailed results for a specific eval
-skillet show browser-fallback --eval 001.yaml
-
-# Combine: specific eval with skill
-skillet show browser-fallback --skill path/to/skill --eval 001.yaml
-```
-
 ## Environment Variables
 
 | Variable | Default | Description |

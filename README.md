@@ -81,7 +81,7 @@ Development setup, testing strategy, code style, and PR conventions. [→ `docs/
 
 ### CLI
 
-`skillet` ships with `eval`, `create`, `tune`, `compare`, `show`, `lint`, and `generate-evals`. [→ `docs/reference/cli.md`](docs/reference/cli.md)
+`skillet` ships with `eval`, `create`, `tune`, `lint`, and `generate-evals`. [→ `docs/reference/cli.md`](docs/reference/cli.md)
 
 ### Eval Format
 
@@ -89,4 +89,4 @@ YAML schema for eval files: required `name`/`prompt`/`expected`, optional `domai
 
 ### Python API
 
-Programmatic interface: `evaluate()`, `tune()`, `create_skill()`, `generate_evals()`, `show()`, `lint_skill()`. [→ `docs/reference/python-api.md`](docs/reference/python-api.md)
+Programmatic interface: `evaluate()`, `tune()`, `create_skill()`, `generate_evals()`, `lint_skill()`. [→ `docs/reference/python-api.md`](docs/reference/python-api.md)
