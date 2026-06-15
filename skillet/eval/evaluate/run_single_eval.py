@@ -56,14 +56,15 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
     if on_status:
         await on_status(task, "running", None)
 
-    # Determine cwd for scripts (use skill path parent or current dir)
+    # Determine cwd for scripts (parent of the agent's dot-dir, or current dir)
     script_cwd: str | None = None
-    if skill_path and ".claude" in skill_path.parts:
-        claude_idx = skill_path.parts.index(".claude")
-        script_cwd = str(Path(*skill_path.parts[:claude_idx]))
+    dot_dir = agent.dot_dir
+    if skill_path and dot_dir in skill_path.parts:
+        dot_idx = skill_path.parts.index(dot_dir)
+        script_cwd = str(Path(*skill_path.parts[:dot_idx]))
 
     # Run in isolated HOME environment
-    with isolated_home() as home_dir:
+    with isolated_home(agent) as home_dir:
         try:
             # Run setup script if present
             if task.get("setup"):

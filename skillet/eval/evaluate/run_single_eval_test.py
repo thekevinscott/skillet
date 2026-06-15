@@ -389,6 +389,41 @@ def describe_run_single_eval():
             # cwd should be /project (parent of .claude)
             assert script_cwd_captured[0] == "/project"
 
+    @pytest.mark.asyncio
+    async def it_calculates_script_cwd_from_codex_skill_path():
+        """For --agent codex, script_cwd is derived from the .codex dot-dir."""
+        script_cwd_captured = []
+
+        def capture_run_script(_script, _home_dir, cwd=None):
+            script_cwd_captured.append(cwd)
+            return (0, "", "")
+
+        with (
+            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
+            patch(f"{_RSE}.run_script", side_effect=capture_run_script),
+            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
+            patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
+            patch(f"{_RSE}.save_iteration"),
+        ):
+            mock_run.return_value = QueryResult(text="response", tool_calls=[])
+            mock_judge.return_value = {"pass": True, "reasoning": "OK"}
+
+            task = {
+                "eval_source": "test.md",
+                "eval_content": "content",
+                "eval_idx": 0,
+                "iteration": 1,
+                "prompt": "test",
+                "expected": "result",
+                "setup": "echo setup",
+            }
+
+            skill_path = Path("/project/.codex/skills/test")
+            await run_single_eval(task, "test-evals", skill_path, None, agent=Agent.CODEX)
+
+            # cwd should be /project (parent of .codex)
+            assert script_cwd_captured[0] == "/project"
+
 
 def describe_exception_handling():
     """Tests for exception handling in run_single_eval."""

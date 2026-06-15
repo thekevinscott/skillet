@@ -4,6 +4,7 @@ from skillet._internal.sdk.query_result import QueryResult
 from skillet.agent import Agent
 
 from .run_claude_cli import run_claude_cli
+from .run_codex_cli import run_codex_cli
 
 
 async def run_agent(
@@ -22,14 +23,9 @@ async def run_agent(
         allowed_tools: Tools to pre-approve.
         cwd: Working directory for the CLI (the eval sandbox).
         env: Environment for the subprocess (e.g. an isolated ``HOME``).
-
-    Raises:
-        NotImplementedError: If ``agent`` is recognized but not yet wired up.
     """
     if agent is Agent.CLAUDE:
         return await run_claude_cli(prompts, allowed_tools=allowed_tools, cwd=cwd, env=env)
     if agent is Agent.CODEX:
-        raise NotImplementedError(
-            "The 'codex' agent is not yet supported. Use --agent claude for now."
-        )
+        return await run_codex_cli(prompts, allowed_tools=allowed_tools, cwd=cwd, env=env)
     raise ValueError(f"Unknown agent: {agent!r}")  # pragma: no cover

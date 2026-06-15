@@ -8,34 +8,39 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 
+from skillet.agent import Agent
+
 logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def isolated_home() -> Generator[str, None, None]:
-    """Context manager for isolated HOME directory.
+def isolated_home(agent: Agent) -> Generator[str, None, None]:
+    """Context manager for an isolated HOME directory for one eval.
 
-    Creates a temporary HOME directory for isolated eval execution,
-    and ensures cleanup after the eval completes.
+    Creates a temporary HOME for isolated eval execution and cleans it up
+    afterwards. Copies only root-level *files* from the agent's config dir
+    (``~/.claude`` for claude, ``~/.codex`` for codex) — credentials and config —
+    without exposing subdirectories like ``commands/``, ``agents/``, ``sessions/``,
+    or ``projects/``.
 
-    Copies only root-level *files* from ~/.claude (credentials, config)
-    into the isolated HOME, without exposing subdirectories like
-    commands/, agents/, or projects/.
+    Args:
+        agent: The agent under test; selects which ``~/<dot_dir>`` to copy.
 
     Yields:
         Path to the temporary HOME directory
     """
     real_home = os.environ.get("HOME", "")
+    dot_dir = agent.dot_dir
 
     with tempfile.TemporaryDirectory(prefix="skillet-eval-") as home_dir:
-        real_claude_dir = Path(real_home) / ".claude"
-        if real_claude_dir.is_dir():
-            isolated_claude_dir = Path(home_dir) / ".claude"
-            isolated_claude_dir.mkdir()
+        real_config_dir = Path(real_home) / dot_dir
+        if real_config_dir.is_dir():
+            isolated_config_dir = Path(home_dir) / dot_dir
+            isolated_config_dir.mkdir()
             try:
-                for item in real_claude_dir.iterdir():
+                for item in real_config_dir.iterdir():
                     if item.is_file():
-                        shutil.copy2(item, isolated_claude_dir / item.name)
+                        shutil.copy2(item, isolated_config_dir / item.name)
             except OSError as e:
-                logger.warning(f"Could not copy .claude files: {e}")
+                logger.warning(f"Could not copy {dot_dir} files: {e}")
         yield home_dir

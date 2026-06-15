@@ -35,10 +35,12 @@ async def run_prompt(
     # Normalize to list
     prompts = [prompt] if isinstance(prompt, str) else prompt
 
-    # If skill path provided and no cwd, set cwd to parent of .claude/skills
-    if cwd is None and skill_path and ".claude" in skill_path.parts:
-        claude_idx = skill_path.parts.index(".claude")
-        cwd = str(Path(*skill_path.parts[:claude_idx]))
+    # If skill path provided and no cwd, set cwd to the parent of the agent's
+    # dot-dir (e.g. .claude/skills or .codex/skills) so the CLI auto-discovers it.
+    dot_dir = agent.dot_dir
+    if cwd is None and skill_path and dot_dir in skill_path.parts:
+        dot_idx = skill_path.parts.index(dot_dir)
+        cwd = str(Path(*skill_path.parts[:dot_idx]))
 
     # Build allowed_tools, ensuring Skill is included if we have a skill
     tools: list[str]
