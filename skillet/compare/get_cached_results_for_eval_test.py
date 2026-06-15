@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -11,8 +12,9 @@ from skillet.compare.get_cached_results_for_eval import get_cached_results_for_e
 
 def describe_get_cached_results_for_eval():
     @pytest.fixture(autouse=True)
-    def mock_cache_dir(monkeypatch):
-        monkeypatch.setattr(skillet.config, "CACHE_DIR", Path("/tmp/fake-cache"))
+    def mock_cache_dir():
+        with patch.object(skillet.config, "CACHE_DIR", Path("/tmp/fake-cache")):
+            yield
 
     def it_returns_empty_for_nonexistent_cache():
         eval_item = {"_source": "test.yaml", "_content": "prompt: test\nexpected: result"}

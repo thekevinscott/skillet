@@ -141,21 +141,25 @@ def mock_cachetta():
 
 
 @pytest.fixture
-def skillet_env(tmp_path: Path, monkeypatch):
+def skillet_env(tmp_path: Path):
     """Set up isolated SKILLET_DIR for testing."""
     skillet_dir = tmp_path / ".skillet"
     skillet_dir.mkdir()
     (skillet_dir / "evals").mkdir()
 
-    # Patch SKILLET_DIR and CACHE_DIR in config (all modules reference config.* at runtime)
+    # Stopgap until cache-path construction is injected at the entry points:
+    # patch the config globals where they are consumed. Most modules read
+    # skillet.config.* at runtime, but skillet.evals.load binds SKILLET_DIR at
+    # import time, so it must be patched separately (patch where used).
     import skillet.config
     import skillet.evals.load
 
-    monkeypatch.setattr(skillet.config, "SKILLET_DIR", skillet_dir)
-    monkeypatch.setattr(skillet.config, "CACHE_DIR", skillet_dir / "cache")
-    monkeypatch.setattr(skillet.evals.load, "SKILLET_DIR", skillet_dir)
-
-    return tmp_path
+    with (
+        patch.object(skillet.config, "SKILLET_DIR", skillet_dir),
+        patch.object(skillet.config, "CACHE_DIR", skillet_dir / "cache"),
+        patch.object(skillet.evals.load, "SKILLET_DIR", skillet_dir),
+    ):
+        yield tmp_path
 
 
 @pytest.fixture
