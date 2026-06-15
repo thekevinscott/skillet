@@ -12,3 +12,12 @@ class Agent(StrEnum):
 
     CLAUDE = "claude"
     CODEX = "codex"
+
+    @property
+    def dot_dir(self) -> str:
+        """The agent's per-user config directory name (``.claude`` / ``.codex``).
+
+        Each CLI auto-discovers skills under ``<cwd>/<dot_dir>/skills`` and reads
+        its credentials/config from ``~/<dot_dir>``.
+        """
+        return f".{self.value}"
