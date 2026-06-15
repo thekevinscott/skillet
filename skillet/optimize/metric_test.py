@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
+from skillet.agent import Agent
 from skillet.optimize.metric import create_skillet_metric
 
 
@@ -37,6 +38,7 @@ def describe_create_skillet_metric():
             response="test response",
             expected="test expected",
             tool_calls=[],
+            agent=Agent.CLAUDE,
         )
 
     @patch("skillet.optimize.metric.judge_response")

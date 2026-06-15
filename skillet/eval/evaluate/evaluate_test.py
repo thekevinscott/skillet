@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from skillet.agent import Agent
 from skillet.eval.evaluate import evaluate
 
 _EVAL = "skillet.eval.evaluate.evaluate"
@@ -30,7 +31,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             mock_load.assert_called_once_with("test-evals")
 
@@ -64,7 +65,7 @@ def describe_evaluate():
                 },
             ]
 
-            result = await evaluate("test-evals", samples=1)
+            result = await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             assert result.pass_rate == 50.0
             assert result.total_pass == 1
@@ -92,7 +93,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            result = await evaluate("test-evals", samples=1, max_evals=2)
+            result = await evaluate("test-evals", samples=1, max_evals=2, agent=Agent.CLAUDE)
 
             mock_sample.assert_called_once()
             assert result.sampled_evals == 2
@@ -114,7 +115,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1, evals_list=evals)
+            await evaluate("test-evals", samples=1, evals_list=evals, agent=Agent.CLAUDE)
 
             mock_load.assert_not_called()
 
@@ -147,7 +148,7 @@ def describe_evaluate():
                 },
             ]
 
-            result = await evaluate("test-evals", samples=1)
+            result = await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             assert result.cached_count == 1
             assert result.fresh_count == 1
@@ -176,7 +177,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             call_args = mock_run.call_args
             task = call_args[0][0]
@@ -207,7 +208,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             call_args = mock_run.call_args
             task = call_args[0][0]
@@ -237,7 +238,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             call_args = mock_run.call_args
             task = call_args[0][0]

@@ -6,6 +6,7 @@ from pathlib import Path
 from cachetta import Cachetta
 
 from skillet._internal.cache import INFRA_FAILURE_KEY
+from skillet.agent import Agent
 
 from ..isolated_home import isolated_home
 from ..judge import judge_response, run_assertions
@@ -22,7 +23,7 @@ def _script_cwd(skill_path: Path | None) -> str | None:
 
 
 async def _run_iteration(
-    task: dict, skill_path: Path | None, allowed_tools: list[str] | None
+    task: dict, skill_path: Path | None, allowed_tools: list[str] | None, agent: Agent
 ) -> dict:
     """Run one eval iteration in an isolated HOME and return its result payload.
 
@@ -51,7 +52,7 @@ async def _run_iteration(
                     }
 
             query_result = await run_prompt(
-                task["prompt"], skill_path, allowed_tools, home_dir=home_dir
+                task["prompt"], skill_path, allowed_tools, home_dir=home_dir, agent=agent
             )
 
             # Run teardown after the prompt (best effort, don't fail the eval)
@@ -70,6 +71,7 @@ async def _run_iteration(
                     response=query_result.text,
                     expected=task["expected"],
                     tool_calls=query_result.tool_calls,
+                    agent=agent,
                 )
 
             return {
@@ -123,6 +125,8 @@ async def run_single_eval(
     iteration_cache: Cachetta,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
+    *,
+    agent: Agent,
 ) -> dict:
     """Run a single evaluation task, using ``iteration_cache`` for memoization.
 
@@ -143,7 +147,7 @@ async def run_single_eval(
     ) -> dict:
         nonlocal ran
         ran = True
-        return await _run_iteration(task, skill_path, allowed_tools)
+        return await _run_iteration(task, skill_path, allowed_tools, agent)
 
     if on_status:
         await on_status(task, "running", None)

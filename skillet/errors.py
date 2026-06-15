@@ -23,3 +23,7 @@ class SkillError(SkilletError):
 
 class LintError(SkilletError):
     """Error during linting."""
+
+
+class JudgeError(SkilletError):
+    """Raised when the agent judge cannot produce a valid verdict."""

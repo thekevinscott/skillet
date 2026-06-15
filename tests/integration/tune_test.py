@@ -1,5 +1,6 @@
 """Integration tests for the tune API."""
 
+import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -11,11 +12,20 @@ from skillet.tune import TuneConfig
 from .conftest import create_eval_file
 
 
+def _verdict(passed: bool, reasoning: str = "") -> str:
+    """Build a judge verdict the agent CLI would emit as text."""
+    return json.dumps({"pass": passed, "reasoning": reasoning})
+
+
 def describe_tune():
-    """Integration tests for tune function."""
+    """Integration tests for tune function.
+
+    Both the agent under test and the judge run through the (mocked) claude CLI
+    (``mock_claude_cli``); responses are queued as ``agent, verdict, ...``.
+    """
 
     @pytest.mark.asyncio
-    async def it_runs_tuning_rounds_until_target(skillet_env: Path, mock_claude_query):
+    async def it_runs_tuning_rounds_until_target(skillet_env: Path, mock_claude_cli):
         """Happy path: runs tuning and stops when target is reached."""
         evals_dir = skillet_env / ".skillet" / "evals" / "tune-test"
         evals_dir.mkdir(parents=True)
@@ -27,11 +37,8 @@ def describe_tune():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Original Skill\n\nInitial instructions.")
 
-        # 1 eval, samples=1, 1 round: need 2 responses (prompt + judgment)
-        mock_claude_query.set_responses(
-            "Good response",
-            {"pass": True, "reasoning": "Good"},
-        )
+        # 1 eval, samples=1, 1 round: agent runs the prompt, judge grades it.
+        mock_claude_cli.set_responses("Good response", _verdict(True, "Good"))
 
         with patch("skillet.tune.tune_dspy.propose_instruction") as mock_propose:
             mock_propose.return_value = "# Improved Skill\n\nBetter instructions."
@@ -44,7 +51,7 @@ def describe_tune():
         assert len(result.rounds) >= 1
 
     @pytest.mark.asyncio
-    async def it_stops_after_max_rounds(skillet_env: Path, mock_claude_query):
+    async def it_stops_after_max_rounds(skillet_env: Path, mock_claude_cli):
         """Stops after max_rounds even if target not reached."""
         evals_dir = skillet_env / ".skillet" / "evals" / "max-rounds"
         evals_dir.mkdir(parents=True)
@@ -55,12 +62,12 @@ def describe_tune():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Skill")
 
-        # 1 eval, samples=1, 2 rounds: need 4 responses (2 rounds * 2 calls each)
-        mock_claude_query.set_responses(
+        # 1 eval, samples=1, 2 rounds: agent runs each round, judge grades each.
+        mock_claude_cli.set_responses(
             "Bad response 1",
-            {"pass": False, "reasoning": "Failed"},
+            _verdict(False, "Failed"),
             "Bad response 2",
-            {"pass": False, "reasoning": "Failed"},
+            _verdict(False, "Failed"),
         )
 
         with patch("skillet.tune.tune_dspy.propose_instruction") as mock_propose:
@@ -73,7 +80,7 @@ def describe_tune():
         assert len(result.rounds) == 2
 
     @pytest.mark.asyncio
-    async def it_tracks_best_skill_across_rounds(skillet_env: Path, mock_claude_query):
+    async def it_tracks_best_skill_across_rounds(skillet_env: Path, mock_claude_cli):
         """Tracks the best performing skill across rounds."""
         evals_dir = skillet_env / ".skillet" / "evals" / "best-skill"
         evals_dir.mkdir(parents=True)
@@ -85,20 +92,17 @@ def describe_tune():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Original")
 
-        # 2 evals, samples=1, 2 rounds: need 8 responses total
-        # Round 1: 50% pass (1 pass, 1 fail)
-        # Round 2: 100% pass (2 pass)
-        mock_claude_query.set_responses(
-            # Round 1
+        # 2 evals, samples=1, 2 rounds: agent runs 4 prompts; judge grades 4 times.
+        # Round 1: 50% pass (1 pass, 1 fail); Round 2: 100% pass (2 pass).
+        mock_claude_cli.set_responses(
             "Response 1.1",
-            {"pass": True, "reasoning": "R"},
+            _verdict(True, "R"),  # round 1 eval 1
             "Response 1.2",
-            {"pass": False, "reasoning": "R"},
-            # Round 2
+            _verdict(False, "R"),  # round 1 eval 2
             "Response 2.1",
-            {"pass": True, "reasoning": "R"},
+            _verdict(True, "R"),  # round 2 eval 1
             "Response 2.2",
-            {"pass": True, "reasoning": "R"},
+            _verdict(True, "R"),  # round 2 eval 2
         )
 
         with patch("skillet.tune.tune_dspy.propose_instruction") as mock_propose:
@@ -111,7 +115,7 @@ def describe_tune():
         assert len(result.rounds) == 2
 
     @pytest.mark.asyncio
-    async def it_calls_callbacks_during_tuning(skillet_env: Path, mock_claude_query):
+    async def it_calls_callbacks_during_tuning(skillet_env: Path, mock_claude_cli):
         """Invokes callbacks at appropriate points during tuning."""
         evals_dir = skillet_env / ".skillet" / "evals" / "callbacks"
         evals_dir.mkdir(parents=True)
@@ -122,11 +126,8 @@ def describe_tune():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Skill")
 
-        # 1 eval, samples=1, 1 round: need 2 responses
-        mock_claude_query.set_responses(
-            "Response",
-            {"pass": True, "reasoning": "OK"},
-        )
+        # 1 eval, samples=1, 1 round: agent runs the prompt, judge grades it.
+        mock_claude_cli.set_responses("Response", _verdict(True, "OK"))
 
         callback_events = []
 
@@ -153,7 +154,7 @@ def describe_tune():
         assert any(e[0] == "complete" for e in callback_events)
 
     @pytest.mark.asyncio
-    async def it_saves_improved_skill_to_file(skillet_env: Path, mock_claude_query):
+    async def it_saves_improved_skill_to_file(skillet_env: Path, mock_claude_cli):
         """Saves the improved skill content back to the file."""
         evals_dir = skillet_env / ".skillet" / "evals" / "save-skill"
         evals_dir.mkdir(parents=True)
@@ -164,11 +165,8 @@ def describe_tune():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Original Content")
 
-        # 1 eval, samples=1: need 2 responses
-        mock_claude_query.set_responses(
-            "Response",
-            {"pass": True, "reasoning": "OK"},
-        )
+        # 1 eval, samples=1: agent runs the prompt, judge grades it.
+        mock_claude_cli.set_responses("Response", _verdict(True, "OK"))
 
         with patch("skillet.tune.tune_dspy.propose_instruction") as mock_propose:
             mock_propose.return_value = "# Improved Content"

@@ -8,6 +8,7 @@ import pytest
 from cachetta import Cachetta
 
 from skillet._internal.sdk import QueryResult
+from skillet.agent import Agent
 from skillet.eval.evaluate import run_single_eval
 
 _RSE = "skillet.eval.evaluate.run_single_eval"
@@ -71,7 +72,7 @@ def describe_run_single_eval():
     async def it_returns_cached_result_when_available():
         cache = cast(Cachetta, _FakeCache(hit_payload=_HIT_PAYLOAD))
 
-        result = await run_single_eval(_make_task(), None, None, cache)
+        result = await run_single_eval(_make_task(), None, None, cache, agent=Agent.CLAUDE)
 
         assert result["cached"] is True
         assert result["response"] == "cached response"
@@ -85,7 +86,9 @@ def describe_run_single_eval():
 
         cache = cast(Cachetta, _FakeCache(hit_payload=_HIT_PAYLOAD))
 
-        await run_single_eval(_make_task(), None, None, cache, on_status=on_status)
+        await run_single_eval(
+            _make_task(), None, None, cache, on_status=on_status, agent=Agent.CLAUDE
+        )
 
         # The leaf never runs on a hit, so we only learn it was cached after the
         # decorator returns: status goes running -> cached.
@@ -103,7 +106,9 @@ def describe_run_single_eval():
             # Cache "has" a hit, but skip_cache must run fresh and ignore it.
             cache = cast(Cachetta, _FakeCache(hit_payload=_HIT_PAYLOAD))
 
-            result = await run_single_eval(_make_task(), None, None, cache, skip_cache=True)
+            result = await run_single_eval(
+                _make_task(), None, None, cache, skip_cache=True, agent=Agent.CLAUDE
+            )
 
             assert result["cached"] is False
             assert result["response"] == "fresh response"
@@ -113,7 +118,7 @@ def describe_run_single_eval():
         with patch(f"{_RSE}.run_script", return_value=(1, "", "setup failed")):
             task = _make_task(setup="exit 1")
 
-            result = await run_single_eval(task, None, None, _passthrough())
+            result = await run_single_eval(task, None, None, _passthrough(), agent=Agent.CLAUDE)
 
             assert result["pass"] is False
             assert "Setup failed" in result["response"]
@@ -137,7 +142,7 @@ def describe_run_single_eval():
 
             task = _make_task(teardown="echo teardown")
 
-            await run_single_eval(task, None, None, _passthrough())
+            await run_single_eval(task, None, None, _passthrough(), agent=Agent.CLAUDE)
 
             assert len(teardown_called) == 1
 
@@ -156,7 +161,9 @@ def describe_run_single_eval():
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            await run_single_eval(_make_task(), None, None, _passthrough(), on_status=on_status)
+            await run_single_eval(
+                _make_task(), None, None, _passthrough(), on_status=on_status, agent=Agent.CLAUDE
+            )
 
             assert ("running", None) in status_calls
             done_calls = [c for c in status_calls if c[0] == "done"]
@@ -173,7 +180,9 @@ def describe_run_single_eval():
         with patch(f"{_RSE}.run_script", return_value=(1, "", "setup error")):
             task = _make_task(setup="exit 1")
 
-            await run_single_eval(task, None, None, _passthrough(), on_status=on_status)
+            await run_single_eval(
+                task, None, None, _passthrough(), on_status=on_status, agent=Agent.CLAUDE
+            )
 
             assert ("running", None) in status_calls
             done_calls = [c for c in status_calls if c[0] == "done"]
@@ -197,7 +206,7 @@ def describe_run_single_eval():
 
             task = _make_task(teardown="echo cleanup")
 
-            result = await run_single_eval(task, None, None, _passthrough())
+            result = await run_single_eval(task, None, None, _passthrough(), agent=Agent.CLAUDE)
 
             assert result["pass"] is False
             assert "prompt failed" in result["response"]
@@ -214,7 +223,9 @@ def describe_run_single_eval():
         with patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run:
             mock_run.side_effect = RuntimeError("prompt failed")
 
-            await run_single_eval(_make_task(), None, None, _passthrough(), on_status=on_status)
+            await run_single_eval(
+                _make_task(), None, None, _passthrough(), on_status=on_status, agent=Agent.CLAUDE
+            )
 
             assert ("running", None) in status_calls
             done_calls = [c for c in status_calls if c[0] == "done"]
@@ -234,7 +245,7 @@ def describe_run_single_eval():
 
             task = _make_task(assertions=[{"type": "contains", "value": "4"}])
 
-            result = await run_single_eval(task, None, None, _passthrough())
+            result = await run_single_eval(task, None, None, _passthrough(), agent=Agent.CLAUDE)
 
             assert result["pass"] is True
             mock_assertions.assert_called_once()
@@ -250,7 +261,9 @@ def describe_run_single_eval():
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            result = await run_single_eval(_make_task(), None, None, _passthrough())
+            result = await run_single_eval(
+                _make_task(), None, None, _passthrough(), agent=Agent.CLAUDE
+            )
 
             assert result["pass"] is True
             mock_judge.assert_called_once()
@@ -276,7 +289,7 @@ def describe_run_single_eval():
             task = _make_task(setup="echo setup")
             skill_path = Path("/project/.claude/skills/test")
 
-            await run_single_eval(task, skill_path, None, _passthrough())
+            await run_single_eval(task, skill_path, None, _passthrough(), agent=Agent.CLAUDE)
 
             # cwd should be /project (parent of .claude)
             assert script_cwd_captured[0] == "/project"
@@ -292,7 +305,7 @@ def describe_exception_handling():
             mock_run.side_effect = KeyboardInterrupt()
 
             with pytest.raises(KeyboardInterrupt):
-                await run_single_eval(_make_task(), None, None, _passthrough())
+                await run_single_eval(_make_task(), None, None, _passthrough(), agent=Agent.CLAUDE)
 
     @pytest.mark.asyncio
     async def it_propagates_system_exit():
@@ -301,7 +314,7 @@ def describe_exception_handling():
             mock_run.side_effect = SystemExit(1)
 
             with pytest.raises(SystemExit):
-                await run_single_eval(_make_task(), None, None, _passthrough())
+                await run_single_eval(_make_task(), None, None, _passthrough(), agent=Agent.CLAUDE)
 
     @pytest.mark.asyncio
     async def it_runs_teardown_on_keyboard_interrupt():
@@ -322,7 +335,7 @@ def describe_exception_handling():
             task = _make_task(teardown="echo teardown")
 
             with pytest.raises(KeyboardInterrupt):
-                await run_single_eval(task, None, None, _passthrough())
+                await run_single_eval(task, None, None, _passthrough(), agent=Agent.CLAUDE)
 
             assert len(teardown_called) == 1
 
@@ -332,7 +345,9 @@ def describe_exception_handling():
         with patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run:
             mock_run.side_effect = ValueError("invalid value")
 
-            result = await run_single_eval(_make_task(), None, None, _passthrough())
+            result = await run_single_eval(
+                _make_task(), None, None, _passthrough(), agent=Agent.CLAUDE
+            )
 
             assert result["pass"] is False
             assert "ValueError" in result["judgment"]["reasoning"]

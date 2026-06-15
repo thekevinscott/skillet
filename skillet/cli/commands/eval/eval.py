@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 
+from skillet.agent import Agent
 from skillet.cli import console
 from skillet.cli.display import LiveDisplay
 from skillet.eval import evaluate
@@ -40,6 +41,8 @@ async def eval_command(  # noqa: PLR0913
     skip_cache: bool = False,
     trust: bool = False,
     no_summary: bool = False,
+    *,
+    agent: Agent,
 ):
     """Run eval command with display."""
     from skillet.evals import load_evals
@@ -51,6 +54,7 @@ async def eval_command(  # noqa: PLR0913
         console.print(f"Skill: [cyan]{skill_path}[/cyan]")
     else:
         console.print("[bold]Eval Results (baseline, no skill)[/bold]")
+    console.print(f"Agent: [cyan]{agent.value}[/cyan]")
 
     # Load evals first to build the task list for display
     evals = load_evals(name)
@@ -96,6 +100,7 @@ async def eval_command(  # noqa: PLR0913
             on_status=on_status,
             skip_cache=skip_cache,
             evals_list=evals,
+            agent=agent,
         )
     finally:
         await display.stop()

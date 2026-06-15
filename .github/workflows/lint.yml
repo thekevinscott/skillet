@@ -35,3 +35,6 @@ jobs:
 
       - name: Check conventions
         run: uv run just check-conventions
+
+      - name: Check test conventions
+        run: uv run just check-test-conventions

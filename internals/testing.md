@@ -34,6 +34,16 @@ A feature is not done until the e2e and integration tests pass and cover the new
 - **Integration tests**: `tests/integration/`
 - **E2E tests**: `tests/e2e/`, auto-build `.claude/commands/` via conftest.py
 
+## Enforcing colocated unit tests
+
+The colocated-unit-test rule is machine-enforced by [`testing-conventions`](https://github.com/thekevinscott/testing-conventions) (a dev dependency), so a new source file without a sibling test fails CI rather than slipping through. Run it locally with:
+
+```bash
+uv run just check-test-conventions
+```
+
+It fails if any source file under `skillet/` lacks a sibling `*_test.py` (`__init__.py` is exempt). The check runs in the `lint` workflow and in the `just ci` / `just ci-local` aggregates, alongside the one-public-callable-per-file convention check.
+
 ## Test Infrastructure
 - `Conversation` helper for multi-turn e2e test flows
 - Use `@pytest.mark.parametrize` when testing multiple inputs/outputs for the same logic

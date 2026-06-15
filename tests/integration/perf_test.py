@@ -13,6 +13,7 @@ import pytest
 
 from skillet import evaluate
 from skillet._internal.cache.hash_directory import hash_directory
+from skillet.agent import Agent
 from skillet.cli.commands.eval.eval import eval_command
 
 from .conftest import create_eval_file
@@ -22,7 +23,9 @@ def describe_load_evals_call_count():
     """Enforce that load_evals is called at most once per operation."""
 
     @pytest.mark.asyncio
-    async def it_skips_load_evals_when_evals_list_provided(skillet_env: Path, mock_claude_query):
+    async def it_skips_load_evals_when_evals_list_provided(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
         """evaluate() with evals_list should not call load_evals."""
         evals_dir = skillet_env / ".skillet" / "evals" / "perf-test"
         evals_dir.mkdir(parents=True)
@@ -32,10 +35,8 @@ def describe_load_evals_call_count():
 
         evals = load_evals("perf-test")
 
-        mock_claude_query.set_responses(
-            "Response",
-            {"pass": True, "reasoning": "OK"},
-        )
+        mock_claude_cli.set_responses("Response")
+        mock_claude_query.set_responses({"pass": True, "reasoning": "OK"})
 
         with patch("skillet.eval.evaluate.evaluate.load_evals") as spy:
             await evaluate(
@@ -44,12 +45,13 @@ def describe_load_evals_call_count():
                 parallel=1,
                 skip_cache=True,
                 evals_list=evals,
+                agent=Agent.CLAUDE,
             )
             spy.assert_not_called()
 
     @pytest.mark.asyncio
     async def it_calls_load_evals_exactly_once_without_evals_list(
-        skillet_env: Path, mock_claude_query
+        skillet_env: Path, mock_claude_cli, mock_claude_query
     ):
         """evaluate() without evals_list should call load_evals exactly once."""
         evals_dir = skillet_env / ".skillet" / "evals" / "once-test"
@@ -57,10 +59,9 @@ def describe_load_evals_call_count():
         create_eval_file(evals_dir / "001.yaml")
         create_eval_file(evals_dir / "002.yaml", prompt="Second prompt")
 
+        mock_claude_cli.set_responses("Response 1", "Response 2")
         mock_claude_query.set_responses(
-            "Response 1",
             {"pass": True, "reasoning": "OK"},
-            "Response 2",
             {"pass": True, "reasoning": "OK"},
         )
 
@@ -73,6 +74,7 @@ def describe_load_evals_call_count():
                 samples=1,
                 parallel=1,
                 skip_cache=True,
+                agent=Agent.CLAUDE,
             )
             spy.assert_called_once()
 
@@ -81,7 +83,9 @@ def describe_iteration_cache_construction():
     """Enforce that the skill is hashed once per run, not once per sample."""
 
     @pytest.mark.asyncio
-    async def it_hashes_skill_once_per_run_not_per_sample(skillet_env: Path, mock_claude_query):
+    async def it_hashes_skill_once_per_run_not_per_sample(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
         """build_iteration_cache hashes the skill once per evaluate, not per sample."""
         evals_dir = skillet_env / ".skillet" / "evals" / "hash-test"
         evals_dir.mkdir(parents=True)
@@ -92,13 +96,11 @@ def describe_iteration_cache_construction():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Test Skill\n")
 
-        # 1 eval x 3 samples = 6 responses (3 prompts + 3 judgments)
+        # 1 eval x 3 samples: agent runs 3 prompts; judge grades 3 times.
+        mock_claude_cli.set_responses("R1", "R2", "R3")
         mock_claude_query.set_responses(
-            "R1",
             {"pass": True, "reasoning": "OK"},
-            "R2",
             {"pass": True, "reasoning": "OK"},
-            "R3",
             {"pass": True, "reasoning": "OK"},
         )
 
@@ -112,6 +114,7 @@ def describe_iteration_cache_construction():
                 samples=3,
                 parallel=1,
                 skip_cache=True,
+                agent=Agent.CLAUDE,
             )
 
         # The cache is built once for the whole run, so the skill is hashed once.
@@ -137,17 +140,17 @@ def describe_no_summary_flag():
             yield
 
     @pytest.mark.asyncio
-    async def it_skips_summarize_when_no_summary_is_true(skillet_env: Path, mock_claude_query):
+    async def it_skips_summarize_when_no_summary_is_true(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
         """eval_command with no_summary=True should not call summarize_responses."""
         evals_dir = skillet_env / ".skillet" / "evals" / "summary-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
 
         # Make the eval fail so summarize would normally be called
-        mock_claude_query.set_responses(
-            "Bad response",
-            {"pass": False, "reasoning": "Failed"},
-        )
+        mock_claude_cli.set_responses("Bad response")
+        mock_claude_query.set_responses({"pass": False, "reasoning": "Failed"})
 
         with patch("skillet.cli.commands.eval.eval.summarize_responses") as mock_summarize:
             mock_summarize.return_value = "Summary text"
@@ -157,20 +160,21 @@ def describe_no_summary_flag():
                 parallel=1,
                 skip_cache=True,
                 no_summary=True,
+                agent=Agent.CLAUDE,
             )
             mock_summarize.assert_not_called()
 
     @pytest.mark.asyncio
-    async def it_calls_summarize_when_no_summary_is_false(skillet_env: Path, mock_claude_query):
+    async def it_calls_summarize_when_no_summary_is_false(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
         """eval_command without no_summary should call summarize_responses on failures."""
         evals_dir = skillet_env / ".skillet" / "evals" / "summary-test-2"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
 
-        mock_claude_query.set_responses(
-            "Bad response",
-            {"pass": False, "reasoning": "Failed"},
-        )
+        mock_claude_cli.set_responses("Bad response")
+        mock_claude_query.set_responses({"pass": False, "reasoning": "Failed"})
 
         with patch("skillet.cli.commands.eval.eval.summarize_responses") as mock_summarize:
             mock_summarize.return_value = "Summary text"
@@ -179,5 +183,6 @@ def describe_no_summary_flag():
                 samples=1,
                 parallel=1,
                 skip_cache=True,
+                agent=Agent.CLAUDE,
             )
             mock_summarize.assert_called_once()

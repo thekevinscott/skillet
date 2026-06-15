@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 from claude_agent_sdk import AssistantMessage, ResultMessage, ToolUseBlock
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from skillet._internal.sdk.query_structured import query_structured
 from skillet.generate.types import GenerateResponse
@@ -146,13 +146,22 @@ def describe_query_structured_failure_modes():
                 await query_structured("classify this", GenerateResponse)
 
 
+class _PassResult(BaseModel):
+    """Minimal structured-output model for generator-consumption tests."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    passed: bool = Field(alias="pass")
+    reasoning: str = ""
+
+
 @pytest.mark.no_mirror
 def describe_generator_consumption():
     """Verify query_structured fully consumes SDK generator under parallel execution.
 
-    When multiple query_structured calls run via asyncio.gather (as in evaluate()),
-    abandoning async generators causes anyio cancel scope errors. This tests the
-    real composition: judge_response -> query_structured -> SDK mock.
+    When multiple query_structured calls run via asyncio.gather (as in the SDK
+    consumers), abandoning async generators causes anyio cancel scope errors.
+    This tests the real composition: query_structured -> SDK mock.
     """
 
     @pytest.fixture(autouse=True)
@@ -194,21 +203,12 @@ def describe_generator_consumption():
 
     @pytest.mark.asyncio
     async def it_consumes_all_generators_under_parallel_gather(mock_sdk_query):
-        """Multiple parallel judge_response calls must all fully consume generators."""
-        from skillet.eval.judge import judge_response
-
-        tasks = [
-            judge_response(
-                prompt=f"test prompt {i}",
-                response=f"test response {i}",
-                expected="expected behavior",
-            )
-            for i in range(5)
-        ]
+        """Multiple parallel query_structured calls must all fully consume generators."""
+        tasks = [query_structured(f"classify {i}", _PassResult) for i in range(5)]
 
         results = await asyncio.gather(*tasks)
 
-        assert all(r["pass"] for r in results)
+        assert all(r.passed for r in results)
         assert mock_sdk_query["total"] == 5
         assert mock_sdk_query["fully_consumed"] == 5, (
             f"Only {mock_sdk_query['fully_consumed']}/{mock_sdk_query['total']} "

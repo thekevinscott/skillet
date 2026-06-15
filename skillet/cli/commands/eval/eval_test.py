@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from skillet.agent import Agent
 from skillet.cli.commands.eval.eval import eval_command
 from skillet.eval.evaluate.result import EvaluateResult, IterationResult
 
@@ -100,7 +101,7 @@ def describe_eval_command():
     @pytest.mark.asyncio
     async def it_loads_evals_by_name(mock_load_evals):
         """Loads evals using the provided name."""
-        await eval_command("my-evals")
+        await eval_command("my-evals", agent=Agent.CLAUDE)
         mock_load_evals.assert_called_once_with("my-evals")
 
     @pytest.mark.asyncio
@@ -111,25 +112,27 @@ def describe_eval_command():
             skill_path=Path("/path/to/skill.md"),
             samples=5,
             parallel=2,
+            agent=Agent.CLAUDE,
         )
         mock_evaluate.assert_called_once()
         call_kwargs = mock_evaluate.call_args.kwargs
         assert call_kwargs["skill_path"] == Path("/path/to/skill.md")
         assert call_kwargs["samples"] == 5
         assert call_kwargs["parallel"] == 2
+        assert call_kwargs["agent"] is Agent.CLAUDE
 
     @pytest.mark.asyncio
     async def it_uses_get_rate_color_for_pass_rate(mock_get_rate_color):
         """Uses get_rate_color to determine pass rate color."""
         mock_get_rate_color.return_value = "green"
-        await eval_command("my-evals")
+        await eval_command("my-evals", agent=Agent.CLAUDE)
         mock_get_rate_color.assert_called_with(66.7)
 
     @pytest.mark.asyncio
     async def it_prints_pass_rate_with_color(mock_console, mock_get_rate_color):
         """Prints pass rate using color from get_rate_color."""
         mock_get_rate_color.return_value = "red"
-        await eval_command("my-evals")
+        await eval_command("my-evals", agent=Agent.CLAUDE)
         calls = [str(call) for call in mock_console.print.call_args_list]
         # Check that the pass rate line uses the color returned by get_rate_color
         assert any("red" in call and "pass rate" in call.lower() for call in calls)
@@ -137,7 +140,7 @@ def describe_eval_command():
     @pytest.mark.asyncio
     async def it_starts_and_stops_live_display(mock_live_display):
         """Manages live display lifecycle."""
-        await eval_command("my-evals")
+        await eval_command("my-evals", agent=Agent.CLAUDE)
         mock_live_display.start.assert_called_once()
         mock_live_display.stop.assert_called_once()
 
@@ -147,7 +150,7 @@ def describe_eval_command():
         mock_get_scripts.return_value = [("test.yaml", "setup", "echo test")]
         with patch("skillet.cli.commands.eval.eval.prompt_for_script_confirmation") as mock_prompt:
             mock_prompt.return_value = False
-            await eval_command("my-evals")
+            await eval_command("my-evals", agent=Agent.CLAUDE)
             mock_evaluate.assert_not_called()
 
     @pytest.mark.asyncio
@@ -155,14 +158,14 @@ def describe_eval_command():
         """Skips script confirmation when trust=True."""
         mock_get_scripts.return_value = [("test.yaml", "setup", "echo test")]
         with patch("skillet.cli.commands.eval.eval.prompt_for_script_confirmation") as mock_prompt:
-            await eval_command("my-evals", trust=True)
+            await eval_command("my-evals", trust=True, agent=Agent.CLAUDE)
             mock_prompt.assert_not_called()
             mock_evaluate.assert_called_once()
 
     @pytest.mark.asyncio
     async def it_summarizes_failures(mock_summarize):
         """Calls summarize_responses when there are failures."""
-        await eval_command("my-evals")
+        await eval_command("my-evals", agent=Agent.CLAUDE)
         mock_summarize.assert_called_once()
         # Should be called with the failing results
         call_args = mock_summarize.call_args[0][0]
@@ -172,5 +175,5 @@ def describe_eval_command():
     @pytest.mark.asyncio
     async def it_skips_summary_when_no_summary_flag_set(mock_summarize):
         """Skips summarize_responses when no_summary=True."""
-        await eval_command("my-evals", no_summary=True)
+        await eval_command("my-evals", no_summary=True, agent=Agent.CLAUDE)
         mock_summarize.assert_not_called()

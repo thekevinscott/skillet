@@ -5,6 +5,8 @@ from pathlib import Path
 
 from cachetta import Cachetta
 
+from skillet.agent import Agent
+
 from .eval_cache_key import eval_cache_key
 from .hash_directory import hash_directory
 from .normalize_cache_name import normalize_cache_name
@@ -25,18 +27,21 @@ def _is_cacheable(payload: dict) -> bool:
     return not payload.get(INFRA_FAILURE_KEY, False)
 
 
-def build_iteration_cache(cache_root: Path, name: str, skill_path: Path | None) -> Cachetta:
+def build_iteration_cache(
+    cache_root: Path, name: str, skill_path: Path | None, agent: Agent
+) -> Cachetta:
     """Return a cache for one eval run's iteration results.
 
-    The cache is keyed by eval (filename + content hash) and iteration under a
-    per-run directory, mirroring the previous on-disk layout::
+    The cache is keyed by eval (filename + content hash), agent, and iteration
+    under a per-run directory, mirroring the previous on-disk layout::
 
-        <cache_root>/<name>/<eval-key>/baseline/iter-<n>.cache
-        <cache_root>/<name>/<eval-key>/skills/<skill-hash>/iter-<n>.cache
+        <cache_root>/<name>/<eval-key>/<agent>/baseline/iter-<n>.cache
+        <cache_root>/<name>/<eval-key>/<agent>/skills/<skill-hash>/iter-<n>.cache
 
-    ``name`` and ``skill_path`` are fixed for a single run, so they (and the
-    skill hash) are resolved once here; only the eval key and iteration vary
-    per task and are read from the wrapped function's ``task`` argument.
+    The agent is part of the key so ``claude`` and ``codex`` runs never collide.
+    ``name``, ``skill_path``, and ``agent`` are fixed for a single run, so they
+    (and the skill hash) are resolved once here; only the eval key and iteration
+    vary per task and are read from the wrapped function's ``task`` argument.
     """
     name_dir = cache_root / normalize_cache_name(name)
     if skill_path is None:
@@ -46,6 +51,6 @@ def build_iteration_cache(cache_root: Path, name: str, skill_path: Path | None) 
 
     def path(task: dict, *_: object) -> Path:
         eval_key = eval_cache_key(task["eval_source"], task["eval_content"])
-        return name_dir / eval_key / skill_subdir / f"iter-{task['iteration']}.cache"
+        return name_dir / eval_key / agent.value / skill_subdir / f"iter-{task['iteration']}.cache"
 
     return Cachetta(path=path, condition=_is_cacheable, duration=_CACHE_DURATION)

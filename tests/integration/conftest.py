@@ -1,8 +1,9 @@
 """Fixtures for integration tests."""
 
+import json
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -276,3 +277,72 @@ def mock_claude_query():
         set_response("Default mocked response")
 
         yield mock
+
+
+def _cli_stream_bytes(text: str, tool_calls: list[dict] | None = None) -> bytes:
+    """Build claude CLI stream-json stdout for one turn (text + optional tool calls)."""
+    lines = [json.dumps({"type": "system", "subtype": "init", "session_id": "mock-session"})]
+    content: list[dict] = []
+    for call in tool_calls or []:
+        content.append(
+            {"type": "tool_use", "name": call.get("name"), "input": call.get("input", {})}
+        )
+    if text:
+        content.append({"type": "text", "text": text})
+    if content:
+        lines.append(json.dumps({"type": "assistant", "message": {"content": content}}))
+    lines.append(json.dumps({"type": "result", "subtype": "success", "result": text}))
+    return "\n".join(lines).encode()
+
+
+class _FakeClaudeProc:
+    """Stand-in for an asyncio subprocess running the claude CLI."""
+
+    def __init__(self, stdout: bytes, *, returncode: int = 0, stderr: bytes = b""):
+        self._stdout = stdout
+        self._stderr = stderr
+        self.returncode = returncode
+
+    async def communicate(self) -> tuple[bytes, bytes]:
+        return self._stdout, self._stderr
+
+
+@pytest.fixture
+def mock_claude_cli():
+    """Mock the claude CLI agent runner (subprocess), separate from the SDK judge.
+
+    Patches ``create_subprocess_exec`` and ``which`` in run_claude_cli so the
+    agent-under-test path never spawns a real process. Configure with
+    ``set_responses(*items)`` where each item is:
+
+    - ``str`` — a text response for one CLI turn
+    - ``(text, tool_calls)`` — text plus a list of ``{"name", "input"}`` tool calls
+    - ``Exception`` — raised when that CLI turn runs
+    """
+    exec_mock = AsyncMock()
+
+    def _proc_for(item):
+        if isinstance(item, Exception):
+            return item
+        if isinstance(item, tuple):
+            text, tool_calls = item
+            return _FakeClaudeProc(_cli_stream_bytes(text, tool_calls))
+        return _FakeClaudeProc(_cli_stream_bytes(item))
+
+    def set_responses(*items):
+        exec_mock.side_effect = [_proc_for(i) for i in items]
+
+    with (
+        patch(
+            "skillet._internal.agent.run_claude_cli.create_subprocess_exec",
+            exec_mock,
+        ),
+        patch(
+            "skillet._internal.agent.run_claude_cli.which",
+            return_value="/usr/bin/claude",
+        ),
+    ):
+        exec_mock.set_responses = set_responses
+        # Default: a single generic text response
+        exec_mock.return_value = _FakeClaudeProc(_cli_stream_bytes("Default mocked response"))
+        yield exec_mock
