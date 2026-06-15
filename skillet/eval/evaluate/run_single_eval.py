@@ -106,6 +106,7 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
                     response=query_result.text,
                     expected=task["expected"],
                     tool_calls=query_result.tool_calls,
+                    agent=agent,
                 )
 
             result = {

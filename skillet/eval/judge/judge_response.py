@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
-from skillet._internal.sdk import StructuredOutputError, query_structured
+from skillet.agent import Agent
 from skillet.prompts import load_prompt
 
 from .format_prompt import format_prompt
 from .format_tool_calls import format_tool_calls
-from .types import Judgment
+from .judge_via_agent import judge_via_agent
 
 JUDGE_PROMPT = Path(__file__).parent / "judge.txt"
 
@@ -17,8 +17,15 @@ async def judge_response(
     response: str,
     expected: str,
     tool_calls: list[dict] | None = None,
+    *,
+    agent: Agent,
 ) -> dict:
-    """Use Claude as a judge to evaluate if a response meets expectations."""
+    """Use the selected agent as a judge to evaluate if a response meets expectations.
+
+    The verdict is produced by ``agent``'s own CLI. A judge that cannot return a
+    valid verdict raises (``JudgeError``), failing the eval loudly rather than
+    silently grading it as a pass.
+    """
     formatted_prompt = format_prompt(prompt)
     formatted_tools = format_tool_calls(tool_calls or [])
 
@@ -30,23 +37,8 @@ async def judge_response(
         expected=expected,
     )
 
-    try:
-        judgment = await query_structured(
-            judge_prompt,
-            Judgment,
-            max_turns=1,
-            allowed_tools=[],
-        )
-        return {
-            "pass": judgment.passed,
-            "reasoning": judgment.reasoning,
-        }
-    except StructuredOutputError:
-        # Canary triggered: structured output contained backticks
-        raise
-    except Exception as e:
-        # Fallback: if parsing fails, treat as failure
-        return {
-            "pass": False,
-            "reasoning": f"Failed to parse judge response: {e}",
-        }
+    judgment = await judge_via_agent(judge_prompt, agent)
+    return {
+        "pass": judgment.passed,
+        "reasoning": judgment.reasoning,
+    }

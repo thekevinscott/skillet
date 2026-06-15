@@ -16,6 +16,10 @@ ${expected}
 Determine if the AI response meets the expected behavior. Be strict but fair.
 Consider both the text response AND the tools used when evaluating.
 
-Return a JSON object with:
+## Output Format
+Reply with ONLY a single raw JSON object and nothing else — no markdown fences,
+no prose before or after:
+{"pass": <true|false>, "reasoning": "<one sentence>"}
+
 - "pass": true if the response meets expectations, false otherwise
 - "reasoning": one sentence explanation of your judgment

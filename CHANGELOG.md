@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Internal cache enumerators `get_all_cached_results` and `get_cached_results_for_eval`, orphaned by the command removal
 
 ### Changed
+- The LLM judge now runs through the selected `--agent` instead of always using Claude. The judge prompts that agent's own CLI for a JSON verdict, parses and validates it (tolerating markdown fences or surrounding prose), and retries once on unparseable output. If no valid verdict can be obtained the eval fails loudly (`JudgeError`) rather than being silently graded as a pass — skillet never falls back to Claude
 - Bumped minimum `cachetta` from 0.6.0 to 0.6.6. The cache loader now uses a restricted unpickler (`allowed_pickle_types`, `UnsafePickleError`) instead of raw `pickle`, so a tampered cache file can no longer execute arbitrary code when read
 - README restructured to mirror the `docs/` folder hierarchy: every docs page is now a `##`/`###` section in the README with a relative link to the in-repo markdown. Three documentation levels — README (concise), `docs/` (in-depth, ships with the package), and skillet.run (rendered site) — are kept 1:1 with each other
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions
