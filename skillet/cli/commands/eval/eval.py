@@ -142,6 +142,6 @@ async def eval_command(  # noqa: PLR0913
     failures = [r for r in eval_result.results if not r.passed]
     if failures and eval_result.fresh_count > 0 and not no_summary:
         console.print()
-        console.print("[bold]What Claude did instead:[/bold]")
-        summary = await summarize_responses(failures)
+        console.print(f"[bold]What {agent.value} did instead:[/bold]")
+        summary = await summarize_responses(failures, agent)
         console.print(summary)

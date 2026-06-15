@@ -2,7 +2,8 @@
 
 from pathlib import Path
 
-from skillet._internal.sdk import query_structured
+from skillet._internal.agent import query_structured_via_agent
+from skillet.agent import Agent
 from skillet.prompts import load_prompt
 
 from .analyze import SkillAnalysis
@@ -36,11 +37,12 @@ def _try_lint(skill_path: Path) -> list[dict] | None:
 async def generate_candidates(
     analysis: SkillAnalysis,
     *,
+    agent: Agent,
     use_lint: bool = True,
     max_per_category: int = 5,
     domains: list[EvalDomain] | None = None,
 ) -> list[CandidateEval]:
-    """Generate candidate evals using LLM based on skill analysis."""
+    """Generate candidate evals via the selected ``agent`` based on skill analysis."""
     # Prepare context for LLM
     goals_text = "\n".join(f"- Goal {i + 1}: {g}" for i, g in enumerate(analysis.goals))
     prohibitions_text = "\n".join(
@@ -76,13 +78,9 @@ async def generate_candidates(
         max_per_category=str(max_per_category),
     )
 
-    # Query LLM with structured output, retrying once if the model
-    # exhausts its output budget on text without producing the
-    # StructuredOutput tool call.
-    try:
-        response = await query_structured(prompt, GenerateResponse)
-    except ValueError:
-        response = await query_structured(prompt, GenerateResponse)
+    # Route through the selected agent's CLI. The helper asks for JSON
+    # matching the schema and retries once on an unparseable reply.
+    response = await query_structured_via_agent(prompt, GenerateResponse, agent)
 
     # Convert to CandidateEval objects
     candidates = [

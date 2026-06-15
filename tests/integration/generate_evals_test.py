@@ -1,10 +1,17 @@
-"""Integration tests for the generate_evals API."""
+"""Integration tests for the generate_evals API.
 
+generate_evals routes through the selected agent's CLI (not the Claude SDK),
+so these tests drive it via the ``mock_claude_cli`` subprocess mock: each
+response is the agent's raw text, and the JSON payload is parsed out of it.
+"""
+
+import json
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from skillet.agent import Agent
 from skillet.evals.load import load_evals
 from skillet.evals.validate_eval import REQUIRED_EVAL_FIELDS
 from skillet.generate.types import EvalDomain
@@ -16,7 +23,7 @@ def describe_generate_evals():
     """Integration tests for generate_evals function."""
 
     @pytest.mark.asyncio
-    async def it_generates_evals_from_valid_skill(tmp_path: Path, mock_claude_query):
+    async def it_generates_evals_from_valid_skill(tmp_path: Path, mock_claude_cli):
         """Happy path: generates candidate evals from a SKILL.md."""
         from skillet import generate_evals
 
@@ -25,9 +32,9 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         assert len(result.candidates) > 0
         assert all(c.name for c in result.candidates)
@@ -35,7 +42,7 @@ def describe_generate_evals():
         assert all(c.expected for c in result.candidates)
 
     @pytest.mark.asyncio
-    async def it_writes_candidate_files_to_output_dir(tmp_path: Path, mock_claude_query):
+    async def it_writes_candidate_files_to_output_dir(tmp_path: Path, mock_claude_cli):
         """Candidates are written as YAML files."""
         from skillet import generate_evals
 
@@ -44,9 +51,9 @@ def describe_generate_evals():
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
         output_dir = tmp_path / "output"
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir, output_dir=output_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE, output_dir=output_dir)
 
         # Check files were written
         assert output_dir.exists()
@@ -54,7 +61,7 @@ def describe_generate_evals():
         assert len(yaml_files) == len(result.candidates)
 
     @pytest.mark.asyncio
-    async def it_generates_positive_and_negative_evals(tmp_path: Path, mock_claude_query):
+    async def it_generates_positive_and_negative_evals(tmp_path: Path, mock_claude_cli):
         """Generates both happy-path and should-not-trigger cases."""
         from skillet import generate_evals
 
@@ -62,16 +69,16 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         categories = {c.category for c in result.candidates}
         assert "positive" in categories
         assert "negative" in categories
 
     @pytest.mark.asyncio
-    async def it_integrates_with_linter_when_available(tmp_path: Path, mock_claude_query):
+    async def it_integrates_with_linter_when_available(tmp_path: Path, mock_claude_cli):
         """Uses lint findings to target weak spots when linter is available."""
         from skillet import generate_evals
 
@@ -94,7 +101,7 @@ def describe_generate_evals():
                 },
             ]
         }
-        mock_claude_query.set_structured_response(mock_lint_result)
+        mock_claude_cli.set_responses(json.dumps(mock_lint_result))
 
         # Mock _try_lint to return lint findings
         mock_findings = [
@@ -108,14 +115,14 @@ def describe_generate_evals():
         ]
 
         with patch("skillet.generate.generate._try_lint", return_value=mock_findings):
-            result = await generate_evals(skill_dir, use_lint=True)
+            result = await generate_evals(skill_dir, agent=Agent.CLAUDE, use_lint=True)
 
         # Should have lint-based candidates
         lint_sources = [c.source for c in result.candidates if c.source.startswith("lint:")]
         assert len(lint_sources) > 0
 
     @pytest.mark.asyncio
-    async def it_works_without_linter_module(tmp_path: Path, mock_claude_query):
+    async def it_works_without_linter_module(tmp_path: Path, mock_claude_cli):
         """Gracefully degrades when skillet.lint is not importable."""
         from skillet import generate_evals
 
@@ -123,17 +130,17 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
         # Even if lint module import fails, should still work
         with patch("skillet.generate.generate._try_lint", return_value=None):
-            result = await generate_evals(skill_dir, use_lint=True)
+            result = await generate_evals(skill_dir, agent=Agent.CLAUDE, use_lint=True)
 
         # Should still get candidates from static analysis
         assert len(result.candidates) > 0
 
     @pytest.mark.asyncio
-    async def it_respects_max_per_category(tmp_path: Path, mock_claude_query):
+    async def it_respects_max_per_category(tmp_path: Path, mock_claude_cli):
         """Limits evals per category to max_per_category."""
         from skillet import generate_evals
 
@@ -157,16 +164,16 @@ def describe_generate_evals():
                 for i in range(10)
             ]
         }
-        mock_claude_query.set_structured_response(many_candidates)
+        mock_claude_cli.set_responses(json.dumps(many_candidates))
 
-        result = await generate_evals(skill_dir, max_per_category=3)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE, max_per_category=3)
 
         # Count by category
         positive_count = sum(1 for c in result.candidates if c.category == "positive")
         assert positive_count <= 3
 
     @pytest.mark.asyncio
-    async def it_handles_skill_path_as_file(tmp_path: Path, mock_claude_query):
+    async def it_handles_skill_path_as_file(tmp_path: Path, mock_claude_cli):
         """Accepts path to SKILL.md file directly."""
         from skillet import generate_evals
 
@@ -175,15 +182,15 @@ def describe_generate_evals():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
         # Pass file path instead of directory
-        result = await generate_evals(skill_file)
+        result = await generate_evals(skill_file, agent=Agent.CLAUDE)
 
         assert len(result.candidates) > 0
 
     @pytest.mark.asyncio
-    async def it_handles_skill_path_as_directory(tmp_path: Path, mock_claude_query):
+    async def it_handles_skill_path_as_directory(tmp_path: Path, mock_claude_cli):
         """Accepts path to directory containing SKILL.md."""
         from skillet import generate_evals
 
@@ -191,9 +198,9 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         assert len(result.candidates) > 0
 
@@ -206,7 +213,7 @@ def describe_generate_evals():
         nonexistent = tmp_path / "nonexistent"
 
         with pytest.raises(SkillError, match=r"not found|does not exist"):
-            await generate_evals(nonexistent)
+            await generate_evals(nonexistent, agent=Agent.CLAUDE)
 
     @pytest.mark.asyncio
     async def it_raises_error_for_directory_without_skill_md(tmp_path: Path):
@@ -218,10 +225,10 @@ def describe_generate_evals():
         empty_dir.mkdir()
 
         with pytest.raises(SkillError, match=r"SKILL\.md"):
-            await generate_evals(empty_dir)
+            await generate_evals(empty_dir, agent=Agent.CLAUDE)
 
     @pytest.mark.asyncio
-    async def it_includes_analysis_in_result(tmp_path: Path, mock_claude_query):
+    async def it_includes_analysis_in_result(tmp_path: Path, mock_claude_cli):
         """Result includes extracted analysis (goals, prohibitions)."""
         from skillet import generate_evals
 
@@ -229,16 +236,16 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         # Analysis should be populated
         assert result.analysis is not None
         assert "goals" in result.analysis or "prohibitions" in result.analysis
 
     @pytest.mark.asyncio
-    async def it_uses_mock_not_real_api(tmp_path: Path, mock_claude_query):
+    async def it_uses_mock_not_real_api(tmp_path: Path, mock_claude_cli):
         """Canary test: verify we're using mocked responses, not real API."""
         from skillet import generate_evals
 
@@ -247,31 +254,33 @@ def describe_generate_evals():
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
         unique_marker = "UNIQUE_MOCK_MARKER_12345"
-        mock_claude_query.set_structured_response(
-            {
-                "candidates": [
-                    {
-                        "prompt": unique_marker,
-                        "expected": "test",
-                        "name": "test",
-                        "category": "positive",
-                        "domain": "triggering",
-                        "source": "goal:1",
-                        "confidence": 0.9,
-                        "rationale": "test",
-                    }
-                ]
-            }
+        mock_claude_cli.set_responses(
+            json.dumps(
+                {
+                    "candidates": [
+                        {
+                            "prompt": unique_marker,
+                            "expected": "test",
+                            "name": "test",
+                            "category": "positive",
+                            "domain": "triggering",
+                            "source": "goal:1",
+                            "confidence": 0.9,
+                            "rationale": "test",
+                        }
+                    ]
+                }
+            )
         )
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         # If this marker appears, we know the mock is being used
         prompts = [c.prompt for c in result.candidates]
         assert unique_marker in prompts, "Mock response not found - real API may have been called!"
 
     @pytest.mark.asyncio
-    async def it_produces_files_loadable_by_eval_loader(tmp_path: Path, mock_claude_query):
+    async def it_produces_files_loadable_by_eval_loader(tmp_path: Path, mock_claude_cli):
         """Round-trip: generate -> write -> load succeeds with valid eval files."""
         from skillet import generate_evals
 
@@ -280,9 +289,9 @@ def describe_generate_evals():
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
         output_dir = tmp_path / "output"
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir, output_dir=output_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE, output_dir=output_dir)
 
         # Round-trip: load the written files back through the eval loader
         loaded = load_evals(str(output_dir))
@@ -304,7 +313,7 @@ def describe_generate_evals():
         assert loaded_prompts == candidate_prompts
 
     @pytest.mark.asyncio
-    async def it_generates_evals_from_complex_skill(tmp_path: Path, mock_claude_query):
+    async def it_generates_evals_from_complex_skill(tmp_path: Path, mock_claude_cli):
         """Complex skills with many rules still generate evals successfully."""
         from skillet import generate_evals
 
@@ -312,15 +321,15 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(COMPLEX_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         assert len(result.candidates) > 0
         assert all(c.name for c in result.candidates)
 
     @pytest.mark.asyncio
-    async def it_assigns_domains_to_candidates(tmp_path: Path, mock_claude_query):
+    async def it_assigns_domains_to_candidates(tmp_path: Path, mock_claude_cli):
         """Generated candidates have domain field populated."""
         from skillet import generate_evals
 
@@ -328,16 +337,16 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         domains = {c.domain for c in result.candidates}
         assert domains <= {EvalDomain.TRIGGERING, EvalDomain.FUNCTIONAL, EvalDomain.PERFORMANCE}
         assert all(c.domain is not None for c in result.candidates)
 
     @pytest.mark.asyncio
-    async def it_filters_candidates_by_domain(tmp_path: Path, mock_claude_query):
+    async def it_filters_candidates_by_domain(tmp_path: Path, mock_claude_cli):
         """When domains specified, only matching candidates are returned."""
         from skillet import generate_evals
 
@@ -345,15 +354,17 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir, domains=[EvalDomain.FUNCTIONAL])
+        result = await generate_evals(
+            skill_dir, agent=Agent.CLAUDE, domains=[EvalDomain.FUNCTIONAL]
+        )
 
         assert len(result.candidates) > 0
         assert all(c.domain == EvalDomain.FUNCTIONAL for c in result.candidates)
 
     @pytest.mark.asyncio
-    async def it_returns_all_domains_when_no_filter(tmp_path: Path, mock_claude_query):
+    async def it_returns_all_domains_when_no_filter(tmp_path: Path, mock_claude_cli):
         """Without domain filter, all domains pass through."""
         from skillet import generate_evals
 
@@ -361,31 +372,30 @@ def describe_generate_evals():
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        mock_claude_query.set_structured_response(SAMPLE_GENERATED_EVALS)
+        mock_claude_cli.set_responses(json.dumps(SAMPLE_GENERATED_EVALS))
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         domains = {c.domain for c in result.candidates}
         assert len(domains) > 1
 
     @pytest.mark.no_mirror
     @pytest.mark.asyncio
-    async def it_retries_when_llm_returns_no_structured_output(tmp_path: Path, mock_claude_query):
-        """When the LLM exhausts its output budget on text and never produces
-        a StructuredOutput tool call, generate_evals should retry and succeed
-        on the second attempt."""
+    async def it_retries_when_agent_returns_unparseable_reply(tmp_path: Path, mock_claude_cli):
+        """When the agent's first reply has no recoverable JSON, generate_evals
+        should retry and succeed on the second attempt."""
         from skillet import generate_evals
 
         skill_dir = tmp_path / "skill"
         skill_dir.mkdir()
         (skill_dir / "SKILL.md").write_text(SAMPLE_SKILL)
 
-        # First call: raises ValueError (no structured output), second call: success
-        mock_claude_query.set_responses(
-            ValueError("No structured output returned from query"),
-            SAMPLE_GENERATED_EVALS,
+        # First call: prose with no JSON (unparseable), second call: valid JSON
+        mock_claude_cli.set_responses(
+            "I started writing the evals but ran out of room before any JSON.",
+            json.dumps(SAMPLE_GENERATED_EVALS),
         )
 
-        result = await generate_evals(skill_dir)
+        result = await generate_evals(skill_dir, agent=Agent.CLAUDE)
 
         assert len(result.candidates) > 0

@@ -1,5 +1,6 @@
 """Tests for query_structured and StructuredOutputError."""
 
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +13,23 @@ from skillet._internal.sdk.query_structured import (
     _validate_with_unwrap,
     query_structured,
 )
+
+
+def describe_optional_sdk_guard():
+    """query_structured imports the Claude SDK lazily and errors clearly if absent."""
+
+    @pytest.mark.asyncio
+    async def it_raises_a_clear_install_error_when_sdk_is_missing():
+        class M(BaseModel):
+            x: int
+
+        # A None entry in sys.modules makes `import claude_agent_sdk` raise ImportError,
+        # simulating a fresh install without the optional `tune` extra.
+        with (
+            patch.dict(sys.modules, {"claude_agent_sdk": None}),
+            pytest.raises(ImportError, match=r"skillet\[tune\]"),
+        ):
+            await query_structured("prompt", M)
 
 
 class MockQuery:
@@ -77,7 +95,7 @@ def describe_query_structured():
             for msg in state.messages:
                 yield msg
 
-        with patch("skillet._internal.sdk.query_structured.claude_agent_sdk.query", mock_query_gen):
+        with patch("claude_agent_sdk.query", mock_query_gen):
             yield state
 
     @pytest.mark.asyncio
@@ -284,10 +302,7 @@ def describe_generator_consumption():
                 yield msg
             state.fully_consumed = True
 
-        with patch(
-            "skillet._internal.sdk.query_structured.claude_agent_sdk.query",
-            mock_query_gen,
-        ):
+        with patch("claude_agent_sdk.query", mock_query_gen):
             yield state
 
     @pytest.mark.asyncio

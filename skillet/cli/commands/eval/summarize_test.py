@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from skillet.agent import Agent
 from skillet.cli.commands.eval.models import Summary
 from skillet.cli.commands.eval.summarize import summarize_responses
 from skillet.eval.evaluate.result import IterationResult
@@ -13,9 +14,9 @@ def describe_summarize_responses():
     """Tests for summarize_responses function."""
 
     @pytest.fixture(autouse=True)
-    def mock_query_structured():
+    def mock_query():
         with patch(
-            "skillet.cli.commands.eval.summarize.query_structured",
+            "skillet.cli.commands.eval.summarize.query_structured_via_agent",
             new_callable=AsyncMock,
         ) as mock:
             mock.return_value = Summary(
@@ -24,7 +25,7 @@ def describe_summarize_responses():
             yield mock
 
     @pytest.mark.asyncio
-    async def it_returns_formatted_bullets(mock_query_structured):
+    async def it_returns_formatted_bullets(mock_query):
         results = [
             IterationResult(
                 eval_idx=0,
@@ -44,14 +45,14 @@ def describe_summarize_responses():
             ),
         ]
 
-        summary = await summarize_responses(results)
+        summary = await summarize_responses(results, Agent.CODEX)
 
         assert "- Pattern A" in summary
         assert "- Pattern B" in summary
-        mock_query_structured.assert_called_once()
+        mock_query.assert_called_once()
 
     @pytest.mark.asyncio
-    async def it_formats_results_as_yaml(mock_query_structured):
+    async def it_formats_results_as_yaml(mock_query):
         results = [
             IterationResult(
                 eval_idx=0,
@@ -63,20 +64,38 @@ def describe_summarize_responses():
             ),
         ]
 
-        await summarize_responses(results)
+        await summarize_responses(results, Agent.CLAUDE)
 
         # Check that the prompt contains YAML-formatted data
-        call_args = mock_query_structured.call_args
+        call_args = mock_query.call_args
         prompt = call_args[0][0]
         assert "Failed Responses" in prompt
         assert "Your Task" in prompt
 
     @pytest.mark.asyncio
-    async def it_handles_empty_results(mock_query_structured):
-        mock_query_structured.return_value = Summary(bullets=["No patterns found"])
+    async def it_routes_through_the_selected_agent(mock_query):
+        results = [
+            IterationResult(
+                eval_idx=0,
+                eval_source="test.yaml",
+                iteration=1,
+                response="answer",
+                passed=False,
+                judgment={"reasoning": "wrong"},
+            ),
+        ]
+
+        await summarize_responses(results, Agent.CODEX)
+
+        call_args = mock_query.call_args
+        assert call_args[0][2] is Agent.CODEX
+
+    @pytest.mark.asyncio
+    async def it_handles_empty_results(mock_query):
+        mock_query.return_value = Summary(bullets=["No patterns found"])
 
         results = []
 
-        summary = await summarize_responses(results)
+        summary = await summarize_responses(results, Agent.CLAUDE)
 
         assert "- No patterns found" in summary

@@ -4,8 +4,6 @@
 import sys
 from typing import Any
 
-import claude_agent_sdk
-from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, ResultMessage, ToolUseBlock
 from pydantic import BaseModel, ValidationError
 
 
@@ -13,6 +11,31 @@ class StructuredOutputError(Exception):
     """Raised when structured output contains unexpected formatting."""
 
     pass
+
+
+def _import_sdk() -> Any:
+    """Import the optional Claude Agent SDK, with a friendly error if absent.
+
+    ``claude_agent_sdk`` is an optional dependency (the ``skillet[tune]``
+    extra), so it is imported lazily here rather than at module load time --
+    importing this module, and the eval path that transitively pulls it in,
+    must work without the SDK installed.
+    """
+    try:
+        import claude_agent_sdk
+        from claude_agent_sdk import (
+            AssistantMessage,
+            ClaudeAgentOptions,
+            ResultMessage,
+            ToolUseBlock,
+        )
+    except ImportError as e:
+        raise ImportError(
+            "claude_agent_sdk is not installed. It is an optional dependency, "
+            "required only by skillet's Claude-backed tooling (e.g. `skillet tune`). "
+            "Install it with: uv add 'skillet[tune]' (or pip install 'skillet[tune]')."
+        ) from e
+    return claude_agent_sdk, AssistantMessage, ClaudeAgentOptions, ResultMessage, ToolUseBlock
 
 
 # Newer Claude CLI versions defer the StructuredOutput tool behind ToolSearch:
@@ -64,6 +87,10 @@ async def query_structured[T: BaseModel](prompt: str, model: type[T], **options:
     """
     if not (isinstance(model, type) and issubclass(model, BaseModel)):
         raise TypeError(f"model must be a Pydantic BaseModel subclass, got {type(model)}")
+
+    claude_agent_sdk, AssistantMessage, ClaudeAgentOptions, ResultMessage, ToolUseBlock = (
+        _import_sdk()
+    )
 
     options = _apply_min_turns(options)
 

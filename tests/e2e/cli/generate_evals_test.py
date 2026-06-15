@@ -46,7 +46,9 @@ def describe_skillet_generate_evals():
 
         output_dir = tmp_path / "candidates"
 
-        term = terminal(f"{SKILLET} generate-evals {skill_file} --output {output_dir} --max 2")
+        term = terminal(
+            f"{SKILLET} generate-evals {skill_file} --agent claude --output {output_dir} --max 2"
+        )
         expect(term.get_by_text("Written to")).to_be_visible(timeout=120)
 
         assert output_dir.exists(), f"Output directory not created at {output_dir}"
@@ -65,7 +67,9 @@ def describe_skillet_generate_evals():
 
         output_dir = tmp_path / "candidates"
 
-        term = terminal(f"{SKILLET} generate-evals {skill_file} --output {output_dir} --max 2")
+        term = terminal(
+            f"{SKILLET} generate-evals {skill_file} --agent claude --output {output_dir} --max 2"
+        )
         expect(term.get_by_text("Written to")).to_be_visible(timeout=120)
 
         yaml_files = list(output_dir.rglob("*.yaml"))
@@ -75,7 +79,7 @@ def describe_skillet_generate_evals():
         terminal: Callable[..., Terminal],
     ):
         """Exits with error for a missing skill path."""
-        term = terminal(f"{SKILLET} generate-evals /nonexistent/path/SKILL.md")
+        term = terminal(f"{SKILLET} generate-evals /nonexistent/path/SKILL.md --agent claude")
         expect(term).to_have_exited()
         assert term.exit_code != 0
 
@@ -84,7 +88,7 @@ def describe_skillet_generate_evals():
         tmp_path: Path,
     ):
         """Exits with error when directory lacks SKILL.md."""
-        term = terminal(f"{SKILLET} generate-evals {tmp_path}")
+        term = terminal(f"{SKILLET} generate-evals {tmp_path} --agent claude")
         expect(term).to_have_exited()
         assert term.exit_code != 0
 
@@ -99,7 +103,9 @@ def describe_skillet_generate_evals():
 
         output_dir = tmp_path / "candidates"
 
-        term = terminal(f"{SKILLET} generate-evals {skill_file} --output {output_dir} --max 2")
+        term = terminal(
+            f"{SKILLET} generate-evals {skill_file} --agent claude --output {output_dir} --max 2"
+        )
         expect(term.get_by_text("Written to")).to_be_visible(timeout=120)
 
         # At least one valid domain should appear in the table output
@@ -122,7 +128,7 @@ def describe_skillet_generate_evals():
         output_dir = tmp_path / "candidates"
 
         term = terminal(
-            f"{SKILLET} generate-evals {skill_file}"
+            f"{SKILLET} generate-evals {skill_file} --agent claude"
             f" --output {output_dir} --max 3 --domain triggering"
         )
         expect(term.get_by_text("Written to")).to_be_visible(timeout=120)
@@ -143,7 +149,9 @@ def describe_skillet_generate_evals():
 
         output_dir = tmp_path / "candidates"
 
-        term = terminal(f"{SKILLET} generate-evals {skill_file} --output {output_dir} --max 2")
+        term = terminal(
+            f"{SKILLET} generate-evals {skill_file} --agent claude --output {output_dir} --max 2"
+        )
         expect(term.get_by_text("Written to")).to_be_visible(timeout=300)
 
         yaml_files = list(output_dir.rglob("*.yaml"))

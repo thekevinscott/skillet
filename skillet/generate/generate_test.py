@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from skillet.agent import Agent
 from skillet.generate.analyze import SkillAnalysis
 from skillet.generate.generate import (
     _limit_by_category,
@@ -117,11 +118,11 @@ def describe_generate_candidates():
         )
 
         with patch(
-            "skillet.generate.generate.query_structured",
+            "skillet.generate.generate.query_structured_via_agent",
             new_callable=AsyncMock,
             return_value=mock_response,
         ):
-            result = await generate_candidates(analysis)
+            result = await generate_candidates(analysis, agent=Agent.CODEX)
 
         assert len(result) == 1
         assert result[0].prompt == "Generated prompt"
@@ -140,11 +141,11 @@ def describe_generate_candidates():
         )
 
         with patch(
-            "skillet.generate.generate.query_structured",
+            "skillet.generate.generate.query_structured_via_agent",
             new_callable=AsyncMock,
             return_value=mock_response,
         ):
-            result = await generate_candidates(analysis, max_per_category=3)
+            result = await generate_candidates(analysis, agent=Agent.CLAUDE, max_per_category=3)
 
         positive_count = sum(1 for c in result if c.category == "positive")
         assert positive_count <= 3
@@ -162,7 +163,7 @@ def describe_generate_candidates():
 
         with (
             patch(
-                "skillet.generate.generate.query_structured",
+                "skillet.generate.generate.query_structured_via_agent",
                 new_callable=AsyncMock,
                 return_value=mock_response,
             ),
@@ -171,7 +172,7 @@ def describe_generate_candidates():
                 return_value=None,
             ),
         ):
-            result = await generate_candidates(analysis, use_lint=True)
+            result = await generate_candidates(analysis, agent=Agent.CLAUDE, use_lint=True)
 
         assert len(result) == 1
 
@@ -191,12 +192,32 @@ def describe_generate_candidates():
         )
 
         with patch(
-            "skillet.generate.generate.query_structured",
+            "skillet.generate.generate.query_structured_via_agent",
             new_callable=AsyncMock,
             return_value=mock_response,
         ):
-            result = await generate_candidates(analysis)
+            result = await generate_candidates(analysis, agent=Agent.CODEX)
 
         assert result[0].domain == EvalDomain.TRIGGERING
         assert result[1].domain == EvalDomain.FUNCTIONAL
         assert result[2].domain == EvalDomain.PERFORMANCE
+
+    @pytest.mark.asyncio
+    async def it_routes_through_the_selected_agent():
+        """Passes the selected agent to the structured-output helper."""
+        analysis = SkillAnalysis(
+            path=Path("/tmp/SKILL.md"),
+            name="test",
+            goals=["Goal 1"],
+        )
+
+        mock_response = _make_response({"name": "test"})
+
+        with patch(
+            "skillet.generate.generate.query_structured_via_agent",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_query:
+            await generate_candidates(analysis, agent=Agent.CODEX)
+
+        assert mock_query.call_args[0][2] is Agent.CODEX
