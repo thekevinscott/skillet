@@ -38,11 +38,13 @@ async def run_tune_eval(
                 await on_status(task, "running", None)
             try:
                 query_result = await run_prompt(task["prompt"], skill_path, agent=Agent.CLAUDE)
+                # Parked tune path: pinned to claude until it is wired to --agent.
                 judgment = await judge_response(
                     prompt=task["prompt"],
                     response=query_result.text,
                     expected=task["expected"],
                     tool_calls=query_result.tool_calls,
+                    agent=Agent.CLAUDE,
                 )
                 result = {
                     "eval_idx": task["eval_idx"],

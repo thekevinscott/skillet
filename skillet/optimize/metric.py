@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from skillet._internal.run_sync import run_sync
+from skillet.agent import Agent
 from skillet.eval.judge import judge_response
 
 
@@ -37,13 +38,15 @@ def create_skillet_metric() -> Callable[..., float]:
         response = getattr(pred, "response", str(pred))
         tool_calls = getattr(pred, "tool_calls", [])
 
-        # Bridge async to sync - run_sync handles both sync and async contexts
+        # Bridge async to sync - run_sync handles both sync and async contexts.
+        # Parked optimize path: pinned to claude until it is wired to --agent.
         judgment = run_sync(
             judge_response(
                 prompt=prompt,
                 response=response,
                 expected=expected,
                 tool_calls=tool_calls,
+                agent=Agent.CLAUDE,
             )
         )
 
