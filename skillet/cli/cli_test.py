@@ -24,7 +24,6 @@ def describe_cli():
             "eval",
             "create",
             "tune",
-            "compare",
         ],
     )
     def it_has_subcommand_help(command):

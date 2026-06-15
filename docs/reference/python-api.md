@@ -279,50 +279,6 @@ async def main():
 asyncio.run(main())
 ```
 
-### show()
-
-Retrieve cached eval results without re-running evals.
-
-```python
-def show(
-    name: str,
-    eval_source: str | None = None,
-    skill_path: Path | None = None,
-) -> dict
-```
-
-**Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `name` | str | required | Eval set name |
-| `eval_source` | str | None | Filter to a specific eval file |
-| `skill_path` | Path | None | Show results with skill instead of baseline |
-
-**Returns:**
-
-```python
-{
-    "name": str,
-    "evals": list[{
-        "source": str,
-        "iterations": list[dict],
-        "pass_rate": float | None,
-    }],
-}
-```
-
-**Example:**
-
-```python
-from skillet.show import show
-
-results = show("conventional-comments")
-for eval_result in results["evals"]:
-    rate = eval_result["pass_rate"]
-    print(f"{eval_result['source']}: {rate:.0f}%" if rate is not None else "no data")
-```
-
 ### lint_skill()
 
 Lint a SKILL.md file for common issues.

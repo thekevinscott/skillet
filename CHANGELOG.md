@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Breaking:** `skillet compare` and `skillet show` CLI commands. `eval` already reports pass rates plus `pass@k`/`pass^k`, and a warm-cache re-run reproduces `show`'s summary; these were the only consumers of cache *enumeration*, so removing them clears the path to a memoization-only cache. The `skillet create` next-step hint now points to `skillet tune` instead of `skillet compare`
+- **Breaking:** `compare()` and `show()` Python API functions and their result dataclasses (`CompareResult`, `CompareEvalResult`, `ShowResult`, `ShowEvalResult`) are no longer exported from the `skillet` package
+- Internal cache enumerators `get_all_cached_results` and `get_cached_results_for_eval`, orphaned by the command removal
+
 ### Changed
 - README restructured to mirror the `docs/` folder hierarchy: every docs page is now a `##`/`###` section in the README with a relative link to the in-repo markdown. Three documentation levels — README (concise), `docs/` (in-depth, ships with the package), and skillet.run (rendered site) — are kept 1:1 with each other
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions

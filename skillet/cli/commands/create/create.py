@@ -58,4 +58,4 @@ async def create_command(
     console.print("[bold]Next steps:[/bold]")
     console.print(f"  1. Edit [cyan]{result.skill_dir}/SKILL.md[/cyan]")
     console.print(f"  2. Run: [bold]skillet eval {name} {result.skill_dir}[/bold]")
-    console.print(f"  3. Compare: [bold]skillet compare {name} {result.skill_dir}[/bold]")
+    console.print(f"  3. Tune: [bold]skillet tune {name} {result.skill_dir}[/bold]")
