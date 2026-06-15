@@ -1,7 +1,6 @@
 """Fixtures for integration tests."""
 
 from collections.abc import AsyncGenerator
-from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
@@ -114,30 +113,37 @@ def create_eval_file(path: Path, **overrides) -> None:
     path.write_text(yaml.dump(defaults, default_flow_style=False, sort_keys=False))
 
 
+class _PassthroughCache:
+    """Iteration-cache stand-in: always runs the wrapped fn, never persists.
+
+    Implements the slice of the Cachetta interface that run_single_eval uses
+    (``aexists``, ``copy``, ``wrap``) with no disk I/O.
+    """
+
+    async def aexists(self, *_args, **_kwargs) -> bool:
+        return False
+
+    def copy(self, **_kwargs) -> "_PassthroughCache":
+        return self
+
+    def wrap(self, fn):
+        return fn
+
+
 @pytest.fixture(autouse=True)
-def mock_cachetta():
-    """Mock cachetta to avoid depending on its pickle serialization."""
-    cache_store: dict[str, object] = {}
+def stub_iteration_cache():
+    """Inject a pass-through cache at the eval entry point.
 
-    def mock_write(cache, data, *args, **kwargs):
-        path = cache._get_path(*args, **kwargs)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.touch()  # Stub file so glob finds it
-        cache_store[str(path)] = data
-
-    @contextmanager
-    def mock_read(cache=None, *args, **kwargs):
-        if cache is None:
-            yield None
-        else:
-            path = cache._get_path(*args, **kwargs)
-            yield cache_store.get(str(path))
-
-    with (
-        patch("cachetta.write_cache", side_effect=mock_write),
-        patch("cachetta.read_cache", mock_read),
-    ):
-        yield
+    Integration tests exercise skillet's orchestration, not cachetta's
+    caching, so the injected cache always runs the wrapped function and never
+    touches disk. cachetta's own caching is covered by its test suite + e2e.
+    """
+    cache = _PassthroughCache()
+    with patch(
+        "skillet.eval.evaluate.evaluate.build_iteration_cache",
+        return_value=cache,
+    ) as mock:
+        yield mock
 
 
 @pytest.fixture
@@ -147,16 +153,14 @@ def skillet_env(tmp_path: Path):
     skillet_dir.mkdir()
     (skillet_dir / "evals").mkdir()
 
-    # Stopgap until cache-path construction is injected at the entry points:
-    # patch the config globals where they are consumed. Most modules read
-    # skillet.config.* at runtime, but skillet.evals.load binds SKILLET_DIR at
-    # import time, so it must be patched separately (patch where used).
+    # skillet.evals.load binds SKILLET_DIR at import time, so it must be patched
+    # where it is used, in addition to the config module. Cache paths are
+    # injected via stub_iteration_cache, so CACHE_DIR needs no patching.
     import skillet.config
     import skillet.evals.load
 
     with (
         patch.object(skillet.config, "SKILLET_DIR", skillet_dir),
-        patch.object(skillet.config, "CACHE_DIR", skillet_dir / "cache"),
         patch.object(skillet.evals.load, "SKILLET_DIR", skillet_dir),
     ):
         yield tmp_path

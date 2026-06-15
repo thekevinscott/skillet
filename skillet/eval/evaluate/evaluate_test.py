@@ -1,9 +1,10 @@
 """Tests for eval/evaluate module."""
 
-from contextlib import nullcontext
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from cachetta import Cachetta
 
 from skillet._internal.sdk import QueryResult
 from skillet.eval.evaluate import evaluate, run_single_eval
@@ -11,41 +12,76 @@ from skillet.eval.evaluate import evaluate, run_single_eval
 _RSE = "skillet.eval.evaluate.run_single_eval"
 _EVAL = "skillet.eval.evaluate.evaluate"
 
+# A full success payload as produced by the cacheable leaf, used to model a
+# cache hit in the fake below.
+_HIT_PAYLOAD = {
+    "iteration": 1,
+    "response": "cached response",
+    "tool_calls": [],
+    "judgment": {"pass": True, "reasoning": "cached"},
+    "pass": True,
+}
+
+
+class _FakeCache:
+    """Test double for the iteration Cachetta passed to run_single_eval.
+
+    Pass-through by default: the wrapped function runs and nothing is
+    persisted. With ``exists=True`` and a ``hit_payload`` it models a cache
+    hit — ``aexists`` reports True and the wrapped call returns the payload
+    without running. ``copy(read=False)`` (used for skip_cache) drops the hit
+    so the wrapped function always runs.
+    """
+
+    def __init__(self, *, exists: bool = False, hit_payload: dict | None = None):
+        self._exists = exists
+        self._hit_payload = hit_payload
+
+    async def aexists(self, _task, _skill_path, _allowed_tools) -> bool:
+        return self._exists
+
+    def copy(self, *, read: bool = True) -> "_FakeCache":
+        if not read:
+            return _FakeCache(exists=self._exists, hit_payload=None)
+        return self
+
+    def wrap(self, fn):
+        async def wrapper(*args, **kwargs):
+            if self._hit_payload is not None:
+                return self._hit_payload
+            return await fn(*args, **kwargs)
+
+        return wrapper
+
+
+def _make_task(**overrides) -> dict:
+    task = {
+        "eval_source": "test.md",
+        "eval_content": "content",
+        "eval_idx": 0,
+        "iteration": 1,
+        "prompt": "test",
+        "expected": "result",
+    }
+    task.update(overrides)
+    return task
+
+
+def _passthrough() -> Cachetta:
+    return cast(Cachetta, _FakeCache())
+
 
 def describe_run_single_eval():
     """Tests for run_single_eval function."""
 
-    @pytest.fixture(autouse=True)
-    def mock_cache_lock():
-        """Mock cache_lock to avoid creating MagicMock directories."""
-        with patch(f"{_RSE}.cache_lock", lambda _: nullcontext()):
-            yield
-
-    @pytest.fixture(autouse=True)
-    def mock_cache_dir():
-        """Mock get_cache_dir."""
-        with patch(f"{_RSE}.get_cache_dir"):
-            yield
-
     @pytest.mark.asyncio
     async def it_returns_cached_result_when_available():
-        with patch(
-            f"{_RSE}.get_cached_iterations",
-            return_value=[{"pass": True, "response": "cached response"}],
-        ):
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
+        cache = cast(Cachetta, _FakeCache(exists=True, hit_payload=_HIT_PAYLOAD))
 
-            result = await run_single_eval(task, "test-evals", None, None)
+        result = await run_single_eval(_make_task(), None, None, cache)
 
-            assert result["cached"] is True
-            assert result["response"] == "cached response"
+        assert result["cached"] is True
+        assert result["response"] == "cached response"
 
     @pytest.mark.asyncio
     async def it_calls_status_callback_for_cached():
@@ -54,70 +90,36 @@ def describe_run_single_eval():
         async def on_status(_task, state, result):
             status_calls.append((state, result))
 
-        with patch(
-            f"{_RSE}.get_cached_iterations",
-            return_value=[{"pass": True, "response": "cached"}],
-        ):
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
+        cache = cast(Cachetta, _FakeCache(exists=True, hit_payload=_HIT_PAYLOAD))
 
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
+        await run_single_eval(_make_task(), None, None, cache, on_status=on_status)
 
-            assert len(status_calls) == 1
-            assert status_calls[0][0] == "cached"
+        assert len(status_calls) == 1
+        assert status_calls[0][0] == "cached"
 
     @pytest.mark.asyncio
     async def it_skips_cache_when_flag_set():
         with (
-            patch(f"{_RSE}.get_cached_iterations") as mock_cache,
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
             patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch(f"{_RSE}.save_iteration"),
         ):
-            mock_cache.return_value = [{"pass": True, "response": "cached"}]
             mock_run.return_value = QueryResult(text="fresh response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
+            # Cache "has" a hit, but skip_cache must run fresh and ignore it.
+            cache = cast(Cachetta, _FakeCache(exists=True, hit_payload=_HIT_PAYLOAD))
 
-            result = await run_single_eval(task, "test-evals", None, None, skip_cache=True)
+            result = await run_single_eval(_make_task(), None, None, cache, skip_cache=True)
 
             assert result["cached"] is False
             assert result["response"] == "fresh response"
 
     @pytest.mark.asyncio
     async def it_handles_setup_script_failure():
-        with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
-            patch(
-                f"{_RSE}.run_script",
-                return_value=(1, "", "setup failed"),
-            ),
-        ):
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-                "setup": "exit 1",
-            }
+        with patch(f"{_RSE}.run_script", return_value=(1, "", "setup failed")):
+            task = _make_task(setup="exit 1")
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, None, None, _passthrough())
 
             assert result["pass"] is False
             assert "Setup failed" in result["response"]
@@ -132,90 +134,53 @@ def describe_run_single_eval():
             return (0, "", "")
 
         with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.run_script", side_effect=track_run_script),
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
             patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-                "teardown": "echo teardown",
-            }
+            task = _make_task(teardown="echo teardown")
 
-            await run_single_eval(task, "test-evals", None, None)
+            await run_single_eval(task, None, None, _passthrough())
 
             assert len(teardown_called) == 1
 
     @pytest.mark.asyncio
     async def it_calls_status_callback_for_running():
-        """Test that on_status is called with 'running' when not cached."""
+        """on_status is called with 'running' then 'done' on a fresh run."""
         status_calls = []
 
         async def on_status(_task, state, result):
             status_calls.append((state, result))
 
         with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
             patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
-
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
+            await run_single_eval(_make_task(), None, None, _passthrough(), on_status=on_status)
 
             assert ("running", None) in status_calls
-            # Should also have a done call
             done_calls = [c for c in status_calls if c[0] == "done"]
             assert len(done_calls) == 1
 
     @pytest.mark.asyncio
     async def it_calls_status_callback_on_setup_failure():
-        """Test that on_status is called when setup script fails."""
+        """on_status is called when the setup script fails."""
         status_calls = []
 
         async def on_status(_task, state, result):
             status_calls.append((state, result))
 
-        with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
-            patch(
-                f"{_RSE}.run_script",
-                return_value=(1, "", "setup error"),
-            ),
-        ):
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-                "setup": "exit 1",
-            }
+        with patch(f"{_RSE}.run_script", return_value=(1, "", "setup error")):
+            task = _make_task(setup="exit 1")
 
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
+            await run_single_eval(task, None, None, _passthrough(), on_status=on_status)
 
-            # Should have running and done calls
             assert ("running", None) in status_calls
             done_calls = [c for c in status_calls if c[0] == "done"]
             assert len(done_calls) == 1
@@ -223,7 +188,7 @@ def describe_run_single_eval():
 
     @pytest.mark.asyncio
     async def it_handles_exception_and_runs_teardown():
-        """Test that teardown is called even when prompt raises exception."""
+        """Teardown runs even when the prompt raises an exception."""
         run_script_calls = []
 
         def track_run_script(script, _home_dir, _cwd=None):
@@ -231,55 +196,32 @@ def describe_run_single_eval():
             return (0, "", "")
 
         with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.run_script", side_effect=track_run_script),
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = RuntimeError("prompt failed")
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-                "teardown": "echo cleanup",
-            }
+            task = _make_task(teardown="echo cleanup")
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, None, None, _passthrough())
 
             assert result["pass"] is False
             assert "prompt failed" in result["response"]
-            # Teardown should be called with the cleanup script
             assert "echo cleanup" in run_script_calls
 
     @pytest.mark.asyncio
     async def it_calls_status_callback_on_exception():
-        """Test on_status is called with done when exception occurs."""
+        """on_status is called with done when an exception occurs."""
         status_calls = []
 
         async def on_status(_task, state, result):
             status_calls.append((state, result))
 
-        with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
-            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
-        ):
+        with patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run:
             mock_run.side_effect = RuntimeError("prompt failed")
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
+            await run_single_eval(_make_task(), None, None, _passthrough(), on_status=on_status)
 
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
-
-            # Should have running and done calls
             assert ("running", None) in status_calls
             done_calls = [c for c in status_calls if c[0] == "done"]
             assert len(done_calls) == 1
@@ -289,26 +231,16 @@ def describe_run_single_eval():
     @pytest.mark.asyncio
     async def it_uses_assertions_instead_of_judge():
         with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
             patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
             patch(f"{_RSE}.run_assertions") as mock_assertions,
-            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="The answer is 4", tool_calls=[])
             mock_assertions.return_value = {"pass": True, "reasoning": "All assertions passed"}
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-                "assertions": [{"type": "contains", "value": "4"}],
-            }
+            task = _make_task(assertions=[{"type": "contains", "value": "4"}])
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, None, None, _passthrough())
 
             assert result["pass"] is True
             mock_assertions.assert_called_once()
@@ -317,25 +249,14 @@ def describe_run_single_eval():
     @pytest.mark.asyncio
     async def it_falls_back_to_judge_without_assertions():
         with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
             patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
             patch(f"{_RSE}.run_assertions") as mock_assertions,
-            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
-
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(_make_task(), None, None, _passthrough())
 
             assert result["pass"] is True
             mock_judge.assert_called_once()
@@ -343,7 +264,7 @@ def describe_run_single_eval():
 
     @pytest.mark.asyncio
     async def it_calculates_script_cwd_from_skill_path():
-        """Test that script_cwd is derived from skill path."""
+        """script_cwd is derived from the skill path."""
         from pathlib import Path
 
         script_cwd_captured = []
@@ -353,27 +274,17 @@ def describe_run_single_eval():
             return (0, "", "")
 
         with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.run_script", side_effect=capture_run_script),
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
             patch(f"{_RSE}.judge_response", new_callable=AsyncMock) as mock_judge,
-            patch(f"{_RSE}.save_iteration"),
         ):
             mock_run.return_value = QueryResult(text="response", tool_calls=[])
             mock_judge.return_value = {"pass": True, "reasoning": "OK"}
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-                "setup": "echo setup",
-            }
-
+            task = _make_task(setup="echo setup")
             skill_path = Path("/project/.claude/skills/test")
-            await run_single_eval(task, "test-evals", skill_path, None)
+
+            await run_single_eval(task, skill_path, None, _passthrough())
 
             # cwd should be /project (parent of .claude)
             assert script_cwd_captured[0] == "/project"
@@ -548,7 +459,6 @@ def describe_evaluate():
 
             await evaluate("test-evals", samples=1)
 
-            # Check that task includes setup
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("setup") == "echo setup"
@@ -610,7 +520,6 @@ def describe_evaluate():
 
             await evaluate("test-evals", samples=1)
 
-            # Check that task includes teardown
             call_args = mock_run.call_args
             task = call_args[0][0]
             assert task.get("teardown") == "echo teardown"
@@ -619,59 +528,23 @@ def describe_evaluate():
 def describe_exception_handling():
     """Tests for exception handling in run_single_eval."""
 
-    @pytest.fixture(autouse=True)
-    def mock_cache_lock():
-        """Mock cache_lock to avoid creating MagicMock directories."""
-        with patch(f"{_RSE}.cache_lock", lambda _: nullcontext()):
-            yield
-
-    @pytest.fixture(autouse=True)
-    def mock_cache_dir():
-        """Mock get_cache_dir."""
-        with patch(f"{_RSE}.get_cache_dir"):
-            yield
-
     @pytest.mark.asyncio
     async def it_propagates_keyboard_interrupt():
         """KeyboardInterrupt should not be caught - let user cancel."""
-        with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
-            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
-        ):
+        with patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run:
             mock_run.side_effect = KeyboardInterrupt()
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
-
             with pytest.raises(KeyboardInterrupt):
-                await run_single_eval(task, "test-evals", None, None)
+                await run_single_eval(_make_task(), None, None, _passthrough())
 
     @pytest.mark.asyncio
     async def it_propagates_system_exit():
         """SystemExit should not be caught - let process exit."""
-        with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
-            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
-        ):
+        with patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run:
             mock_run.side_effect = SystemExit(1)
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
-
             with pytest.raises(SystemExit):
-                await run_single_eval(task, "test-evals", None, None)
+                await run_single_eval(_make_task(), None, None, _passthrough())
 
     @pytest.mark.asyncio
     async def it_runs_teardown_on_keyboard_interrupt():
@@ -684,46 +557,25 @@ def describe_exception_handling():
             return (0, "", "")
 
         with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
             patch(f"{_RSE}.run_script", side_effect=track_run_script),
             patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
         ):
             mock_run.side_effect = KeyboardInterrupt()
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-                "teardown": "echo teardown",
-            }
+            task = _make_task(teardown="echo teardown")
 
             with pytest.raises(KeyboardInterrupt):
-                await run_single_eval(task, "test-evals", None, None)
+                await run_single_eval(task, None, None, _passthrough())
 
             assert len(teardown_called) == 1
 
     @pytest.mark.asyncio
     async def it_includes_exception_type_in_error_message():
         """Error message should include exception type for debugging."""
-        with (
-            patch(f"{_RSE}.get_cached_iterations", return_value=[]),
-            patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run,
-        ):
+        with patch(f"{_RSE}.run_prompt", new_callable=AsyncMock) as mock_run:
             mock_run.side_effect = ValueError("invalid value")
 
-            task = {
-                "eval_source": "test.md",
-                "eval_content": "content",
-                "eval_idx": 0,
-                "iteration": 1,
-                "prompt": "test",
-                "expected": "result",
-            }
-
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(_make_task(), None, None, _passthrough())
 
             assert result["pass"] is False
             assert "ValueError" in result["judgment"]["reasoning"]

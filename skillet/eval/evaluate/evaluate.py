@@ -4,6 +4,8 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
+from skillet import config
+from skillet._internal.cache import build_iteration_cache
 from skillet.evals import load_evals
 
 from .result import EvaluateResult, IterationResult, PerEvalMetric
@@ -54,13 +56,17 @@ async def evaluate(  # noqa: PLR0913, C901
                 task["assertions"] = eval_data["assertions"]
             tasks.append(task)
 
+    # Construct the cache at runtime (reads config.CACHE_DIR now, not at import)
+    # and thread it down, so caching is fully owned by cachetta's decorator.
+    iteration_cache = build_iteration_cache(config.CACHE_DIR, name, skill_path)
+
     # Run with semaphore for parallelism control
     semaphore = asyncio.Semaphore(parallel)
 
     async def run_with_semaphore(task):
         async with semaphore:
             return await run_single_eval(
-                task, name, skill_path, allowed_tools, on_status, skip_cache
+                task, skill_path, allowed_tools, iteration_cache, on_status, skip_cache
             )
 
     # Run all tasks
