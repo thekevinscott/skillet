@@ -2,6 +2,7 @@
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -15,9 +16,11 @@ from skillet._internal.cache import (
 
 def describe_get_all_cached_results():
     @pytest.fixture(autouse=True)
-    def mock_cache_dir(monkeypatch):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            monkeypatch.setattr(skillet.config, "CACHE_DIR", Path(tmpdir))
+    def mock_cache_dir():
+        with (
+            tempfile.TemporaryDirectory() as tmpdir,
+            patch.object(skillet.config, "CACHE_DIR", Path(tmpdir)),
+        ):
             yield Path(tmpdir)
 
     def it_returns_empty_dict_for_nonexistent_name():
