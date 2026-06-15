@@ -113,17 +113,20 @@ def create_eval_file(path: Path, **overrides) -> None:
     path.write_text(yaml.dump(defaults, default_flow_style=False, sort_keys=False))
 
 
-class _PassthroughCache:
-    """Iteration-cache stand-in: always runs the wrapped fn, never persists.
+class _FakeCachetta:
+    """Total stand-in for cachetta.Cachetta in integration tests.
 
-    Implements the slice of the Cachetta interface that run_single_eval uses
-    (``aexists``, ``copy``, ``wrap``) with no disk I/O.
+    The real build_iteration_cache constructs one of these instead of a real
+    Cachetta, so skillet's cache wiring runs while cachetta does no disk I/O:
+    the decorator (``wrap``) just runs the wrapped function, and nothing is
+    read or written. Constructor kwargs (path, condition, duration) are
+    accepted and ignored.
     """
 
-    async def aexists(self, *_args, **_kwargs) -> bool:
-        return False
+    def __init__(self, **_kwargs):
+        pass
 
-    def copy(self, **_kwargs) -> "_PassthroughCache":
+    def copy(self, **_kwargs) -> "_FakeCachetta":
         return self
 
     def wrap(self, fn):
@@ -131,19 +134,18 @@ class _PassthroughCache:
 
 
 @pytest.fixture(autouse=True)
-def stub_iteration_cache():
-    """Inject a pass-through cache at the eval entry point.
+def stub_cachetta():
+    """Replace cachetta.Cachetta with a no-op double for integration tests.
 
-    Integration tests exercise skillet's orchestration, not cachetta's
-    caching, so the injected cache always runs the wrapped function and never
-    touches disk. cachetta's own caching is covered by its test suite + e2e.
+    The real build_iteration_cache still runs (path layout, condition, skill
+    hashing); only cachetta's caching is neutralized, so there is no disk I/O.
+    cachetta's own caching is covered by its test suite + e2e.
     """
-    cache = _PassthroughCache()
     with patch(
-        "skillet.eval.evaluate.evaluate.build_iteration_cache",
-        return_value=cache,
-    ) as mock:
-        yield mock
+        "skillet._internal.cache.build_iteration_cache.Cachetta",
+        _FakeCachetta,
+    ):
+        yield
 
 
 @pytest.fixture

@@ -129,22 +129,28 @@ async def run_single_eval(
     Caching (read/write, atomic writes, in-flight de-duplication) is delegated
     to cachetta's decorator. ``skip_cache`` disables reads (the run always
     executes) while still persisting fresh results, matching prior behavior.
-    """
-    cache = iteration_cache.copy(read=False) if skip_cache else iteration_cache
-    cached_run = cache.wrap(_run_iteration)
 
-    if not skip_cache and await iteration_cache.aexists(task, skill_path, allowed_tools):
-        payload = await cached_run(task, skill_path, allowed_tools)
-        result = _finalize_result(payload, task, cached=True)
-        if on_status:
-            await on_status(task, "cached", result)
-        return result
+    Whether the result came from cache is derived from whether the wrapped leaf
+    actually executed: on a hit the decorator returns the stored payload without
+    calling it, so no separate existence check is needed.
+    """
+    cache = iteration_cache.copy(read=not skip_cache)
+
+    ran = False
+
+    async def _execute(
+        task: dict, skill_path: Path | None, allowed_tools: list[str] | None
+    ) -> dict:
+        nonlocal ran
+        ran = True
+        return await _run_iteration(task, skill_path, allowed_tools)
 
     if on_status:
         await on_status(task, "running", None)
 
-    payload = await cached_run(task, skill_path, allowed_tools)
-    result = _finalize_result(payload, task, cached=False)
+    payload = await cache.wrap(_execute)(task, skill_path, allowed_tools)
+    cached = not ran
+    result = _finalize_result(payload, task, cached=cached)
     if on_status:
-        await on_status(task, "done", result)
+        await on_status(task, "cached" if cached else "done", result)
     return result
