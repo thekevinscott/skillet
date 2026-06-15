@@ -29,6 +29,7 @@ dev = [
     "bandit>=1.7",
     "ty>=0.0.1a7",
     "curtaincall>=0.3.0",
+    "testing-conventions>=0.0.6",
 ]
 
 [tool.ruff]

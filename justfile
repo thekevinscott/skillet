@@ -70,6 +70,10 @@ security:
 check-conventions:
     uv run python scripts/check_one_function_per_file.py
 
+# Check colocated unit-test convention (every source file has a sibling *_test.py)
+check-test-conventions:
+    uv run testing-conventions unit location --language python skillet
+
 # Run type checker
 typecheck:
     uv run ty check skillet/
@@ -108,6 +112,7 @@ ci:
     just format-check &
     just typecheck &
     just check-conventions &
+    just check-test-conventions &
     wait
     just test-unit
 
@@ -119,6 +124,7 @@ ci-local:
     just format-check &
     just typecheck &
     just check-conventions &
+    just check-test-conventions &
     wait
     just test-unit &
     just test-integration &
