@@ -5,28 +5,39 @@
 - **NEVER commit directly to main** - always create a PR
 - **Before pushing**: the pre-push hook runs `uv run just ci` automatically (lint, format, typecheck, unit tests in parallel). Integration tests run only on GitHub CI to keep pushes fast
 - **After pushing**: run `gh pr checks <number> --watch` to monitor CI. Fix any failures immediately before moving on
-- **After a PR is merged**: pull main in the root repository to keep worktrees in sync
+- **After a PR is merged** (both steps, in order):
+  1. Pull main in the root repository to keep worktrees in sync
+  2. Remove the worktree if no longer needed (see safe removal procedure below)
 
 ## Git Worktrees
 All development work should happen in git worktrees, not on the main branch directly.
 
-**IMPORTANT: When creating/switching worktrees, always run the setup steps yourself:**
+### Creating a Worktree
 
 ```bash
-# Create a new worktree for a feature branch
 git worktree add .worktrees/my-feature -b feat/my-feature
-
-# Work in the worktree - ALWAYS run these setup steps:
 cd .worktrees/my-feature
 uv sync --all-extras                          # Install all dependencies including dev tools
 uv run python scripts/build_claude_config.py  # Build .claude/commands/
-
-# When done, remove the worktree
-cd ../..
-git worktree remove .worktrees/my-feature
 ```
 
 **Never give the user commands to run - execute them yourself.** Each worktree has its own `.venv` that needs dependencies installed. The `.claude/commands/` directory is gitignored and must be rebuilt in each worktree.
+
+### Removing a Worktree
+
+**DANGER: removing a worktree while your shell CWD is inside it permanently breaks the shell.** No command will work afterward — not `cd`, not `echo`, not even `ls`. `git -C /path` does NOT help because the shell itself cannot resolve its CWD before git even runs. If this happens, the session is unrecoverable.
+
+The ONLY safe procedure — every step is mandatory:
+
+```bash
+# Step 1: Move CWD to the root repository FIRST (not optional, not replaceable with -C)
+cd /path/to/skillet   # the root repo, NOT the worktree
+
+# Step 2: Now remove the worktree
+git worktree remove .worktrees/my-feature
+```
+
+**Do NOT skip step 1. Do NOT substitute `git -C` for `cd`. They are not equivalent.**
 
 ## Key Commands
 
