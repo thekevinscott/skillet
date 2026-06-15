@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
+from skillet.agent import Agent
 from skillet.evals import load_evals
 
 from .result import EvaluateResult, IterationResult, PerEvalMetric
@@ -20,6 +21,8 @@ async def evaluate(  # noqa: PLR0913, C901
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
     evals_list: list[dict] | None = None,
+    *,
+    agent: Agent,
 ) -> EvaluateResult:
     """Evaluate evals in parallel, with caching."""
     import random
@@ -60,7 +63,7 @@ async def evaluate(  # noqa: PLR0913, C901
     async def run_with_semaphore(task):
         async with semaphore:
             return await run_single_eval(
-                task, name, skill_path, allowed_tools, on_status, skip_cache
+                task, name, skill_path, allowed_tools, on_status, skip_cache, agent=agent
             )
 
     # Run all tasks

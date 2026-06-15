@@ -6,6 +6,8 @@ from typing import Annotated
 
 from cyclopts import App, Parameter
 
+from skillet.agent import Agent
+
 app = App(
     name="skillet",
     help="Evaluation-driven Claude Code skill development.",
@@ -17,6 +19,7 @@ async def eval(  # noqa: PLR0913
     name: str,
     skill: Annotated[Path | None, Parameter(name="skill")] = None,
     *,
+    agent: Annotated[Agent, Parameter(name=["--agent"])],
     samples: Annotated[int, Parameter(name=["--samples", "-s"])] = 3,
     max_evals: Annotated[int | None, Parameter(name=["--max-evals", "-m"])] = None,
     tools: Annotated[str | None, Parameter(name=["--tools"])] = None,
@@ -25,14 +28,18 @@ async def eval(  # noqa: PLR0913
     trust: Annotated[bool, Parameter(name=["--trust"])] = False,
     no_summary: Annotated[bool, Parameter(name=["--no-summary"])] = False,
 ):
-    """Evaluate Claude against captured evals.
+    """Evaluate a coding agent against captured evals.
 
     NAME can be:
     - A name (looks in ~/.skillet/evals/<name>/)
     - A path to a directory (loads all .yaml files recursively)
     - A path to a single .yaml file
 
-    Results are cached by eval content hash and skill content hash.
+    --agent selects the coding agent under test (claude or codex). It both runs
+    the skill and judges the result, each through its own CLI. The flag is
+    required; there is no default and skillet never silently falls back.
+
+    Results are cached by eval content hash, agent, and skill content hash.
 
     Without SKILL: measures baseline performance (no skill active)
     With SKILL: measures performance with the skill loaded
@@ -42,15 +49,15 @@ async def eval(  # noqa: PLR0913
     the prompt (for automation or when you've reviewed the scripts).
 
     Examples:
-        skillet eval browser-fallback                              # baseline
-        skillet eval browser-fallback ~/.claude/skills/browser-fallback  # with skill
-        skillet eval ./evals/my-skill/001.yaml skill/              # single file
-        skillet eval browser-fallback -s 5                         # 5 samples per eval
-        skillet eval my-skill -m 5 -s 1                            # 5 random evals, 1 sample each
-        skillet eval my-skill -p 5                                 # 5 parallel workers
-        skillet eval my-skill --skip-cache                         # ignore cached results
-        skillet eval my-skill --trust                              # skip script confirmation
-        skillet eval my-skill --no-summary                           # skip failure summary
+        skillet eval browser-fallback --agent claude               # baseline
+        skillet eval browser-fallback ~/.claude/skills/browser-fallback --agent claude  # with skill
+        skillet eval ./evals/my-skill/001.yaml skill/ --agent claude  # single file
+        skillet eval browser-fallback --agent claude -s 5          # 5 samples per eval
+        skillet eval my-skill --agent claude -m 5 -s 1             # 5 random evals, 1 sample each
+        skillet eval my-skill --agent claude -p 5                  # 5 parallel workers
+        skillet eval my-skill --agent claude --skip-cache          # ignore cached results
+        skillet eval my-skill --agent claude --trust               # skip script confirmation
+        skillet eval my-skill --agent claude --no-summary          # skip failure summary
     """
     from skillet.cli.commands.eval import eval_command
 
@@ -65,6 +72,7 @@ async def eval(  # noqa: PLR0913
         skip_cache=skip_cache,
         trust=trust,
         no_summary=no_summary,
+        agent=agent,
     )
 
 

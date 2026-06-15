@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from skillet._internal.sdk import QueryResult
+from skillet.agent import Agent
 from skillet.eval.evaluate import evaluate, run_single_eval
 
 _RSE = "skillet.eval.evaluate.run_single_eval"
@@ -42,7 +43,7 @@ def describe_run_single_eval():
                 "expected": "result",
             }
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert result["cached"] is True
             assert result["response"] == "cached response"
@@ -67,7 +68,9 @@ def describe_run_single_eval():
                 "expected": "result",
             }
 
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
+            await run_single_eval(
+                task, "test-evals", None, None, on_status=on_status, agent=Agent.CLAUDE
+            )
 
             assert len(status_calls) == 1
             assert status_calls[0][0] == "cached"
@@ -93,7 +96,9 @@ def describe_run_single_eval():
                 "expected": "result",
             }
 
-            result = await run_single_eval(task, "test-evals", None, None, skip_cache=True)
+            result = await run_single_eval(
+                task, "test-evals", None, None, skip_cache=True, agent=Agent.CLAUDE
+            )
 
             assert result["cached"] is False
             assert result["response"] == "fresh response"
@@ -117,7 +122,7 @@ def describe_run_single_eval():
                 "setup": "exit 1",
             }
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert result["pass"] is False
             assert "Setup failed" in result["response"]
@@ -151,7 +156,7 @@ def describe_run_single_eval():
                 "teardown": "echo teardown",
             }
 
-            await run_single_eval(task, "test-evals", None, None)
+            await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert len(teardown_called) == 1
 
@@ -181,7 +186,9 @@ def describe_run_single_eval():
                 "expected": "result",
             }
 
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
+            await run_single_eval(
+                task, "test-evals", None, None, on_status=on_status, agent=Agent.CLAUDE
+            )
 
             assert ("running", None) in status_calls
             # Should also have a done call
@@ -213,7 +220,9 @@ def describe_run_single_eval():
                 "setup": "exit 1",
             }
 
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
+            await run_single_eval(
+                task, "test-evals", None, None, on_status=on_status, agent=Agent.CLAUDE
+            )
 
             # Should have running and done calls
             assert ("running", None) in status_calls
@@ -247,7 +256,7 @@ def describe_run_single_eval():
                 "teardown": "echo cleanup",
             }
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert result["pass"] is False
             assert "prompt failed" in result["response"]
@@ -277,7 +286,9 @@ def describe_run_single_eval():
                 "expected": "result",
             }
 
-            await run_single_eval(task, "test-evals", None, None, on_status=on_status)
+            await run_single_eval(
+                task, "test-evals", None, None, on_status=on_status, agent=Agent.CLAUDE
+            )
 
             # Should have running and done calls
             assert ("running", None) in status_calls
@@ -308,7 +319,7 @@ def describe_run_single_eval():
                 "assertions": [{"type": "contains", "value": "4"}],
             }
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert result["pass"] is True
             mock_assertions.assert_called_once()
@@ -335,7 +346,7 @@ def describe_run_single_eval():
                 "expected": "result",
             }
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert result["pass"] is True
             mock_judge.assert_called_once()
@@ -373,7 +384,7 @@ def describe_run_single_eval():
             }
 
             skill_path = Path("/project/.claude/skills/test")
-            await run_single_eval(task, "test-evals", skill_path, None)
+            await run_single_eval(task, "test-evals", skill_path, None, agent=Agent.CLAUDE)
 
             # cwd should be /project (parent of .claude)
             assert script_cwd_captured[0] == "/project"
@@ -400,7 +411,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             mock_load.assert_called_once_with("test-evals")
 
@@ -434,7 +445,7 @@ def describe_evaluate():
                 },
             ]
 
-            result = await evaluate("test-evals", samples=1)
+            result = await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             assert result.pass_rate == 50.0
             assert result.total_pass == 1
@@ -462,7 +473,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            result = await evaluate("test-evals", samples=1, max_evals=2)
+            result = await evaluate("test-evals", samples=1, max_evals=2, agent=Agent.CLAUDE)
 
             mock_sample.assert_called_once()
             assert result.sampled_evals == 2
@@ -484,7 +495,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1, evals_list=evals)
+            await evaluate("test-evals", samples=1, evals_list=evals, agent=Agent.CLAUDE)
 
             mock_load.assert_not_called()
 
@@ -517,7 +528,7 @@ def describe_evaluate():
                 },
             ]
 
-            result = await evaluate("test-evals", samples=1)
+            result = await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             assert result.cached_count == 1
             assert result.fresh_count == 1
@@ -546,7 +557,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             # Check that task includes setup
             call_args = mock_run.call_args
@@ -578,7 +589,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             call_args = mock_run.call_args
             task = call_args[0][0]
@@ -608,7 +619,7 @@ def describe_evaluate():
                 "response": "r",
             }
 
-            await evaluate("test-evals", samples=1)
+            await evaluate("test-evals", samples=1, agent=Agent.CLAUDE)
 
             # Check that task includes teardown
             call_args = mock_run.call_args
@@ -650,7 +661,7 @@ def describe_exception_handling():
             }
 
             with pytest.raises(KeyboardInterrupt):
-                await run_single_eval(task, "test-evals", None, None)
+                await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
     @pytest.mark.asyncio
     async def it_propagates_system_exit():
@@ -671,7 +682,7 @@ def describe_exception_handling():
             }
 
             with pytest.raises(SystemExit):
-                await run_single_eval(task, "test-evals", None, None)
+                await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
     @pytest.mark.asyncio
     async def it_runs_teardown_on_keyboard_interrupt():
@@ -701,7 +712,7 @@ def describe_exception_handling():
             }
 
             with pytest.raises(KeyboardInterrupt):
-                await run_single_eval(task, "test-evals", None, None)
+                await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert len(teardown_called) == 1
 
@@ -723,7 +734,7 @@ def describe_exception_handling():
                 "expected": "result",
             }
 
-            result = await run_single_eval(task, "test-evals", None, None)
+            result = await run_single_eval(task, "test-evals", None, None, agent=Agent.CLAUDE)
 
             assert result["pass"] is False
             assert "ValueError" in result["judgment"]["reasoning"]
