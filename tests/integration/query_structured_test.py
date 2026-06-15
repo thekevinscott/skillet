@@ -43,7 +43,7 @@ def describe_query_structured_failure_modes():
                 yield msg
 
         with patch(
-            "skillet._internal.sdk.query_structured.claude_agent_sdk.query",
+            "claude_agent_sdk.query",
             mock_query_gen,
         ):
             yield messages
@@ -196,7 +196,7 @@ def describe_generator_consumption():
             call_count["fully_consumed"] += 1
 
         with patch(
-            "skillet._internal.sdk.query_structured.claude_agent_sdk.query",
+            "claude_agent_sdk.query",
             mock_query_gen,
         ):
             yield call_count
@@ -258,7 +258,7 @@ def describe_generator_consumption_on_error():
             call_count["fully_consumed"] += 1
 
         with patch(
-            "skillet._internal.sdk.query_structured.claude_agent_sdk.query",
+            "claude_agent_sdk.query",
             mock_query_gen,
         ):
             yield call_count

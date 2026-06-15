@@ -8,7 +8,6 @@ dependencies = [
     "cyclopts>=3.0",
     "pyyaml>=6.0",
     "rich>=13.0",
-    "claude-agent-sdk",
     "dspy>=2.6",
     "cachetta>=0.6.6",
 ]
@@ -17,7 +16,14 @@ dependencies = [
 skillet = "skillet.cli.main:main"
 
 [project.optional-dependencies]
+# The Claude Agent SDK is only needed by the `tune` path (and skill drafting),
+# which talk to Claude directly. Evaluating skills (`skillet eval --agent ...`)
+# routes through the selected agent's CLI and does not require it.
+tune = [
+    "claude-agent-sdk",
+]
 dev = [
+    "pyskillet[tune]",
     "rust-just>=1.0",
     "ruff>=0.8",
     "pytest>=8.0",

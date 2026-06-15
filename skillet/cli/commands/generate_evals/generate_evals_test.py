@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from rich.console import Console
 
+from skillet.agent import Agent
 from skillet.generate.types import CandidateEval, GenerateResult
 
 from .generate_evals import generate_evals_command
@@ -52,6 +53,15 @@ def describe_generate_evals_command():
         skill_path = tmp_path / "SKILL.md"
         skill_path.write_text("# Skill")
 
-        await generate_evals_command(skill_path)
+        await generate_evals_command(skill_path, agent=Agent.CLAUDE)
 
         assert mock_generate.call_args.kwargs["output_dir"] == tmp_path / "candidates"
+
+    @pytest.mark.asyncio
+    async def it_routes_through_the_selected_agent(tmp_path: Path, mock_generate):
+        skill_path = tmp_path / "SKILL.md"
+        skill_path.write_text("# Skill")
+
+        await generate_evals_command(skill_path, agent=Agent.CODEX)
+
+        assert mock_generate.call_args.kwargs["agent"] is Agent.CODEX

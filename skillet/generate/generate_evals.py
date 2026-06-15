@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from skillet.agent import Agent
+
 from .analyze import analyze_skill
 from .generate import generate_candidates
 from .resolve_skill_path import resolve_skill_path
@@ -12,6 +14,7 @@ from .write import write_candidates
 async def generate_evals(
     skill_path: Path,
     *,
+    agent: Agent,
     output_dir: Path | None = None,
     use_lint: bool = True,
     max_per_category: int = 5,
@@ -20,8 +23,8 @@ async def generate_evals(
     """Generate candidate eval files from a SKILL.md.
 
     Analyzes the skill to extract goals, prohibitions, and examples,
-    then uses an LLM to generate test cases for each. Optionally
-    incorporates lint findings to target weak spots.
+    then uses the selected ``agent`` to generate test cases for each.
+    Optionally incorporates lint findings to target weak spots.
     """
     # Resolve path to SKILL.md
     skill_file = resolve_skill_path(skill_path)
@@ -32,6 +35,7 @@ async def generate_evals(
     # Generate candidates
     candidates = await generate_candidates(
         analysis,
+        agent=agent,
         use_lint=use_lint,
         max_per_category=max_per_category,
         domains=domains,

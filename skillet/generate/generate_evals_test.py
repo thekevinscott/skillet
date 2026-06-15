@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from skillet.agent import Agent
+
 from .generate_evals import generate_evals
 from .types import CandidateEval, GenerateResult
 
@@ -34,7 +36,7 @@ def describe_generate_evals():
             new_callable=AsyncMock,
             return_value=mock_candidates,
         ):
-            result = await generate_evals(skill_file)
+            result = await generate_evals(skill_file, agent=Agent.CLAUDE)
 
         assert isinstance(result, GenerateResult)
         assert result.skill_path == skill_file
@@ -51,7 +53,7 @@ def describe_generate_evals():
             new_callable=AsyncMock,
             return_value=[],
         ):
-            result = await generate_evals(tmp_path)
+            result = await generate_evals(tmp_path, agent=Agent.CLAUDE)
 
         assert result.skill_path == skill_file
 
@@ -76,7 +78,7 @@ def describe_generate_evals():
             new_callable=AsyncMock,
             return_value=[mock_candidate],
         ):
-            await generate_evals(skill_file, output_dir=output_dir)
+            await generate_evals(skill_file, agent=Agent.CLAUDE, output_dir=output_dir)
 
         assert output_dir.exists()
         yaml_files = list(output_dir.glob("*.yaml"))
@@ -92,7 +94,7 @@ def describe_generate_evals():
             new_callable=AsyncMock,
             return_value=[],
         ):
-            await generate_evals(skill_file)
+            await generate_evals(skill_file, agent=Agent.CLAUDE)
 
         # No candidates directory should be created
         assert not (tmp_path / "candidates").exists()
@@ -109,12 +111,14 @@ def describe_generate_evals():
         ) as mock_gen:
             await generate_evals(
                 skill_file,
+                agent=Agent.CODEX,
                 use_lint=False,
                 max_per_category=3,
             )
 
         mock_gen.assert_called_once()
         call_kwargs = mock_gen.call_args.kwargs
+        assert call_kwargs["agent"] is Agent.CODEX
         assert call_kwargs["use_lint"] is False
         assert call_kwargs["max_per_category"] == 3
 
@@ -145,7 +149,7 @@ def describe_generate_evals():
             new_callable=AsyncMock,
             return_value=[],
         ):
-            result = await generate_evals(skill_file)
+            result = await generate_evals(skill_file, agent=Agent.CLAUDE)
 
         assert result.analysis["name"] == "my-skill"
         assert result.analysis["description"] == "Test skill"

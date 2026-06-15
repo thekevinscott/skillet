@@ -1799,7 +1799,6 @@ name = "pyskillet"
 source = { editable = "." }
 dependencies = [
     { name = "cachetta" },
-    { name = "claude-agent-sdk" },
     { name = "cyclopts" },
     { name = "dspy" },
     { name = "pyyaml" },
@@ -1809,6 +1808,7 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "bandit" },
+    { name = "claude-agent-sdk" },
     { name = "curtaincall" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -1821,12 +1821,16 @@ dev = [
     { name = "testing-conventions" },
     { name = "ty" },
 ]
+tune = [
+    { name = "claude-agent-sdk" },
+]
 
 [package.metadata]
 requires-dist = [
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7" },
     { name = "cachetta", specifier = ">=0.6.6" },
-    { name = "claude-agent-sdk" },
+    { name = "claude-agent-sdk", marker = "extra == 'dev'" },
+    { name = "claude-agent-sdk", marker = "extra == 'tune'" },
     { name = "curtaincall", marker = "extra == 'dev'", specifier = ">=0.3.0" },
     { name = "cyclopts", specifier = ">=3.0" },
     { name = "dspy", specifier = ">=2.6" },
@@ -1843,7 +1847,7 @@ requires-dist = [
     { name = "testing-conventions", marker = "extra == 'dev'", specifier = ">=0.0.6" },
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.1a7" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "tune"]
 
 [[package]]
 name = "pyte"

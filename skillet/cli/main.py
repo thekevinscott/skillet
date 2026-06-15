@@ -176,21 +176,27 @@ async def lint(
 async def generate_evals_cmd(
     skill: Path,
     *,
+    agent: Annotated[Agent, Parameter(name=["--agent"])],
     output: Annotated[Path | None, Parameter(name=["--output", "-o"])] = None,
     max_per_category: Annotated[int, Parameter(name=["--max"])] = 5,
     domain: Annotated[list[str] | None, Parameter(name=["--domain", "-d"])] = None,
 ):
     """Generate candidate evals from a SKILL.md.
 
+    --agent selects the coding agent (claude or codex) that drafts the
+    candidates, each through its own CLI. The flag is required; there is no
+    default and skillet never silently falls back.
+
     Examples:
-        skillet generate-evals path/to/SKILL.md
-        skillet generate-evals path/to/SKILL.md --domain triggering
-        skillet generate-evals path/to/SKILL.md -d triggering -d functional
+        skillet generate-evals path/to/SKILL.md --agent claude
+        skillet generate-evals path/to/SKILL.md --agent codex --domain triggering
+        skillet generate-evals path/to/SKILL.md --agent claude -d triggering -d functional
     """
     from skillet.cli.commands.generate_evals import generate_evals_command
 
     await generate_evals_command(
         skill,
+        agent=agent,
         output_dir=output,
         max_per_category=max_per_category,
         domain=domain,

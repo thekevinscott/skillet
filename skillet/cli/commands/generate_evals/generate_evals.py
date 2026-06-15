@@ -5,6 +5,7 @@ from pathlib import Path
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
+from skillet.agent import Agent
 from skillet.cli import console
 from skillet.generate import generate_evals
 from skillet.generate.types import EvalDomain
@@ -29,6 +30,7 @@ def _parse_domains(raw: list[str] | None) -> list[EvalDomain] | None:
 async def generate_evals_command(
     skill_path: Path,
     *,
+    agent: Agent,
     output_dir: Path | None = None,
     max_per_category: int = 5,
     domain: list[str] | None = None,
@@ -50,6 +52,7 @@ async def generate_evals_command(
         progress.add_task(f"Generating evals from {skill_path.name}...", total=None)
         result = await generate_evals(
             skill_path,
+            agent=agent,
             output_dir=output_dir,
             max_per_category=max_per_category,
             domains=domains,
