@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Split multi-class lint rule files (`naming.py`, `structure.py`) into one-class-per-file modules; extracted type definitions (`Judgment`, `SkillAnalysis`, `CandidateResponse`, `GenerateResponse`, `EvalGroup`) into dedicated `types.py` files — removes 6 of 8 `allow-multiple-public-callables` suppressions
 
 ### Added
+- `--agent {claude,codex}` selects the agent under test (required). The chosen agent runs the skill through its own CLI: `claude` routes through `claude -p --output-format stream-json` in the eval working directory and parses the stream for response text and tool calls; `codex` is accepted but not yet supported. The agent is folded into the cache key so `claude` and `codex` runs never collide. A missing or non-runnable CLI fails loudly
 - `docs/` markdown ships inside the wheel at `skillet/docs/` so installed users (and agents) can read full documentation offline without visiting the docs site
 - `docsUrl` frontmatter on every user-facing docs page links back to its rendered URL on skillet.run
 - Convention check: one-public-callable-per-file lint rule enforced in CI (`uv run just check-conventions`). Per-file opt-out via `# skillet: allow-multiple-public-callables`

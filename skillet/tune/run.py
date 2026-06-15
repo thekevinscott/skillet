@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
+from skillet.agent import Agent
 from skillet.eval import judge_response, run_prompt
 
 
@@ -36,7 +37,7 @@ async def run_tune_eval(
             if on_status:
                 await on_status(task, "running", None)
             try:
-                query_result = await run_prompt(task["prompt"], skill_path)
+                query_result = await run_prompt(task["prompt"], skill_path, agent=Agent.CLAUDE)
                 judgment = await judge_response(
                     prompt=task["prompt"],
                     response=query_result.text,

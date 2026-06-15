@@ -10,6 +10,7 @@ from skillet._internal.cache import (
     save_iteration,
 )
 from skillet._internal.lock import cache_lock
+from skillet.agent import Agent
 
 from ..isolated_home import isolated_home
 from ..judge import judge_response, run_assertions
@@ -24,6 +25,8 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
     allowed_tools: list[str] | None,
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
+    *,
+    agent: Agent,
 ) -> dict:
     """Run a single evaluation task, using cache if available.
 
@@ -32,7 +35,7 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
     """
     # Check cache first (unless skip_cache is True)
     eval_key = eval_cache_key(task["eval_source"], task["eval_content"])
-    cache_dir = get_cache_dir(name, eval_key, skill_path)
+    cache_dir = get_cache_dir(name, eval_key, skill_path, agent=agent)
 
     if not skip_cache:
         # Use lock to prevent race condition with parallel workers
@@ -84,7 +87,7 @@ async def run_single_eval(  # noqa: C901, PLR0912, PLR0915 - orchestration with 
 
             # Run the eval with isolated HOME
             query_result = await run_prompt(
-                task["prompt"], skill_path, allowed_tools, home_dir=home_dir
+                task["prompt"], skill_path, allowed_tools, home_dir=home_dir, agent=agent
             )
 
             # Run teardown script if present (best effort, don't fail the eval)

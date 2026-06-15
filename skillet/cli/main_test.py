@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from skillet.agent import Agent
 from skillet.cli.main import app, create, eval, main, tune
 
 
@@ -38,13 +39,14 @@ def describe_eval_command():
             "skillet.cli.commands.eval.eval_command",
             new_callable=AsyncMock,
         ) as mock_cmd:
-            await eval("my-evals")
+            await eval("my-evals", agent=Agent.CLAUDE)
 
             mock_cmd.assert_called_once()
             call_kwargs = mock_cmd.call_args[1]
             assert call_kwargs["samples"] == 3
             assert call_kwargs["parallel"] == 3
             assert call_kwargs["skip_cache"] is False
+            assert call_kwargs["agent"] is Agent.CLAUDE
 
     @pytest.mark.asyncio
     async def it_parses_tools_string():
@@ -52,7 +54,7 @@ def describe_eval_command():
             "skillet.cli.commands.eval.eval_command",
             new_callable=AsyncMock,
         ) as mock_cmd:
-            await eval("my-evals", tools="Read,Write,Bash")
+            await eval("my-evals", tools="Read,Write,Bash", agent=Agent.CLAUDE)
 
             call_kwargs = mock_cmd.call_args[1]
             assert call_kwargs["allowed_tools"] == ["Read", "Write", "Bash"]

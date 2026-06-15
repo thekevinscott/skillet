@@ -67,7 +67,10 @@ def describe_skillet_eval():
         """Runs eval without a skill (baseline mode)."""
         evals_dir = _setup_eval_env(tmp_path)
 
-        term = terminal(f"{SKILLET} eval {evals_dir} --samples 1 --parallel 1 --skip-cache --trust")
+        term = terminal(
+            f"{SKILLET} eval {evals_dir}"
+            f" --agent claude --samples 1 --parallel 1 --skip-cache --trust"
+        )
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
 
     @pytest.mark.asyncio
@@ -85,7 +88,8 @@ def describe_skillet_eval():
         skill_file.write_text(pirate_skill.read_text())
 
         term = terminal(
-            f"{SKILLET} eval {evals_dir} {skill_file} --samples 1 --parallel 1 --skip-cache --trust"
+            f"{SKILLET} eval {evals_dir} {skill_file}"
+            f" --agent claude --samples 1 --parallel 1 --skip-cache --trust"
         )
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
 
@@ -99,7 +103,7 @@ def describe_skillet_eval():
 
         term = terminal(
             f"{SKILLET} eval {evals_dir}"
-            f" --samples 1 --max-evals 1 --parallel 1 --skip-cache --trust"
+            f" --agent claude --samples 1 --max-evals 1 --parallel 1 --skip-cache --trust"
         )
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
 
@@ -113,7 +117,8 @@ def describe_skillet_eval():
         single_eval = evals_dir / "001-greeting.yaml"
 
         term = terminal(
-            f"{SKILLET} eval {single_eval} --samples 1 --parallel 1 --skip-cache --trust"
+            f"{SKILLET} eval {single_eval}"
+            f" --agent claude --samples 1 --parallel 1 --skip-cache --trust"
         )
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
 
@@ -125,7 +130,10 @@ def describe_skillet_eval():
         """Shows pass@k and pass^k metrics when samples > 1."""
         evals_dir = _setup_eval_env(tmp_path)
 
-        term = terminal(f"{SKILLET} eval {evals_dir} --samples 3 --parallel 1 --skip-cache --trust")
+        term = terminal(
+            f"{SKILLET} eval {evals_dir}"
+            f" --agent claude --samples 3 --parallel 1 --skip-cache --trust"
+        )
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
         expect(term.get_by_text("pass@3")).to_be_visible()
         expect(term.get_by_text("pass^3")).to_be_visible()
@@ -147,7 +155,7 @@ def describe_skillet_eval():
         # Use a small terminal so 12 evals can't fit as individual rows
         term = terminal(
             f"{SKILLET} eval {evals_dir} {skill_file}"
-            f" --samples 1 --parallel 3 --skip-cache --trust",
+            f" --agent claude --samples 1 --parallel 3 --skip-cache --trust",
             rows=15,
         )
 
@@ -184,7 +192,8 @@ def describe_skillet_eval():
         )
 
         term = terminal(
-            f"{SKILLET} eval {evals_dir} {skill_file} --samples 1 --parallel 1 --skip-cache --trust"
+            f"{SKILLET} eval {evals_dir} {skill_file}"
+            f" --agent claude --samples 1 --parallel 1 --skip-cache --trust"
         )
         expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)
 
@@ -192,6 +201,32 @@ def describe_skillet_eval():
         terminal: Callable[..., Terminal],
     ):
         """Exits with error for a missing eval directory."""
-        term = terminal(f"{SKILLET} eval /nonexistent/path/to/evals --trust")
+        term = terminal(f"{SKILLET} eval /nonexistent/path/to/evals --agent claude --trust")
         expect(term).to_have_exited()
         assert term.exit_code != 0
+
+    def it_fails_when_agent_flag_is_omitted(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
+        """Omitting the required --agent flag is an error."""
+        evals_dir = _setup_eval_env(tmp_path)
+
+        term = terminal(f"{SKILLET} eval {evals_dir} --samples 1 --parallel 1 --skip-cache --trust")
+        expect(term).to_have_exited()
+        assert term.exit_code != 0
+
+    @pytest.mark.asyncio
+    async def it_runs_evaluation_with_agent_claude(
+        terminal: Callable[..., Terminal],
+        tmp_path: Path,
+    ):
+        """Runs eval routing the agent under test through the real claude CLI."""
+        evals_dir = _setup_eval_env(tmp_path)
+
+        term = terminal(
+            f"{SKILLET} eval {evals_dir}"
+            f" --agent claude --samples 1 --max-evals 1 --parallel 1 --skip-cache --trust"
+        )
+        expect(term.get_by_text("Agent:")).to_be_visible(timeout=300)
+        expect(term.get_by_text("Overall pass rate:")).to_be_visible(timeout=300)

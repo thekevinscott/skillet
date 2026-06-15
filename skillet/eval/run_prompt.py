@@ -1,9 +1,11 @@
-"""Run prompts through Claude."""
+"""Run prompts through the agent under test."""
 
 import os
 from pathlib import Path
 
-from skillet._internal.sdk import QueryResult, query_multiturn
+from skillet._internal.agent import run_agent
+from skillet._internal.sdk import QueryResult
+from skillet.agent import Agent
 from skillet.config import DEFAULT_SKILL_TOOLS
 
 
@@ -13,16 +15,19 @@ async def run_prompt(
     allowed_tools: list[str] | None = None,
     cwd: str | None = None,
     home_dir: str | None = None,
+    *,
+    agent: Agent,
 ) -> QueryResult:
-    """Run a prompt (or multi-turn conversation) through Claude and return the response.
+    """Run a prompt (or multi-turn conversation) through the agent and return the response.
 
     Args:
         prompt: Single prompt string, or list of prompts for multi-turn conversation.
                 For multi-turn, each prompt is sent sequentially, resuming the session.
         skill_path: Path to skill directory for Skill tool
         allowed_tools: List of allowed tools
-        cwd: Working directory for Claude
+        cwd: Working directory for the agent
         home_dir: Custom HOME directory for isolated execution
+        agent: The agent under test (drives the CLI that runs the skill).
 
     Returns:
         QueryResult with text response and all tool calls made
@@ -47,23 +52,15 @@ async def run_prompt(
     else:
         tools = list(allowed_tools) if allowed_tools else []
 
-    # Build query options
-    query_kwargs: dict = {
-        "max_turns": 10,
-        "allowed_tools": tools or None,
-        "cwd": cwd,
-        "setting_sources": ["project"] if cwd else None,
-    }
-
-    # Add custom HOME if provided
+    # Add custom HOME if provided so the agent runs against an isolated home
+    env: dict[str, str] | None = None
     if home_dir:
         env = os.environ.copy()
         env["HOME"] = home_dir
-        query_kwargs["env"] = env
 
-    result = await query_multiturn(prompts, **query_kwargs)
+    result = await run_agent(agent, prompts, allowed_tools=tools or None, cwd=cwd, env=env)
 
     if not result.text:
-        result.text = "(no text response - Claude may have only used tools)"
+        result.text = "(no text response - the agent may have only used tools)"
 
     return result

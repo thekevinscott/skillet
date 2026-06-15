@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from skillet import evaluate
+from skillet.agent import Agent
 from skillet.errors import EmptyFolderError
 from skillet.eval.evaluate.result import EvaluateResult, IterationResult
 
@@ -12,25 +13,33 @@ from .conftest import create_eval_file
 
 
 def describe_evaluate():
-    """Integration tests for evaluate function."""
+    """Integration tests for evaluate function.
+
+    The agent under test runs the prompt through the (mocked) claude CLI
+    (``mock_claude_cli``); the judge runs through the (mocked) SDK
+    (``mock_claude_query``).
+    """
 
     @pytest.mark.asyncio
-    async def it_evaluates_evals_and_returns_results(skillet_env: Path, mock_claude_query):
-        """Happy path: evaluates evals with mocked LLM and returns results."""
+    async def it_evaluates_evals_and_returns_results(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
+        """Happy path: evaluates evals with mocked agent + judge and returns results."""
         evals_dir = skillet_env / ".skillet" / "evals" / "test-evals"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml", prompt="Test prompt 1")
         create_eval_file(evals_dir / "002.yaml", prompt="Test prompt 2")
 
-        # For 2 evals with samples=1: need 4 responses (2 prompts + 2 judgments)
+        # 2 evals, samples=1: agent runs each prompt, judge grades each.
+        mock_claude_cli.set_responses("Test response 1", "Test response 2")
         mock_claude_query.set_responses(
-            "Test response 1",  # First prompt execution
-            {"pass": True, "reasoning": "Response meets expectations"},  # First judgment
-            "Test response 2",  # Second prompt execution
-            {"pass": True, "reasoning": "Response meets expectations"},  # Second judgment
+            {"pass": True, "reasoning": "Response meets expectations"},
+            {"pass": True, "reasoning": "Response meets expectations"},
         )
 
-        result = await evaluate("test-evals", samples=1, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "test-evals", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         assert isinstance(result, EvaluateResult)
         assert result.total_runs == 2
@@ -40,7 +49,7 @@ def describe_evaluate():
         assert all(isinstance(r, IterationResult) for r in result.results)
 
     @pytest.mark.asyncio
-    async def it_evaluates_with_skill_path(skillet_env: Path, mock_claude_query):
+    async def it_evaluates_with_skill_path(skillet_env: Path, mock_claude_cli, mock_claude_query):
         """Evaluates using a skill file."""
         evals_dir = skillet_env / ".skillet" / "evals" / "skill-test"
         evals_dir.mkdir(parents=True)
@@ -52,11 +61,8 @@ def describe_evaluate():
         skill_file = skill_dir / "SKILL.md"
         skill_file.write_text("# Test Skill\n\nInstructions here.")
 
-        # 1 eval with samples=1: need 2 responses
-        mock_claude_query.set_responses(
-            "Response with skill",
-            {"pass": True, "reasoning": "Good"},
-        )
+        mock_claude_cli.set_responses("Response with skill")
+        mock_claude_query.set_responses({"pass": True, "reasoning": "Good"})
 
         result = await evaluate(
             "skill-test",
@@ -64,88 +70,88 @@ def describe_evaluate():
             samples=1,
             parallel=1,
             skip_cache=True,
+            agent=Agent.CLAUDE,
         )
 
         assert result.total_runs == 1
         assert result.pass_rate == 100.0
 
     @pytest.mark.asyncio
-    async def it_handles_failing_judgments(skillet_env: Path, mock_claude_query):
+    async def it_handles_failing_judgments(skillet_env: Path, mock_claude_cli, mock_claude_query):
         """Returns proper pass_rate when judge returns failures."""
         evals_dir = skillet_env / ".skillet" / "evals" / "failing-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
         create_eval_file(evals_dir / "002.yaml")
 
-        # 2 evals with samples=1, both failing
+        mock_claude_cli.set_responses("Wrong response 1", "Wrong response 2")
         mock_claude_query.set_responses(
-            "Wrong response 1",
             {"pass": False, "reasoning": "Did not meet expectations"},
-            "Wrong response 2",
             {"pass": False, "reasoning": "Did not meet expectations"},
         )
 
-        result = await evaluate("failing-test", samples=1, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "failing-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         assert result.total_runs == 2
         assert result.pass_rate == 0.0
         assert all(not r.passed for r in result.results)
 
     @pytest.mark.asyncio
-    async def it_respects_max_evals_parameter(skillet_env: Path, mock_claude_query):
+    async def it_respects_max_evals_parameter(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
         """Limits number of evals when max_evals is set."""
         evals_dir = skillet_env / ".skillet" / "evals" / "many-evals"
         evals_dir.mkdir(parents=True)
         for i in range(5):
             create_eval_file(evals_dir / f"{i:03d}.yaml", prompt=f"Prompt {i}")
 
-        # max_evals=2, samples=1: need 4 responses (2 evals * 2 calls each)
+        mock_claude_cli.set_responses("Response 1", "Response 2")
         mock_claude_query.set_responses(
-            "Response 1",
             {"pass": True, "reasoning": "OK"},
-            "Response 2",
             {"pass": True, "reasoning": "OK"},
         )
 
-        result = await evaluate("many-evals", max_evals=2, samples=1, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "many-evals", max_evals=2, samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         assert result.sampled_evals == 2
         assert result.total_evals == 5
         assert result.total_runs == 2
 
     @pytest.mark.asyncio
-    async def it_respects_samples_parameter(skillet_env: Path, mock_claude_query):
+    async def it_respects_samples_parameter(skillet_env: Path, mock_claude_cli, mock_claude_query):
         """Runs multiple samples per eval."""
         evals_dir = skillet_env / ".skillet" / "evals" / "samples-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
 
-        # 1 eval with samples=3: need 6 responses (3 samples * 2 calls each)
+        mock_claude_cli.set_responses("Response 1", "Response 2", "Response 3")
         mock_claude_query.set_responses(
-            "Response 1",
             {"pass": True, "reasoning": "OK"},
-            "Response 2",
             {"pass": True, "reasoning": "OK"},
-            "Response 3",
             {"pass": True, "reasoning": "OK"},
         )
 
-        result = await evaluate("samples-test", samples=3, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "samples-test", samples=3, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         assert result.sampled_evals == 1
         assert result.total_runs == 3
 
     @pytest.mark.asyncio
-    async def it_calls_on_status_callback(skillet_env: Path, mock_claude_query):
+    async def it_calls_on_status_callback(skillet_env: Path, mock_claude_cli, mock_claude_query):
         """Invokes on_status callback during evaluation."""
         evals_dir = skillet_env / ".skillet" / "evals" / "callback-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
 
-        mock_claude_query.set_responses(
-            "Response",
-            {"pass": True, "reasoning": "OK"},
-        )
+        mock_claude_cli.set_responses("Response")
+        mock_claude_query.set_responses({"pass": True, "reasoning": "OK"})
 
         status_calls = []
 
@@ -158,6 +164,7 @@ def describe_evaluate():
             parallel=1,
             on_status=on_status,
             skip_cache=True,
+            agent=Agent.CLAUDE,
         )
 
         # Should have running and done states
@@ -169,35 +176,34 @@ def describe_evaluate():
     async def it_raises_error_for_nonexistent_evals(skillet_env: Path):  # noqa: ARG001
         """Raises EmptyFolderError for missing eval directory."""
         with pytest.raises(EmptyFolderError):
-            await evaluate("nonexistent-evals")
+            await evaluate("nonexistent-evals", agent=Agent.CLAUDE)
 
     @pytest.mark.asyncio
-    async def it_returns_per_eval_pass_at_k_and_pass_pow_k(skillet_env: Path, mock_claude_query):
+    async def it_returns_per_eval_pass_at_k_and_pass_pow_k(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
         """Returns per-eval pass@k and pass^k metrics when samples > 1."""
         evals_dir = skillet_env / ".skillet" / "evals" / "metrics-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml", prompt="Prompt 1")
         create_eval_file(evals_dir / "002.yaml", prompt="Prompt 2")
 
-        # 2 evals, 3 samples each = 12 responses (6 prompts + 6 judgments)
+        # 2 evals, 3 samples each. Agent runs 6 prompts; judge grades 6 times.
         # Eval 001: pass, fail, pass (2/3)
         # Eval 002: pass, pass, pass (3/3)
+        mock_claude_cli.set_responses("R1", "R2", "R3", "R4", "R5", "R6")
         mock_claude_query.set_responses(
-            "R1",
             {"pass": True, "reasoning": "OK"},  # eval 001 sample 1
-            "R2",
             {"pass": False, "reasoning": "Bad"},  # eval 001 sample 2
-            "R3",
             {"pass": True, "reasoning": "OK"},  # eval 001 sample 3
-            "R4",
             {"pass": True, "reasoning": "OK"},  # eval 002 sample 1
-            "R5",
             {"pass": True, "reasoning": "OK"},  # eval 002 sample 2
-            "R6",
             {"pass": True, "reasoning": "OK"},  # eval 002 sample 3
         )
 
-        result = await evaluate("metrics-test", samples=3, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "metrics-test", samples=3, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         metrics = result.per_eval_metrics
         assert len(metrics) == 2
@@ -213,7 +219,9 @@ def describe_evaluate():
         assert eval_002.pass_pow_k == 1.0
 
     @pytest.mark.asyncio
-    async def it_uses_assertions_instead_of_judge(skillet_env: Path, mock_claude_query):
+    async def it_uses_assertions_instead_of_judge(
+        skillet_env: Path, mock_claude_cli, mock_claude_query
+    ):
         """When assertions are present, grades deterministically without calling the judge."""
         evals_dir = skillet_env / ".skillet" / "evals" / "assert-test"
         evals_dir.mkdir(parents=True)
@@ -227,19 +235,22 @@ def describe_evaluate():
             ],
         )
 
-        # Only need 1 response (prompt). No judge call expected.
-        mock_claude_query.set_responses("The answer is 4.")
+        # Only the agent runs; no judge call expected.
+        mock_claude_cli.set_responses("The answer is 4.")
 
-        result = await evaluate("assert-test", samples=1, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "assert-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         assert result.total_runs == 1
         assert result.pass_rate == 100.0
         assert result.results[0].passed
-        # Judge should not have been called — only 1 SDK call (the prompt), not 2
-        assert mock_claude_query.call_count == 1
+        # Agent ran once; judge (SDK) was never called.
+        assert mock_claude_cli.call_count == 1
+        assert mock_claude_query.call_count == 0
 
     @pytest.mark.asyncio
-    async def it_handles_assertion_failures(skillet_env: Path, mock_claude_query):
+    async def it_handles_assertion_failures(skillet_env: Path, mock_claude_cli):
         """When assertions fail, returns pass=False with reasoning."""
         evals_dir = skillet_env / ".skillet" / "evals" / "assert-fail"
         evals_dir.mkdir(parents=True)
@@ -252,27 +263,29 @@ def describe_evaluate():
             ],
         )
 
-        mock_claude_query.set_responses("The answer is 4.")
+        mock_claude_cli.set_responses("The answer is 4.")
 
-        result = await evaluate("assert-fail", samples=1, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "assert-fail", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         assert result.total_runs == 1
         assert result.pass_rate == 0.0
         assert not result.results[0].passed
 
     @pytest.mark.asyncio
-    async def it_handles_llm_errors_gracefully(skillet_env: Path, mock_claude_query):
-        """Returns failure result when LLM call fails."""
+    async def it_handles_llm_errors_gracefully(skillet_env: Path, mock_claude_cli):
+        """Returns failure result when the agent CLI call fails."""
         evals_dir = skillet_env / ".skillet" / "evals" / "error-test"
         evals_dir.mkdir(parents=True)
         create_eval_file(evals_dir / "001.yaml")
 
-        # First call (run_prompt) raises error
-        mock_claude_query.set_responses(
-            RuntimeError("API error"),
-        )
+        # The agent run raises before the judge is reached.
+        mock_claude_cli.set_responses(RuntimeError("API error"))
 
-        result = await evaluate("error-test", samples=1, parallel=1, skip_cache=True)
+        result = await evaluate(
+            "error-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+        )
 
         # Should still return results, but marked as failed
         assert result.total_runs == 1
