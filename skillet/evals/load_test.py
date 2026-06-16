@@ -2,7 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -101,16 +100,26 @@ def describe_load_evals():
             with pytest.raises(EvalValidationError, match="missing required fields"):
                 load_evals(tmpdir)
 
+    def it_resolves_bare_name_under_injected_skillet_dir():
+        """A bare name resolves to ``<skillet_dir>/evals/<name>`` when injected."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            evals_dir = Path(tmpdir) / "evals" / "my-evals"
+            evals_dir.mkdir(parents=True)
+            (evals_dir / "001.yaml").write_text(
+                "timestamp: 2024-01-01\nprompt: a prompt\nexpected: a response\nname: my-eval\n"
+            )
+
+            result = load_evals("my-evals", skillet_dir=Path(tmpdir))
+            assert len(result) == 1
+            assert result[0]["_source"] == "001.yaml"
+
     def it_raises_when_evals_subpath_is_file():
-        """Test error when ~/.skillet/evals/<name> exists but is a file, not a directory."""
-        with (
-            tempfile.TemporaryDirectory() as tmpdir,
-            patch("skillet.evals.load.SKILLET_DIR", Path(tmpdir)),
-        ):
+        """Error when ``<skillet_dir>/evals/<name>`` exists but is a file, not a directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
             evals_dir = Path(tmpdir) / "evals"
             evals_dir.mkdir()
             # Create a file where we expect a directory
             (evals_dir / "my-evals").write_text("not a directory")
 
             with pytest.raises(EmptyFolderError, match="Not a directory"):
-                load_evals("my-evals")
+                load_evals("my-evals", skillet_dir=Path(tmpdir))

@@ -31,8 +31,13 @@ async def tune_dspy(
     config: TuneConfig | None = None,
     callbacks: TuneCallbacks | None = None,
     evals_list: list[dict] | None = None,
+    skillet_dir: Path | None = None,
 ) -> TuneResult:
-    """Tune a skill using DSPy's MIPROv2-inspired instruction generation."""
+    """Tune a skill using DSPy's MIPROv2-inspired instruction generation.
+
+    ``skillet_dir`` is the root holding ``evals/`` when ``name`` is a bare name;
+    it falls back to the configured ``SKILLET_DIR`` when ``None``.
+    """
     # Use defaults if not provided
     config = config or TuneConfig()
     callbacks = callbacks or TuneCallbacks()
@@ -40,7 +45,7 @@ async def tune_dspy(
     # Load skill and evals
     original_skill_file = get_skill_file(skill_path)
     original_skill_content = original_skill_file.read_text()
-    evals = evals_list if evals_list is not None else load_evals(name)
+    evals = evals_list if evals_list is not None else load_evals(name, skillet_dir=skillet_dir)
     trainset = evals_to_trainset(evals)
 
     # Create result tracker

@@ -90,6 +90,7 @@ def describe_eval_without_claude_sdk():
                 parallel=1,
                 skip_cache=True,
                 agent=Agent.CODEX,
+                skillet_dir=skillet_env / ".skillet",
             )
 
         assert mock_codex_cli.call_count == 3

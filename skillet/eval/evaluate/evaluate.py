@@ -23,14 +23,19 @@ async def evaluate(  # noqa: PLR0913, C901
     on_status: Callable[[dict, str, dict | None], Awaitable[None]] | None = None,
     skip_cache: bool = False,
     evals_list: list[dict] | None = None,
+    skillet_dir: Path | None = None,
     *,
     agent: Agent,
 ) -> EvaluateResult:
-    """Evaluate evals in parallel, with caching."""
+    """Evaluate evals in parallel, with caching.
+
+    ``skillet_dir`` is the root holding ``evals/`` and ``cache/``; entry points
+    inject it, and it falls back to the configured ``SKILLET_DIR`` when ``None``.
+    """
     import random
 
     if evals_list is None:
-        evals_list = load_evals(name)
+        evals_list = load_evals(name, skillet_dir=skillet_dir)
     total_evals = len(evals_list)
 
     # Sample evals if requested
@@ -59,9 +64,10 @@ async def evaluate(  # noqa: PLR0913, C901
                 task["assertions"] = eval_data["assertions"]
             tasks.append(task)
 
-    # Construct the cache at runtime (reads config.CACHE_DIR now, not at import)
-    # and thread it down, so caching is fully owned by cachetta's decorator.
-    iteration_cache = build_iteration_cache(config.CACHE_DIR, name, skill_path, agent)
+    # Construct the cache at runtime under the injected (or configured) root and
+    # thread it down, so caching is fully owned by cachetta's decorator.
+    cache_root = skillet_dir / "cache" if skillet_dir is not None else config.CACHE_DIR
+    iteration_cache = build_iteration_cache(cache_root, name, skill_path, agent)
 
     # Run with semaphore for parallelism control
     semaphore = asyncio.Semaphore(parallel)

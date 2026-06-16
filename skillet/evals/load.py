@@ -4,20 +4,24 @@ from pathlib import Path
 
 import yaml
 
-from skillet.config import SKILLET_DIR
+from skillet import config
 from skillet.errors import EmptyFolderError, EvalValidationError
 
 from .validate_eval import validate_eval
 
 
-def load_evals(name: str) -> list[dict]:
+def load_evals(name: str, skillet_dir: Path | None = None) -> list[dict]:
     """Load eval files for an eval set.
 
     Args:
         name: One of:
-            - A name (looks in ~/.skillet/evals/<name>/)
+            - A name (looks in ``<skillet_dir>/evals/<name>/``)
             - A path to a directory (loads all .yaml files recursively)
             - A path to a single .yaml file
+        skillet_dir: Root holding ``evals/`` when ``name`` is a bare name.
+            Injected by entry points; when ``None`` it falls back to the
+            configured ``SKILLET_DIR`` (the ``SKILLET_DIR`` env var, else
+            ``~/.skillet``).
 
     Returns:
         List of eval dicts with _source and _content fields added
@@ -40,7 +44,8 @@ def load_evals(name: str) -> list[dict]:
         return [eval_data]
 
     # Handle directory case
-    evals_dir = name_path if name_path.is_dir() else SKILLET_DIR / "evals" / name
+    root = skillet_dir if skillet_dir is not None else config.SKILLET_DIR
+    evals_dir = name_path if name_path.is_dir() else root / "evals" / name
 
     if not evals_dir.exists():
         raise EmptyFolderError(f"No evals found for '{name}'. Expected: {evals_dir}")

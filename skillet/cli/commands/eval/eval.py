@@ -41,10 +41,15 @@ async def eval_command(  # noqa: PLR0913
     skip_cache: bool = False,
     trust: bool = False,
     no_summary: bool = False,
+    skillet_dir: Path | None = None,
     *,
     agent: Agent,
 ):
-    """Run eval command with display."""
+    """Run eval command with display.
+
+    ``skillet_dir`` is the root holding ``evals/`` and ``cache/``; it falls back
+    to the configured ``SKILLET_DIR`` when ``None``.
+    """
     from skillet.evals import load_evals
 
     # Print header
@@ -57,7 +62,7 @@ async def eval_command(  # noqa: PLR0913
     console.print(f"Agent: [cyan]{agent.value}[/cyan]")
 
     # Load evals first to build the task list for display
-    evals = load_evals(name)
+    evals = load_evals(name, skillet_dir=skillet_dir)
     if max_evals and max_evals < len(evals):
         import random
 
@@ -100,6 +105,7 @@ async def eval_command(  # noqa: PLR0913
             on_status=on_status,
             skip_cache=skip_cache,
             evals_list=evals,
+            skillet_dir=skillet_dir,
             agent=agent,
         )
     finally:

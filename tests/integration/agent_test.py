@@ -49,7 +49,13 @@ def describe_agent_flag():
             "skillet.eval.evaluate.evaluate.build_iteration_cache",
             wraps=build_iteration_cache,
         ) as spy:
-            await evaluate("cache-key-test", samples=1, parallel=1, agent=Agent.CLAUDE)
+            await evaluate(
+                "cache-key-test",
+                samples=1,
+                parallel=1,
+                agent=Agent.CLAUDE,
+                skillet_dir=skillet_env / ".skillet",
+            )
 
         spy.assert_called_once()
         assert Agent.CLAUDE in spy.call_args.args
@@ -72,7 +78,12 @@ def describe_agent_flag():
         )
 
         result = await evaluate(
-            "stream-test", samples=1, parallel=1, skip_cache=True, agent=Agent.CLAUDE
+            "stream-test",
+            samples=1,
+            parallel=1,
+            skip_cache=True,
+            agent=Agent.CLAUDE,
+            skillet_dir=skillet_env / ".skillet",
         )
 
         assert result.total_runs == 1

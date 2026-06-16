@@ -33,7 +33,7 @@ def describe_load_evals_call_count():
 
         from skillet.evals import load_evals
 
-        evals = load_evals("perf-test")
+        evals = load_evals("perf-test", skillet_dir=skillet_env / ".skillet")
 
         mock_claude_cli.set_responses("Response")
         mock_claude_query.set_responses({"pass": True, "reasoning": "OK"})
@@ -46,6 +46,7 @@ def describe_load_evals_call_count():
                 skip_cache=True,
                 evals_list=evals,
                 agent=Agent.CLAUDE,
+                skillet_dir=skillet_env / ".skillet",
             )
             spy.assert_not_called()
 
@@ -75,6 +76,7 @@ def describe_load_evals_call_count():
                 parallel=1,
                 skip_cache=True,
                 agent=Agent.CLAUDE,
+                skillet_dir=skillet_env / ".skillet",
             )
             spy.assert_called_once()
 
@@ -115,6 +117,7 @@ def describe_iteration_cache_construction():
                 parallel=1,
                 skip_cache=True,
                 agent=Agent.CLAUDE,
+                skillet_dir=skillet_env / ".skillet",
             )
 
         # The cache is built once for the whole run, so the skill is hashed once.
@@ -161,6 +164,7 @@ def describe_no_summary_flag():
                 skip_cache=True,
                 no_summary=True,
                 agent=Agent.CLAUDE,
+                skillet_dir=skillet_env / ".skillet",
             )
             mock_summarize.assert_not_called()
 
@@ -184,5 +188,6 @@ def describe_no_summary_flag():
                 parallel=1,
                 skip_cache=True,
                 agent=Agent.CLAUDE,
+                skillet_dir=skillet_env / ".skillet",
             )
             mock_summarize.assert_called_once()

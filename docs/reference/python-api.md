@@ -40,6 +40,7 @@ async def evaluate(
     on_status: Callable | None = None,
     skip_cache: bool = False,
     evals_list: list[dict] | None = None,
+    skillet_dir: Path | None = None,
 ) -> dict
 ```
 
@@ -56,6 +57,7 @@ async def evaluate(
 | `on_status` | Callable | None | Progress callback |
 | `skip_cache` | bool | False | Ignore cached results |
 | `evals_list` | list[dict] | None | Pre-loaded evals (skips `load_evals()` call) |
+| `skillet_dir` | Path | None | Root holding `evals/` and `cache/` (defaults to `SKILLET_DIR`) |
 
 **Returns:**
 
@@ -107,6 +109,7 @@ async def tune(
     config: TuneConfig | None = None,
     callbacks: TuneCallbacks | None = None,
     evals_list: list[dict] | None = None,
+    skillet_dir: Path | None = None,
 ) -> TuneResult
 ```
 
@@ -119,6 +122,7 @@ async def tune(
 | `config` | TuneConfig | None | Tuning options |
 | `callbacks` | TuneCallbacks | None | Progress callbacks |
 | `evals_list` | list[dict] | None | Pre-loaded evals (skips `load_evals()` call) |
+| `skillet_dir` | Path | None | Root holding `evals/` (defaults to `SKILLET_DIR`) |
 
 **TuneConfig:**
 
@@ -179,6 +183,7 @@ async def create_skill(
     output_dir: Path,
     extra_prompt: str | None = None,
     overwrite: bool = False,
+    skillet_dir: Path | None = None,
 ) -> dict
 ```
 
@@ -190,6 +195,7 @@ async def create_skill(
 | `output_dir` | Path | required | Base directory for skill |
 | `extra_prompt` | str | None | Additional generation instructions |
 | `overwrite` | bool | False | Replace existing skill |
+| `skillet_dir` | Path | None | Root holding `evals/` (defaults to `SKILLET_DIR`) |
 
 **Returns:**
 
