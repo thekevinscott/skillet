@@ -10,7 +10,7 @@ jobs:
     # Skip for dependabot PRs and PRs with skip-changelog label
     if: github.actor != 'dependabot[bot]'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
