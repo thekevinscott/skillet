@@ -5,11 +5,18 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
 
 permissions:
-  checks: read
+  actions: read
+  contents: read
+  # willfire reads the PR and its changed files to predict which workflows dispatch.
+  pull-requests: read
 
 jobs:
   monitor:
     name: 'CI Gate'
     runs-on: ubuntu-latest
+    # The action has no timeout of its own (see monitor.ts) -- this is the
+    # backstop. If a predicted run never dispatches, the gate waits here
+    # until the job is killed.
+    timeout-minutes: 20
     steps:
       - uses: thekevinscott/pr-monitor@v1
