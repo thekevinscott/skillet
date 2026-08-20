@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- CI: `pr-monitor` is pinned to `thekevinscott/pr-monitor@v1` instead of `clankerbot/pr-monitor@v1`. The old path resolved only through GitHub's owner-rename redirect, and a different account has since claimed the name `clankerbot` — once it holds a repo called `pr-monitor` the redirect is superseded and the workflow would run a stranger's action with our workflow token. Also drops the `job-name` and `excluded-jobs` inputs, neither of which the current action declares; it compares workflow runs rather than check runs, so Netlify's external checks were never in scope for exclusion
+
 ### Removed
 - **Breaking:** `skillet compare` and `skillet show` CLI commands. `eval` already reports pass rates plus `pass@k`/`pass^k`, and a warm-cache re-run reproduces `show`'s summary; these were the only consumers of cache *enumeration*, so removing them clears the path to a memoization-only cache. The `skillet create` next-step hint now points to `skillet tune` instead of `skillet compare`
 - **Breaking:** `compare()` and `show()` Python API functions and their result dataclasses (`CompareResult`, `CompareEvalResult`, `ShowResult`, `ShowEvalResult`) are no longer exported from the `skillet` package
